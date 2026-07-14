@@ -1,6 +1,6 @@
 # pa-voice-mvp
 
-MVP für einen Voice-basierten Personal Assistant (wie Jarvis light).
+MVP für einen Voice-basierten Personal Assistant .
 
 **Ziel:** Out-of-the-box nutzbar für nicht-technische User. Voice-first, lernt aktiv Erkenntnisse über den User (Präferenzen, Wissensstand, Muster), speichert mit Zeitstempeln und nutzt das für natürliche, personalisierte Interaktion.
 
@@ -22,4 +22,4 @@ MVP für einen Voice-basierten Personal Assistant (wie Jarvis light).
 docker compose up
 ```
 
-Repo für Master's Projekt an der Masterschool of Information Technology, Berlin.
+Repo für Projekt an der Masterschool of Information Technology, Berlin.
