@@ -1,0 +1,10 @@
+# Core
+fastapi
+uvicorn
+pymongo
+python-jose[cryptography]
+passlib[bcrypt]
+
+# Memory / AI (später ergänzen)
+# sentence-transformers  # für Embeddings
+# ollama
