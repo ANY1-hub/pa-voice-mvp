@@ -1,10 +1,9 @@
-# Core
+# Core dependencies (generated from pyproject.toml for Docker/compatibility)
 fastapi
-uvicorn
+uvicorn[standard]
 pymongo
 python-jose[cryptography]
 passlib[bcrypt]
+apscheduler
 
-# Memory / AI (später ergänzen)
-# sentence-transformers  # für Embeddings
-# ollama
+# Note: Use 'uv pip compile pyproject.toml -o requirements.txt' or similar for locked versions

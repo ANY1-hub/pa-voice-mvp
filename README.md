@@ -1,25 +1,51 @@
 # pa-voice-mvp
 
-MVP für einen Voice-basierten Personal Assistant .
+**Voice-first Personal Assistant MVP** (inspired by Jarvis)
 
-**Ziel:** Out-of-the-box nutzbar für nicht-technische User. Voice-first, lernt aktiv Erkenntnisse über den User (Präferenzen, Wissensstand, Muster), speichert mit Zeitstempeln und nutzt das für natürliche, personalisierte Interaktion.
+A local-first, privacy-centric voice assistant that actively learns and maintains personal insights.
 
-**Memory:** Start mit Working Memory + Semantic Memory (neuro-inspiriert: Working wie kurzer Kontext/TTL, Semantic als langfristiges Wissensarchiv mit Importance, Zeitstempeln und aktiver Consolidation).
+## Features (MVP)
+- Voice interaction (STT + TTS)
+- Working Memory + Semantic Memory with active consolidation
+- Reminders, notes, and memory-augmented web search
+- Multi-user support with proper isolation
+- Browser UI with one big "Speak" button
 
-**Tech Stack (Local-First):**
-- STT: faster-whisper
-- LLM: Ollama
-- TTS: Piper
+## Tech Stack
 - Backend: FastAPI
-- DB: MongoDB (Community mit Vector Search) auf Synology NAS
-- Auth: JWT
-- UI: Einfache Browser-App mit Speak-Button
+- Database: MongoDB (with Vector Search) on Synology NAS
+- STT: faster-whisper
+- TTS: Piper
+- LLM (MVP): OpenAI (temporary) → later local Ollama
+- Auth: JWT + bcrypt
 
-**Zeitrahmen:** 8 Wochen bis Mitte September 2026 (Master's Projekt Referenz)
+## Getting Started (Development)
 
-## Quick Start (später)
 ```bash
-docker compose up
+# Clone the repo
+git clone https://github.com/ANY1-hub/pa-voice-mvp.git
+cd pa-voice-mvp
+
+# Create virtual environment (recommended: uv or venv)
+uv venv .venv
+source .venv/bin/activate   # or .venv\Scripts\activate on Windows
+
+# Install dependencies
+uv pip install -e ".[dev]"
+
+# Run the app (later)
+uvicorn src.main:app --reload
 ```
 
-Repo für Projekt an der Masterschool of Information Technology, Berlin.
+## Development Standards
+- Clean Code + Best Practices
+- Tests with edge cases for every relevant function (pytest)
+- Security by Design (aligned with ISO/IEC 27001 principles)
+- Accessibility considerations (WCAG 2.2 / ISO 40500)
+- Automated checks via Ruff, Black, mypy, pytest
+
+## Project Memory
+All major decisions are documented in the Project Memory (see internal docs or ask the maintainer).
+
+## License
+To be defined.
