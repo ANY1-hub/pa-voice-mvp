@@ -12,13 +12,19 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=pa_user
       - MONGO_INITDB_ROOT_PASSWORD=pa_secure_password_change_me
 
-  # App service (FastAPI) - wird später ergänzt
-  # app:
-  #   build: .
-  #   ports:
-  #     - "8000:8000"
-  #   depends_on:
-  #     - mongo
+  app:
+    build: .
+    container_name: pa-app
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      - MONGODB_URI=mongodb://pa_user:pa_secure_password_change_me@mongo:27017/?authSource=admin
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - JWT_SECRET=change_this_to_a_secure_secret_in_production
+    depends_on:
+      - mongo
 
 volumes:
   mongo_data:
