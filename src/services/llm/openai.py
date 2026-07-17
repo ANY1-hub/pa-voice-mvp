@@ -1,24 +1,25 @@
 """OpenAI implementation for Language Model."""
 
 import json
-import os
 from typing import Any
 
 from openai import AsyncOpenAI
 
+from src.core.config import get_settings
 from src.services.llm.base import LLMAdapter
 
 
 class OpenAILLMAdapter(LLMAdapter):
     """
     OpenAI-based LLM adapter.
-    Uses 'gpt-4o-mini' by default for MVP.
+    Uses the model configured in Settings (default: gpt-4o-mini).
     """
 
-    def __init__(self, api_key: str | None = None, model: str = "gpt-4o-mini"):
+    def __init__(self, api_key: str | None = None, model: str | None = None):
         """Initialize the OpenAI client."""
-        self.client = AsyncOpenAI(api_key=api_key or os.environ.get("OPENAI_API_KEY"))
-        self.model = model
+        settings = get_settings()
+        self.client = AsyncOpenAI(api_key=api_key or settings.openai_api_key)
+        self.model = model or settings.llm_model
 
     async def generate_response(
         self,
@@ -35,8 +36,7 @@ class OpenAILLMAdapter(LLMAdapter):
 
     async def extract_entities(self, text: str) -> list[str]:
         """
-        Extract named entities from the given text using function calling
-        or structured outputs (JSON mode).
+        Extract named entities from the given text using structured JSON output.
         """
         messages = [
             {
