@@ -40,4 +40,5 @@ def validate_memory_fact(fact: dict[str, Any]) -> None:
         raise InputValidationError("Memory fact must be a dictionary")
 
     if "content" not in fact or not fact["content"]:
-        raise InputValidationError("Memory fact must contain 'content'")
+        raise InputValidationError("Memory fact must contain .content.")
+    sanitize_user_input(fact["content"])

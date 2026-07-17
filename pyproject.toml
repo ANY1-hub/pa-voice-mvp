@@ -25,12 +25,14 @@ dev = [
     "black",
     "mypy",
     "pytest",
+    "httpx",
     "pytest-cov",
     "pytest-asyncio",
     "pre-commit",
 ]
 test = [
     "pytest",
+    "httpx",
     "pytest-cov",
     "pytest-asyncio",
 ]

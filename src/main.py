@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from src.tasks.scheduler import start_scheduler, stop_scheduler
+from src.api.routes.memory import router as memory_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -21,6 +22,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(memory_router, prefix="/api/v1/memory", tags=["memory"])
 
 @app.get("/health")
 async def health_check():
