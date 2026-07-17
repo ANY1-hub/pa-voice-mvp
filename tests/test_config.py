@@ -1,11 +1,14 @@
 from src.core.config import Settings, get_settings
 
 
-def test_settings_defaults():
+def test_settings_defaults(monkeypatch):
     """Settings expose sensible defaults when no env vars are set."""
-    settings = Settings(
-        _env_file=None,  # ignore real .env for this unit test
-    )
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("XAI_API_KEY", raising=False)
+    monkeypatch.delenv("MONGODB_URI", raising=False)
+
+    settings = Settings(_env_file=None)
+
     assert settings.llm_model == "gpt-4o-mini"
     assert settings.embedding_model == "text-embedding-3-small"
     assert settings.mongodb_db_name == "jarvis_db"
