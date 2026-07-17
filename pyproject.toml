@@ -18,6 +18,7 @@ dependencies = [
     "passlib[bcrypt]>=1.7.4",
     "openai>=1.40.0",
     "apscheduler>=3.10.4",
+    "python-dotenv>=1.0.0",
 ]
 
 [project.optional-dependencies]
