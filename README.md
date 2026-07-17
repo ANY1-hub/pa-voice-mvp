@@ -13,7 +13,7 @@ A local-first, privacy-centric voice assistant that actively learns and maintain
 
 ## Tech Stack
 - Backend: FastAPI
-- Database: MongoDB (with Vector Search) on Synology NAS
+- Database: MongoDB Community (Docker) on Synology NAS — embeddings in documents; in-app ranking for Phase 1
 - STT: faster-whisper
 - TTS: Piper
 - LLM (MVP): OpenAI (temporary) → later local Ollama
@@ -33,8 +33,25 @@ source .venv/bin/activate   # or .venv\Scripts\activate on Windows
 # Install dependencies
 uv pip install -e ".[dev]"
 
-# Run the app (later)
+# Copy env and set MONGODB_URI (local Docker or NAS)
+cp .env.example .env
+
+# Run the app
 uvicorn src.main:app --reload
+```
+
+### MongoDB
+
+| Setup | Docs |
+|-------|------|
+| Local Docker (mongo + app) | `docker-compose.yml` |
+| **Synology DS925+ (recommended for shared LAN DB)** | **[docs/nas-mongodb-setup.md](docs/nas-mongodb-setup.md)** + template `deploy/nas/docker-compose.mongodb.yml` |
+
+Example NAS URI in `.env`:
+
+```env
+MONGODB_URI=mongodb://pa_admin:<PASSWORD>@<NAS_IP>:27017/?authSource=admin
+MONGODB_DB_NAME=jarvis_db
 ```
 
 ## Development Standards
