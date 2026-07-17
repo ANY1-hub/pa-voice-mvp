@@ -16,6 +16,7 @@ dependencies = [
     "motor>=3.4.0",
     "python-jose[cryptography]>=3.3.0",
     "passlib[bcrypt]>=1.7.4",
+    "openai>=1.40.0",
     "apscheduler>=3.10.4",
 ]
 

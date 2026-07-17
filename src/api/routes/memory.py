@@ -38,9 +38,17 @@ async def add_working_memory(request: WorkingMemoryRequest):
         )
         return {"status": "success", "data": item}
     except (InputValidationError, MemoryWritePolicyViolation) as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception:
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        err_msg = (
+            f"[LLM_ERR: Validation pipeline failed: {e.__class__.__name__} - {str(e)}] "
+            "[HUMAN_ERR: The system rejected this input due to security rules.]"
+        )
+        raise HTTPException(status_code=400, detail=err_msg) from e
+    except Exception as e:
+        err_msg = (
+            f"[LLM_ERR: Unhandled exception in /working endpoint: {e.__class__.__name__} - {str(e)}] "
+            "[HUMAN_ERR: An unexpected internal error occurred.]"
+        )
+        raise HTTPException(status_code=500, detail=err_msg) from e
 
 
 @router.post("/semantic")
@@ -55,6 +63,14 @@ async def add_semantic_memory(request: SemanticMemoryRequest):
         )
         return {"status": "success", "data": fact}
     except (InputValidationError, MemoryWritePolicyViolation) as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception:
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        err_msg = (
+            f"[LLM_ERR: Validation pipeline failed: {e.__class__.__name__} - {str(e)}] "
+            "[HUMAN_ERR: The system rejected this input due to security rules.]"
+        )
+        raise HTTPException(status_code=400, detail=err_msg) from e
+    except Exception as e:
+        err_msg = (
+            f"[LLM_ERR: Unhandled exception in /semantic endpoint: {e.__class__.__name__} - {str(e)}] "
+            "[HUMAN_ERR: An unexpected internal error occurred.]"
+        )
+        raise HTTPException(status_code=500, detail=err_msg) from e

@@ -1,8 +1,11 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
-from src.tasks.scheduler import start_scheduler, stop_scheduler
+
 from src.api.routes.memory import router as memory_router
+from src.tasks.scheduler import start_scheduler, stop_scheduler
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -11,6 +14,7 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown: disconnect DB, stop scheduler
     stop_scheduler()
+
 
 app = FastAPI(title="Jarvis MVP Backend", lifespan=lifespan)
 
@@ -24,6 +28,7 @@ app.add_middleware(
 )
 
 app.include_router(memory_router, prefix="/api/v1/memory", tags=["memory"])
+
 
 @app.get("/health")
 async def health_check():

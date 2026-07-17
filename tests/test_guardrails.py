@@ -1,7 +1,7 @@
 import pytest
 
-from src.security.guardrails import process_user_message, validate_memory_write
 from src.security.exceptions import InputValidationError, MemoryWritePolicyViolation
+from src.security.guardrails import process_user_message, validate_memory_write
 
 
 def test_process_user_message_normal():

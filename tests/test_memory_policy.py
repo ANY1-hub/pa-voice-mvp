@@ -1,7 +1,7 @@
 import pytest
 
-from src.security.memory_policy import can_write_to_memory
 from src.security.exceptions import MemoryWritePolicyViolation
+from src.security.memory_policy import can_write_to_memory
 
 
 def test_can_write_high_importance():

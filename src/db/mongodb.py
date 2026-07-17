@@ -1,7 +1,6 @@
 """MongoDB connection management using Motor (async)."""
 
 import os
-from typing import Any
 
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 

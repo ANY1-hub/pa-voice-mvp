@@ -1,7 +1,7 @@
 import pytest
 
-from src.security.input_validator import sanitize_user_input, validate_memory_fact
 from src.security.exceptions import InputValidationError
+from src.security.input_validator import sanitize_user_input, validate_memory_fact
 
 
 def test_sanitize_normal_input():
