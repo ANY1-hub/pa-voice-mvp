@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -42,13 +42,13 @@ async def test_semantic_memory_search_without_db():
 
 
 @pytest.mark.asyncio
-async def test_semantic_memory_search_calls_embeddings_when_available():
-    """Search embeds the query when an embeddings adapter is present."""
+async def test_semantic_memory_search_skips_embeddings_without_db():
+    """Without a DB connection we must not call the embeddings API."""
     mock_adapter = AsyncMock(spec=EmbeddingsAdapter)
     mock_adapter.get_embedding.return_value = [1.0, 0.0, 0.0]
 
     mem = SemanticMemory("user_1", embeddings_adapter=mock_adapter)
-    # no DB → still returns [], but embedding must be requested
     result = await mem.search("hiking")
+
     assert result == []
-    mock_adapter.get_embedding.assert_awaited_once_with("hiking")
+    mock_adapter.get_embedding.assert_not_awaited()
