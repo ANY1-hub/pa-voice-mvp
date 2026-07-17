@@ -9,6 +9,7 @@ dependencies = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.30.0",
     "pymongo>=4.8.0",
+"motor>=3.4.0",
     "python-jose[cryptography]>=3.3.0",
     "passlib[bcrypt]>=1.7.4",
     "apscheduler>=3.10.4",
@@ -21,11 +22,13 @@ dev = [
     "mypy",
     "pytest",
     "pytest-cov",
+"pytest-asyncio",
     "pre-commit",
 ]
 test = [
     "pytest",
     "pytest-cov",
+"pytest-asyncio",
 ]
 
 [tool.ruff]
