@@ -2,8 +2,12 @@
 
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+# Load .env before any other local imports that read environment variables
+load_dotenv()
 
 from src.api.routes.memory import router as memory_router
 from src.db.mongodb import close_mongo_connection, connect_to_mongo
