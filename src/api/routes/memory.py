@@ -1,6 +1,6 @@
 """API routes for Working Memory and Semantic Memory."""
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from src.api.deps import get_current_user_id
@@ -62,6 +62,23 @@ async def add_working_memory(
         ) from e
 
 
+@router.get("/working")
+async def retrieve_working_memory(
+    query: str | None = Query(default=None),
+    limit: int = Query(default=20, ge=1, le=100),
+    user_id: str = Depends(get_current_user_id),
+):
+    """Retrieve recent Working Memory items for the current user."""
+    mem = WorkingMemory(user_id=user_id)
+    try:
+        items = await mem.retrieve(query=query, limit=limit)
+        return {"status": "success", "data": items}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Internal Server Error: {e.__class__.__name__}"
+        ) from e
+
+
 @router.post("/semantic")
 async def add_semantic_memory(
     request: SemanticMemoryRequest,
@@ -79,6 +96,24 @@ async def add_semantic_memory(
         return {"status": "success", "data": fact}
     except (InputValidationError, MemoryWritePolicyViolation) as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Internal Server Error: {e.__class__.__name__}"
+        ) from e
+
+
+@router.get("/semantic")
+async def search_semantic_memory(
+    query: str = Query(..., min_length=1),
+    limit: int = Query(default=10, ge=1, le=50),
+    user_id: str = Depends(get_current_user_id),
+):
+    """Search Semantic Memory for the current user (vector or text)."""
+    embeddings = _get_embeddings_adapter()
+    mem = SemanticMemory(user_id=user_id, embeddings_adapter=embeddings)
+    try:
+        facts = await mem.search(query=query, limit=limit)
+        return {"status": "success", "data": facts}
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Internal Server Error: {e.__class__.__name__}"
