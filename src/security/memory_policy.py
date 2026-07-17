@@ -13,7 +13,9 @@ def can_write_to_memory(
     """
     Decide whether a piece of information is allowed to be written to memory.
 
-    This is a first, simple policy for the MVP.
+    Simple first policy for the MVP:
+    - importance must be >= 0.3
+    - source must be one of the allowed values
     """
     # Minimum importance threshold for long-term storage
     if importance_score < 0.3:
@@ -24,5 +26,5 @@ def can_write_to_memory(
     if source not in allowed_sources:
         raise MemoryWritePolicyViolation(f"Source '{source}' not allowed")
 
-    # more rules later (e.g. content filtering, user consent checks, etc.)
+    # more rules later (content filtering, user consent checks, etc.)
     return True
