@@ -1,4 +1,4 @@
-""""Central guardrail orchestrator with proper error handling."""
+"""Central guardrail orchestrator with proper error handling."""
 
 import logging
 from typing import Any
@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 def process_user_message(message: str) -> str:
     """
     Process and validate incoming user messages.
+
     Raises InputValidationError on failure.
     """
     try:
@@ -32,6 +33,7 @@ def validate_memory_write(
 ) -> None:
     """
     Validate and apply policy before writing to memory.
+
     Raises MemoryWritePolicyViolation or InputValidationError on failure.
     """
     try:
@@ -53,16 +55,19 @@ def validate_memory_write(
         ) from e
 
 
-def try_process_user_message(message: str) -> tuple[bool, str | None, str | None]:
+def try_process_user_message(
+    message: str,
+) -> tuple[bool, str | None, str | None]:
     """
     Safe wrapper around process_user_message.
-    Returns (success, sanitized_message, error_message)
+
+    Returns (success, sanitized_message, error_message).
     """
     try:
         sanitized = process_user_message(message)
         return True, sanitized, None
     except InputValidationError as e:
         return False, None, str(e)
-    except Exception as e:
+    except Exception:
         logger.exception("Unexpected error in try_process_user_message")
         return False, None, "Internal processing error"
