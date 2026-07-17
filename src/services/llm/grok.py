@@ -1,28 +1,28 @@
 """Grok (xAI) implementation for Language Model."""
 
 import json
-import os
 from typing import Any
 
 from openai import AsyncOpenAI
 
+from src.core.config import get_settings
 from src.services.llm.base import LLMAdapter
 
 
 class GrokLLMAdapter(LLMAdapter):
     """
     Grok-based LLM adapter (xAI).
-    Uses 'grok-2-latest' by default for MVP.
     Compatible with the OpenAI SDK.
     """
 
-    def __init__(self, api_key: str | None = None, model: str = "grok-2-latest"):
+    def __init__(self, api_key: str | None = None, model: str | None = None):
         """Initialize the xAI client using the OpenAI SDK."""
+        settings = get_settings()
         self.client = AsyncOpenAI(
-            api_key=api_key or os.environ.get("XAI_API_KEY", "dummy_key"),
+            api_key=api_key or settings.xai_api_key or "dummy_key",
             base_url="https://api.x.ai/v1",
         )
-        self.model = model
+        self.model = model or settings.grok_model
 
     async def generate_response(
         self,
@@ -39,8 +39,7 @@ class GrokLLMAdapter(LLMAdapter):
 
     async def extract_entities(self, text: str) -> list[str]:
         """
-        Extract named entities from the given text using function calling
-        or structured outputs (JSON mode).
+        Extract named entities from the given text using structured JSON output.
         """
         messages = [
             {
