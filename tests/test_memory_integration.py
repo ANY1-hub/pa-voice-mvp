@@ -1,8 +1,11 @@
+from unittest.mock import AsyncMock
+
 import pytest
 
 from src.memory.semantic_memory import SemanticMemory
 from src.memory.working_memory import WorkingMemory
 from src.security.exceptions import InputValidationError, MemoryWritePolicyViolation
+from src.services.embeddings.base import EmbeddingsAdapter
 
 
 @pytest.mark.asyncio
@@ -26,6 +29,22 @@ async def test_semantic_memory_valid_write():
     assert fact.content == "The user likes Python"
     assert fact.importance_score == 0.8
     assert "Python" in fact.entities_involved
+    assert fact.embedding is None  # no adapter → no embedding
+
+
+@pytest.mark.asyncio
+async def test_semantic_memory_with_embeddings_adapter():
+    """When an embeddings adapter is provided, the fact gets an embedding."""
+    mock_adapter = AsyncMock(spec=EmbeddingsAdapter)
+    mock_adapter.get_embedding.return_value = [0.1, 0.2, 0.3, 0.4]
+
+    mem = SemanticMemory(user_id="test_user", embeddings_adapter=mock_adapter)
+    fact = await mem.add_fact("I love hiking in the Alps", importance=0.9)
+
+    mock_adapter.get_embedding.assert_awaited_once_with("I love hiking in the Alps")
+    assert fact.embedding == [0.1, 0.2, 0.3, 0.4]
+    assert fact.content == "I love hiking in the Alps"
+    assert fact.user_id == "test_user"
 
 
 @pytest.mark.asyncio
