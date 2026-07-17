@@ -1,11 +1,10 @@
 """API routes for Working Memory and Semantic Memory."""
 
-import os
-
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from src.api.deps import get_current_user_id
+from src.core.config import get_settings
 from src.memory.semantic_memory import SemanticMemory
 from src.memory.working_memory import WorkingMemory
 from src.security.exceptions import InputValidationError, MemoryWritePolicyViolation
@@ -33,10 +32,11 @@ def _get_embeddings_adapter() -> OpenAIEmbeddingsAdapter | None:
     """
     Create the embeddings adapter.
 
-    Returns None if no OPENAI_API_KEY is configured so the system can still
+    Returns None if no OpenAI API key is configured so the system can still
     run without embeddings during local development / tests.
     """
-    if not os.getenv("OPENAI_API_KEY"):
+    settings = get_settings()
+    if not settings.openai_api_key:
         return None
     return OpenAIEmbeddingsAdapter()
 
