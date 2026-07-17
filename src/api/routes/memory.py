@@ -1,5 +1,7 @@
 """API routes for Working Memory and Semantic Memory."""
 
+import os
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
@@ -31,13 +33,12 @@ def _get_embeddings_adapter() -> OpenAIEmbeddingsAdapter | None:
     """
     Create the embeddings adapter.
 
-    Returns None if no API key is configured so the system can still run
-    without embeddings during local development.
+    Returns None if no OPENAI_API_KEY is configured so the system can still
+    run without embeddings during local development / tests.
     """
-    try:
-        return OpenAIEmbeddingsAdapter()
-    except Exception:
+    if not os.getenv("OPENAI_API_KEY"):
         return None
+    return OpenAIEmbeddingsAdapter()
 
 
 @router.post("/working")
