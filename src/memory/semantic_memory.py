@@ -1,18 +1,20 @@
-# Semantic Memory - long-term insights with Vector Search and Temporal Graph metadata
-from __future__ import annotations
+"""Semantic Memory – long-term insights with Vector Search and temporal metadata."""
 
+from src.db.mongodb import db_client
 from src.models.memory import SemanticMemoryFact
 from src.security.guardrails import validate_memory_write
-from src.db.mongodb import db_client
 from src.services.embeddings.base import EmbeddingsAdapter
 
 
 class SemanticMemory:
+    """Long-term memory store backed by MongoDB + optional vector embeddings."""
+
     def __init__(
         self,
         user_id: str,
         embeddings_adapter: EmbeddingsAdapter | None = None,
-    ):
+    ) -> None:
+        """Initialize Semantic Memory for a specific user."""
         self.user_id = user_id
         self.collection = (
             db_client.db["semantic_memory"] if db_client.db is not None else None
@@ -25,6 +27,11 @@ class SemanticMemory:
         importance: float = 0.7,
         entities: list[str] | None = None,
     ) -> SemanticMemoryFact:
+        """
+        Store a new long-term fact.
+
+        Performs security validation and optionally creates an embedding.
+        """
         # 1. Security Check
         fact_dict = {"content": fact}
         validate_memory_write(fact_dict, importance_score=importance, source="user")
@@ -49,10 +56,12 @@ class SemanticMemory:
 
         return memory_fact
 
-    async def search(self, query: str):
-        # Implementation for vector search placeholder
-        pass
+    async def search(self, query: str) -> list[SemanticMemoryFact]:
+        """Search Semantic Memory (vector search placeholder)."""
+        # TODO: implement vector search
+        return []
 
-    async def consolidate(self):
-        # Background job idea: find contradictions, link data, detect drift
+    async def consolidate(self) -> None:
+        """Background consolidation job (contradictions, linking, drift detection)."""
+        # TODO: implement consolidation logic
         pass
