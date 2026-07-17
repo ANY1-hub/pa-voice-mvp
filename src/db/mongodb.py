@@ -1,19 +1,34 @@
-from motor.motor_asyncio import AsyncIOMotorClient
-import os
+"""MongoDB connection management using Motor (async)."""
 
-MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://admin:secret@localhost:27017/?authSource=admin")
+import os
+from typing import Any
+
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
+
+MONGODB_URI = os.getenv(
+    "MONGODB_URI",
+    "mongodb://admin:secret@localhost:27017/?authSource=admin",
+)
+
 
 class MongoDB:
-    client: AsyncIOMotorClient = None
-    db = None
+    """Simple holder for the global MongoDB client and database."""
+
+    client: AsyncIOMotorClient | None = None
+    db: AsyncIOMotorDatabase | None = None
+
 
 db_client = MongoDB()
 
-async def connect_to_mongo():
+
+async def connect_to_mongo() -> None:
+    """Establish the connection to MongoDB and select the database."""
     db_client.client = AsyncIOMotorClient(MONGODB_URI)
     db_client.db = db_client.client["jarvis_db"]
-    # We will initialize vector search indexes here in later phases
+    # Vector search indexes will be initialized here in later phases
 
-async def close_mongo_connection():
-    if db_client.client:
+
+async def close_mongo_connection() -> None:
+    """Close the MongoDB connection if it is open."""
+    if db_client.client is not None:
         db_client.client.close()
