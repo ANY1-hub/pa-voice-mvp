@@ -16,6 +16,7 @@ def sanitize_user_input(text: str) -> str:
     # Very basic protection against obvious prompt injection attempts
     dangerous_patterns = [
         "ignore previous instructions",
+        "ignore all previous rules",
         "system:",
         "assistant:",
         "you are now",
