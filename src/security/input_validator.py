@@ -8,7 +8,9 @@ from .exceptions import InputValidationError
 def sanitize_user_input(text: str) -> str:
     """
     Basic sanitization of user input.
-    Currently very conservative for MVP.
+
+    Currently very conservative for the MVP.
+    Raises InputValidationError on obvious prompt-injection attempts.
     """
     if not isinstance(text, str):
         raise InputValidationError("Input must be a string")
@@ -33,7 +35,7 @@ def sanitize_user_input(text: str) -> str:
 
 
 def validate_memory_fact(fact: dict[str, Any]) -> None:
-    """Validate that a fact about to be written to memory is safe."""
+    """Validate that a fact about to be written to memory is structurally safe."""
     if not isinstance(fact, dict):
         raise InputValidationError("Memory fact must be a dictionary")
 
