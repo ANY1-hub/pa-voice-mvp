@@ -1,15 +1,19 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "pa-voice-mvp"
 version = "0.1.0"
 description = "Voice-first Personal Assistant MVP (Jarvis-like) with neuro-inspired memory"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [{ name = "Your Name" }]
 dependencies = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.30.0",
     "pymongo>=4.8.0",
-"motor>=3.4.0",
+    "motor>=3.4.0",
     "python-jose[cryptography]>=3.3.0",
     "passlib[bcrypt]>=1.7.4",
     "apscheduler>=3.10.4",
@@ -22,14 +26,17 @@ dev = [
     "mypy",
     "pytest",
     "pytest-cov",
-"pytest-asyncio",
+    "pytest-asyncio",
     "pre-commit",
 ]
 test = [
     "pytest",
     "pytest-cov",
-"pytest-asyncio",
+    "pytest-asyncio",
 ]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
 
 [tool.ruff]
 line-length = 88
