@@ -82,3 +82,28 @@ def test_add_semantic_memory_policy_violation():
     assert response.status_code == 400
     detail = response.json()["detail"].lower()
     assert "policy" in detail or "rejected" in detail or "importance" in detail
+
+
+def test_retrieve_working_memory():
+    response = client.get("/api/v1/memory/working", headers=HEADERS)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "success"
+    assert isinstance(body["data"], list)
+
+
+def test_search_semantic_memory():
+    response = client.get(
+        "/api/v1/memory/semantic",
+        headers=HEADERS,
+        params={"query": "cats"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "success"
+    assert isinstance(body["data"], list)
+
+
+def test_search_semantic_memory_requires_query():
+    response = client.get("/api/v1/memory/semantic", headers=HEADERS)
+    assert response.status_code == 422  # missing required query param
