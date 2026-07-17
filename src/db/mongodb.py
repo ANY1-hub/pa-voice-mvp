@@ -1,13 +1,8 @@
 """MongoDB connection management using Motor (async)."""
 
-import os
-
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
-MONGODB_URI = os.getenv(
-    "MONGODB_URI",
-    "mongodb://admin:secret@localhost:27017/?authSource=admin",
-)
+from src.core.config import get_settings
 
 
 class MongoDB:
@@ -22,8 +17,9 @@ db_client = MongoDB()
 
 async def connect_to_mongo() -> None:
     """Establish the connection to MongoDB and select the database."""
-    db_client.client = AsyncIOMotorClient(MONGODB_URI)
-    db_client.db = db_client.client["jarvis_db"]
+    settings = get_settings()
+    db_client.client = AsyncIOMotorClient(settings.mongodb_uri)
+    db_client.db = db_client.client[settings.mongodb_db_name]
     # Vector search indexes will be initialized here in later phases
 
 
