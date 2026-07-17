@@ -38,7 +38,32 @@ class WorkingMemory:
 
         return item
 
-    async def retrieve(self, query: str | None = None) -> list[WorkingMemoryItem]:
-        """Retrieve items from Working Memory (placeholder)."""
-        # TODO: implement retrieval + TTL filtering
-        return []
+    async def retrieve(
+        self,
+        query: str | None = None,
+        limit: int = 20,
+    ) -> list[WorkingMemoryItem]:
+        """
+        Retrieve recent Working Memory items for this user.
+
+        Optional `query` filters by case-insensitive substring match on content.
+        Results are ordered by last_accessed descending.
+        """
+        if self.collection is None:
+            return []
+
+        filters: dict = {"user_id": self.user_id}
+        if query:
+            filters["content"] = {"$regex": query, "$options": "i"}
+
+        cursor = (
+            self.collection.find(filters)
+            .sort("last_accessed", -1)
+            .limit(limit)
+        )
+
+        items: list[WorkingMemoryItem] = []
+        async for doc in cursor:
+            doc.pop("_id", None)
+            items.append(WorkingMemoryItem.model_validate(doc))
+        return items
