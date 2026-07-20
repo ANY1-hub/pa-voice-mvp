@@ -8,14 +8,31 @@ import pytest
 from src.memory.semantic_memory import SemanticMemory
 
 
+class AsyncCursor:
+    """Minimal async iterator that mimics a Motor cursor."""
+
+    def __init__(self, items: list):
+        self._items = items
+
+    def __aiter__(self):
+        return self._aiter()
+
+    async def _aiter(self):
+        for item in self._items:
+            yield item
+
+
 @pytest.fixture
 def mock_collection():
-    """Async mock of a MongoDB collection."""
-    coll = AsyncMock()
-    # delete_many returns a result object with deleted_count
+    """Mock of a MongoDB collection (Motor-style)."""
+    coll = MagicMock()
+    # delete_many is awaited → make it AsyncMock
+    coll.delete_many = AsyncMock()
     delete_result = MagicMock()
     delete_result.deleted_count = 0
     coll.delete_many.return_value = delete_result
+    # find() is synchronous and returns an async iterable
+    coll.find = MagicMock(return_value=AsyncCursor([]))
     return coll
 
 
@@ -79,11 +96,7 @@ async def test_deduplicate_removes_duplicates(mock_collection):
         },
     ]
 
-    async def fake_cursor():
-        for d in docs:
-            yield d
-
-    mock_collection.find.return_value = fake_cursor()
+    mock_collection.find.return_value = AsyncCursor(docs)
 
     delete_result = MagicMock()
     delete_result.deleted_count = 1
@@ -122,16 +135,11 @@ async def test_deduplicate_no_action_on_unique(mock_collection):
         },
     ]
 
-    async def fake_cursor():
-        for d in docs:
-            yield d
-
-    mock_collection.find.return_value = fake_cursor()
+    mock_collection.find.return_value = AsyncCursor(docs)
 
     await mem._deduplicate()
 
-    # delete_many should not have been called (or only with empty, but we skip)
-    # In implementation we only call when len > 1
+    # delete_many should not have been called
     mock_collection.delete_many.assert_not_awaited()
 
 
@@ -145,4 +153,4 @@ async def test_link_and_drift_are_noop(mock_collection):
     await mem._detect_drift()
     # no calls expected
     mock_collection.find.assert_not_called()
-    mock_collection.delete_many.assert_not_called()
+    mock_collection.delete_many.assert_not_awaited()
