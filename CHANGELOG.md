@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tests for consolidation logic (`tests/test_consolidation.py`)
 - Updated memory design documentation
 
+### Changed
+- Semantic search remains in-memory cosine similarity (native `$vectorSearch` deferred).
+  Reason: Current NAS setup uses plain Community Edition Docker image without `mongot` / search index. Native vector search is possible in CE since 2025/26 but requires extra components not yet part of the local-first deployment.
+
 ## [0.1.0] - 2026-07-16
 
 ### Added

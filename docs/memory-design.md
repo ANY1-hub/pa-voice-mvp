@@ -36,10 +36,10 @@ Zwei Memory-Ebenen:
 
 #### Retrieval-Strategie (aktuell)
 
-1. **Mit Embeddings-Adapter:** Query wird eingebettet, Ranking per Cosine Similarity (in-memory, ausreichend für MVP)
-2. **Ohne Embeddings:** Case-insensitive Textsuche auf `content`, sortiert nach `importance_score`
+1. **Mit Embeddings-Adapter:** Query wird eingebettet, Ranking per Cosine Similarity **in-memory** (ausreichend für MVP-Scale).
+2. **Ohne Embeddings:** Case-insensitive Textsuche auf `content`, sortiert nach `importance_score`.
 
-> Hinweis: Native MongoDB Vector Search ist für später vorgesehen. Im MVP bleibt die Ähnlichkeitssuche bewusst in Python.
+> Native MongoDB `$vectorSearch` ist in der Community Edition seit 2025/2026 möglich, erfordert aber zusätzlichen Search-Prozess (`mongot`) und Index-Erstellung. Für den aktuellen Local-First-/NAS-Setup (reines `mongo`-Image) bleibt die in-memory-Variante bewusst aktiv. Ein späterer Wechsel ist vorbereitet.
 
 ## Security
 
