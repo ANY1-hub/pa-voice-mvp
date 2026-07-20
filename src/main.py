@@ -3,9 +3,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-
-
 from src.api.routes.memory import router as memory_router
 from src.db.mongodb import close_mongo_connection, connect_to_mongo
 from src.tasks.scheduler import start_scheduler, stop_scheduler
