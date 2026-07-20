@@ -10,7 +10,7 @@ from src.services.embeddings.base import EmbeddingsAdapter
 @pytest.mark.asyncio
 async def test_working_memory_retrieve_without_db():
     """Without a DB connection retrieve returns an empty list."""
-    wm = WorkingMemory("user_1")
+    wm = WorkingMemory("550e8400-e29b-41d4-a716-446655440000")
     assert wm.collection is None
     result = await wm.retrieve(query="anything")
     assert result == []
@@ -19,7 +19,7 @@ async def test_working_memory_retrieve_without_db():
 @pytest.mark.asyncio
 async def test_semantic_memory_search_without_db():
     """Without a DB connection search returns an empty list."""
-    mem = SemanticMemory("user_1")
+    mem = SemanticMemory("550e8400-e29b-41d4-a716-446655440000")
     assert mem.collection is None
     result = await mem.search("python")
     assert result == []
@@ -31,7 +31,9 @@ async def test_semantic_memory_search_skips_embeddings_without_db():
     mock_adapter = AsyncMock(spec=EmbeddingsAdapter)
     mock_adapter.get_embedding.return_value = [1.0, 0.0, 0.0]
 
-    mem = SemanticMemory("user_1", embeddings_adapter=mock_adapter)
+    mem = SemanticMemory(
+        "550e8400-e29b-41d4-a716-446655440000", embeddings_adapter=mock_adapter
+    )
     result = await mem.search("hiking")
 
     assert result == []
