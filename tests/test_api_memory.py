@@ -4,7 +4,7 @@ from src.main import app
 
 client = TestClient(app)
 
-HEADERS = {"X-User-Id": "test_user"}
+HEADERS = {"X-User-Id": "550e8400-e29b-41d4-a716-446655440000"}
 
 
 def test_health_check():
@@ -33,7 +33,7 @@ def test_add_working_memory_success():
     )
     assert response.status_code == 200
     data = response.json()["data"]
-    assert data["user_id"] == "test_user"
+    assert data["user_id"] == "550e8400-e29b-41d4-a716-446655440000"
     assert data["content"] == "I am testing the api"
     assert data["importance_score"] == 0.5
 
@@ -63,7 +63,7 @@ def test_add_semantic_memory_success():
     )
     assert response.status_code == 200
     data = response.json()["data"]
-    assert data["user_id"] == "test_user"
+    assert data["user_id"] == "550e8400-e29b-41d4-a716-446655440000"
     assert data["content"] == "I like cats"
     assert data["importance_score"] == 0.8
     assert "cats" in data["entities_involved"]

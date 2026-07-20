@@ -1,18 +1,22 @@
-"""Shared FastAPI dependencies."""
+"""API dependencies (Auth, Headers, etc.)."""
+
+from uuid import UUID
 
 from fastapi import Header, HTTPException
 
 
-async def get_current_user_id(x_user_id: str | None = Header(default=None)) -> str:
+async def get_current_user_id(x_user_id: str | None = Header(None, alias="X-User-Id")) -> str:
     """
-    Simple user isolation for the MVP.
-
-    Requires the client to send an `X-User-Id` header.
-    Full JWT authentication will replace this later.
+    Extract and validate the user ID from the request header.
+    Must be a valid UUID. If not, returns 401 Unauthorized.
     """
-    if not x_user_id or not x_user_id.strip():
+    if x_user_id is None:
+        raise HTTPException(status_code=401, detail="Missing X-User-Id header")
+    try:
+        # Validate that it's a valid UUID
+        val = UUID(x_user_id)
+        return str(val)
+    except ValueError as e:
         raise HTTPException(
-            status_code=401,
-            detail="Missing or empty X-User-Id header",
-        )
-    return x_user_id.strip()
+            status_code=401, detail="X-User-Id header must be a valid UUID."
+        ) from e

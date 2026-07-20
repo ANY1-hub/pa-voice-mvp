@@ -124,6 +124,34 @@ class SemanticMemory:
         return results
 
     async def consolidate(self) -> None:
-        """Background consolidation job (contradictions, linking, drift detection)."""
-        # TODO: implement consolidation logic
+        """
+        Background consolidation job.
+        Minimal Scope: Cleanup and deduplication.
+        Prepared for Ambitioniert: Entity linking, drift detection.
+        """
+        if self.collection is None:
+            return
+
+        await self._cleanup_old_entries()
+        await self._deduplicate()
+        await self._link_entities()
+        await self._detect_drift()
+
+    async def _cleanup_old_entries(self) -> None:
+        """Remove facts that are very old and have very low importance."""
+        # Minimal implementation: Just a stub for now.
+        # In a real scenario: self.collection.delete_many({"importance_score": {"$lt": 0.3}, "last_accessed": {"$lt": thirty_days_ago}})
+        pass
+
+    async def _deduplicate(self) -> None:
+        """Detect and merge duplicate facts."""
+        # Minimal implementation: Stub
+        pass
+
+    async def _link_entities(self) -> None:
+        """Phase 2: Build graph relationships between entities."""
+        pass
+
+    async def _detect_drift(self) -> None:
+        """Phase 2: Detect preference drift over time."""
         pass
