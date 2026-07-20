@@ -1,7 +1,6 @@
 """Semantic Memory – long-term insights with Vector Search and temporal metadata."""
 
 import logging
-import math
 from datetime import UTC, datetime, timedelta
 
 from src.db.mongodb import db_client
@@ -10,18 +9,6 @@ from src.security.guardrails import validate_memory_write
 from src.services.embeddings.base import EmbeddingsAdapter
 
 logger = logging.getLogger(__name__)
-
-
-def _cosine_similarity(a: list[float], b: list[float]) -> float:
-    """Compute cosine similarity between two vectors."""
-    if not a or not b or len(a) != len(b):
-        return 0.0
-    dot = sum(x * y for x, y in zip(a, b, strict=True))
-    norm_a = math.sqrt(sum(x * x for x in a))
-    norm_b = math.sqrt(sum(y * y for y in b))
-    if norm_a == 0.0 or norm_b == 0.0:
-        return 0.0
-    return dot / (norm_a * norm_b)
 
 
 class SemanticMemory:
@@ -93,22 +80,32 @@ class SemanticMemory:
         # --- Vector path ---
         if self.embeddings is not None:
             query_embedding = await self.embeddings.get_embedding(query)
-            cursor = self.collection.find(
+
+            pipeline = [
                 {
-                    "user_id": self.user_id,
-                    "embedding": {"$ne": None},
-                }
-            )
-            scored: list[tuple[float, SemanticMemoryFact]] = []
+                    "$vectorSearch": {
+                        "index": "vector_index",  # Must match the search index name in MongoDB
+                        "path": "embedding",
+                        "queryVector": query_embedding,
+                        "numCandidates": limit * 10,
+                        "limit": limit,
+                        "filter": {"user_id": {"$eq": self.user_id}},
+                    }
+                },
+                {
+                    "$project": {
+                        "_id": 0,
+                    }
+                },
+            ]
+
+            cursor = self.collection.aggregate(pipeline)
+            results: list[SemanticMemoryFact] = []
             async for doc in cursor:
                 doc.pop("_id", None)
-                fact = SemanticMemoryFact.model_validate(doc)
-                if fact.embedding:
-                    score = _cosine_similarity(query_embedding, fact.embedding)
-                    scored.append((score, fact))
+                results.append(SemanticMemoryFact.model_validate(doc))
 
-            scored.sort(key=lambda pair: pair[0], reverse=True)
-            return [fact for _, fact in scored[:limit]]
+            return results
 
         # --- Text fallback ---
         cursor = (
