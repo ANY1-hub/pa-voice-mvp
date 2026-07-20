@@ -1,7 +1,7 @@
 # MongoDB Community on Synology DS925+ (Container Manager)
 #
 # Usage:
-#   1. Copy this file to the NAS (e.g. /volume1/docker/pa-mongo/docker-compose.yml)
+#   1. Copy this file to the NAS (e.g. /volume2/docker/pa-mongo/docker-compose.yml)
 #   2. Replace REPLACE_WITH_STRONG_PASSWORD with a strong password
 #   3. Adjust the host bind path if your volume layout differs
 #   4. Create a Container Manager "Project" from that folder and start it
@@ -27,10 +27,13 @@ services:
     volumes:
       # Persistent data on the NAS (survives container recreate).
       # Create the folder in File Station first if it does not exist.
-      - /volume1/docker/pa-mongo/data:/data/db
+      - mongo_data:/data/db  #works only with a named db
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 40s
+
+volumes:
+  mongo_data:                            # because of the named db

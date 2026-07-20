@@ -9,8 +9,8 @@ services:
     volumes:
       - mongo_data:/data/db
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=pa_user
-      - MONGO_INITDB_ROOT_PASSWORD=pa_secure_password_change_me
+      - MONGO_INITDB_ROOT_USERNAME=pa_admin
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
 
   app:
     build: .
@@ -20,7 +20,7 @@ services:
     volumes:
       - .:/app
     environment:
-      - MONGODB_URI=mongodb://pa_user:pa_secure_password_change_me@mongo:27017/?authSource=admin
+      - MONGODB_URI=${LOCAL_MONGODB_URI}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - JWT_SECRET=change_this_to_a_secure_secret_in_production
     depends_on:
