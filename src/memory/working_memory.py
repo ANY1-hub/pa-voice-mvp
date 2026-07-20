@@ -56,11 +56,7 @@ class WorkingMemory:
         if query:
             filters["content"] = {"$regex": query, "$options": "i"}
 
-        cursor = (
-            self.collection.find(filters)
-            .sort("last_accessed", -1)
-            .limit(limit)
-        )
+        cursor = self.collection.find(filters).sort("last_accessed", -1).limit(limit)
 
         items: list[WorkingMemoryItem] = []
         async for doc in cursor:

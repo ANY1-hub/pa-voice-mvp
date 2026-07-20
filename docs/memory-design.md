@@ -1,6 +1,6 @@
 # Memory Design (neuro-inspiriert)
 
-**Inspiration:** Atkinson-Shiffrin Multi-Store Model + aktuelle Consolidation-Forschung  
+**Inspiration:** Atkinson-Shiffrin Multi-Store Model + aktuelle Consolidation-Forschung
 **Ziel:** Der Agent sammelt aktiv Erkenntnisse und pflegt das Wissensarchiv (Jarvis-like).
 
 ## Aktuelle Architektur (MVP)
