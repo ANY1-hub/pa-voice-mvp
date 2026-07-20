@@ -4,6 +4,7 @@ from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class Settings(BaseSettings):
     """
     Application settings loaded from environment variables / .env file.
@@ -14,7 +15,7 @@ class Settings(BaseSettings):
     # --- Secrets ---
     openai_api_key: str | None = None
     xai_api_key: str | None = None
-    mongodb_uri: str = "mongodb://pa_admin:change-me@localhost:27017/?authSource=admin""
+    mongodb_uri: str = "mongodb://pa_admin:change-me@localhost:27017/?authSource=admin"
 
     # --- Non-secret configuration ---
     mongodb_db_name: str = "jarvis_db"
