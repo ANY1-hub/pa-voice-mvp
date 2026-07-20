@@ -1,6 +1,6 @@
 # Memory Design (neuro-inspiriert)
 
-**Inspiration:** Atkinson-Shiffrin Multi-Store Model + aktuelle Consolidation-Forschung
+**Inspiration:** Atkinson-Shiffrin Multi-Store Model + aktuelle Consolidation-Forschung  
 **Ziel:** Der Agent sammelt aktiv Erkenntnisse und pflegt das Wissensarchiv (Jarvis-like).
 
 ## Aktuelle Architektur (MVP)
@@ -11,7 +11,7 @@ Zwei Memory-Ebenen:
 
 - Session-Kontext und letzte Interaktionen
 - Felder pro Eintrag:
-  - `user_id`
+  - `user_id` (UUID-String)
   - `content`
   - `importance_score` (0.0 – 1.0)
   - `created_at`
@@ -24,7 +24,7 @@ Zwei Memory-Ebenen:
 
 - Dauerhafte User-Erkenntnisse: Präferenzen, Fakten, Muster, Wissensstand
 - Felder pro Eintrag:
-  - `user_id`
+  - `user_id` (UUID-String)
   - `content`
   - `importance_score` (0.0 – 1.0)
   - `entities_involved`
@@ -45,18 +45,23 @@ Zwei Memory-Ebenen:
 
 - Jeder Write geht durch `src/security/guardrails.py` → `validate_memory_write`
 - Input-Validierung und Memory-Policy (Importance-Schwelle, erlaubte Sources)
-- User-Isolation über `user_id` in jeder Query
+- User-Isolation über `user_id` (UUID) in jeder Query
+- API-Header `X-User-Id` muss eine gültige UUID sein (sonst 401)
 
-## Consolidation (geplant)
+## Consolidation (MVP – Minimal, erweiterbar)
 
-Hintergrund-Job (APScheduler) für:
+Hintergrund-Job (APScheduler, alle 60 Minuten):
 
-- Verlinken verwandter Fakten
-- Widersprüche erkennen
-- Preference-Drift erkennen (über Timestamps + Importance)
-- Aufräumen veralteter / unwichtiger Einträge
+1. **Promotion Working → Semantic**  
+   Items aus Working Memory mit `importance_score >= 0.7` werden nach Semantic Memory übernommen und danach aus Working Memory gelöscht.
 
-Aktueller Stand: Methode `SemanticMemory.consolidate()` existiert als Stub (`TODO`).
+2. **SemanticMemory.consolidate()** (pro User):
+   - `_cleanup_old_entries()`: Löscht Fakten mit `importance_score < 0.25` und `last_accessed` älter als 30 Tage.
+   - `_deduplicate()`: Entfernt exakte Duplikate (normalisierter Content). Behält den Eintrag mit höchster Importance (bei Gleichstand den neueren).
+   - `_link_entities()`: **Stub** – vorbereitet für Entity-Linking (ambitionierte Version).
+   - `_detect_drift()`: **Stub** – vorbereitet für Preference-Drift-Erkennung (ambitionierte Version).
+
+Die Struktur der Methode ist bewusst so gewählt, dass die ambitionierte Version später nur die Stubs füllen muss, ohne die öffentliche API oder den Scheduler zu ändern.
 
 ## Spätere Erweiterung (4-Level)
 
@@ -67,11 +72,13 @@ Geplant nach dem MVP:
 
 ## Relevante Dateien
 
-| Bereich | Datei |
-|---------|-------|
-| Working Memory | `src/memory/working_memory.py` |
-| Semantic Memory | `src/memory/semantic_memory.py` |
-| Models | `src/models/memory.py` |
-| Security | `src/security/guardrails.py`, `memory_policy.py`, `input_validator.py` |
-| API | `src/api/routes/memory.py` |
-| Embeddings | `src/services/embeddings/` |
+| Bereich              | Datei                                      |
+|----------------------|--------------------------------------------|
+| Working Memory       | `src/memory/working_memory.py`             |
+| Semantic Memory      | `src/memory/semantic_memory.py`            |
+| Models               | `src/models/memory.py`                     |
+| Security             | `src/security/guardrails.py`, `memory_policy.py`, `input_validator.py` |
+| API                  | `src/api/routes/memory.py`                 |
+| Scheduler / Job      | `src/tasks/scheduler.py`                   |
+| Embeddings           | `src/services/embeddings/`                 |
+| Tests (Consolidation)| `tests/test_consolidation.py`              |
