@@ -12,8 +12,9 @@ from src.main import app  # noqa: E402
 
 
 @pytest.fixture
-def client() -> TestClient:
-    return TestClient(app)
+def client():
+    with TestClient(app) as c:
+        yield c
 
 
 @pytest.fixture

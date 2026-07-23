@@ -5,6 +5,7 @@ def test_settings_defaults(monkeypatch):
     """Settings expose sensible defaults when no env vars are set."""
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("XAI_API_KEY", raising=False)
+    monkeypatch.delenv("MONGODB_DB_NAME", raising=False)
     monkeypatch.delenv("MONGODB_URI", raising=False)
     monkeypatch.delenv("SECRET_KEY", raising=False)
 
