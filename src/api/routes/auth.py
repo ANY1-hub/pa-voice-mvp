@@ -1,7 +1,8 @@
 """Authentication routes: register, login, me."""
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
+from src.api.deps import get_current_user
 from src.auth.jwt import create_access_token
 from src.auth.password import hash_password, verify_password
 from src.auth.repository import UserRepository
@@ -60,11 +61,10 @@ async def login(payload: UserLogin) -> dict:
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-''' ** does not work in this step **
 @router.get("/me", response_model=UserPublic)
 async def me(
-    current_user: User = ...,
-) -> UserPublic:  # Placeholder – wird in Schritt 5 ersetzt
+    current_user: User = Depends(get_current_user),  # noqa: B008
+) -> UserPublic:
     """Return the currently authenticated user."""
     return UserPublic(
         id=current_user.id,
@@ -72,4 +72,3 @@ async def me(
         created_at=current_user.created_at,
         is_active=current_user.is_active,
     )
-'''
