@@ -16,12 +16,16 @@ class Settings(BaseSettings):
     openai_api_key: str | None = None
     xai_api_key: str | None = None
     mongodb_uri: str = "mongodb://pa_admin:change-me@localhost:27017/?authSource=admin"
+    secret_key: (
+        str  # JWT signing key – must be set in .env, must not have a default value
+    )
 
     # --- Non-secret configuration ---
     mongodb_db_name: str = "jarvis_db"
     llm_model: str = "gpt-4o-mini"
     embedding_model: str = "text-embedding-3-small"
     grok_model: str = "grok-2-latest"
+    access_token_expire_minutes: int = 1440  # 24 hours
 
     model_config = SettingsConfigDict(
         env_file=".env",
