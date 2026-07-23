@@ -31,4 +31,6 @@ jobs:
         run: black --check src tests
 
       - name: Pytest
+        env:
+          SECRET_KEY: "ci-test-secret-key-do-not-use-in-prod!"
         run: pytest
