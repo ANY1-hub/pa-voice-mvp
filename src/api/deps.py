@@ -1,11 +1,11 @@
-"""API dependencies (Auth, Headers, etc.)."""
-
 from uuid import UUID
 
 from fastapi import Header, HTTPException
 
 
-async def get_current_user_id(x_user_id: str | None = Header(None, alias="X-User-Id")) -> str:
+async def get_current_user_id(
+    x_user_id: str | None = Header(None, alias="X-User-Id"),
+) -> str:
     """
     Extract and validate the user ID from the request header.
     Must be a valid UUID. If not, returns 401 Unauthorized.
