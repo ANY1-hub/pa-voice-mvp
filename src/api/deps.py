@@ -1,4 +1,4 @@
-"""API dependencies (Auth + Memory factories)."""
+"""API dependencies (Auth + Memory + Voice + Orchestrator factories)."""
 
 from typing import Annotated
 
@@ -14,8 +14,22 @@ from src.memory.semantic_memory import SemanticMemory
 from src.memory.working_memory import WorkingMemory
 from src.models.user import User
 from src.services.embeddings.openai import OpenAIEmbeddingsAdapter
+from src.services.llm.base import LLMAdapter
+from src.services.llm.openai import OpenAILLMAdapter
+from src.services.orchestrator import ChatOrchestrator
+from src.services.stt.base import STTAdapter
+from src.services.stt.faster_whisper import FasterWhisperSTTAdapter
+from src.services.tts.base import TTSAdapter
+from src.services.tts.piper import PiperTTSAdapter
 
 security = HTTPBearer()
+
+# ---------------------------------------------------------------------------
+# Module-level singletons for heavy models (loaded once per process)
+# ---------------------------------------------------------------------------
+_stt_adapter: FasterWhisperSTTAdapter | None = None
+_tts_adapter: PiperTTSAdapter | None = None
+_llm_adapter: OpenAILLMAdapter | None = None
 
 
 def get_users_collection() -> AsyncIOMotorCollection | None:
@@ -57,6 +71,44 @@ def get_embeddings_adapter() -> OpenAIEmbeddingsAdapter | None:
     if not settings.openai_api_key:
         return None
     return OpenAIEmbeddingsAdapter()
+
+
+def get_stt_adapter() -> STTAdapter:
+    """Return a process-wide Faster-Whisper instance (loaded once)."""
+    global _stt_adapter
+    if _stt_adapter is None:
+        _stt_adapter = FasterWhisperSTTAdapter()
+    return _stt_adapter
+
+
+def get_tts_adapter() -> TTSAdapter | None:
+    """
+    Return a process-wide Piper instance (loaded once).
+
+    Returns None if the voice model file is missing so the rest of the
+    system can still run (text-only mode).
+    """
+    global _tts_adapter
+    if _tts_adapter is None:
+        try:
+            _tts_adapter = PiperTTSAdapter()
+        except FileNotFoundError:
+            # Voice model not present – TTS will be skipped
+            return None
+    return _tts_adapter
+
+
+def get_llm_adapter() -> LLMAdapter:
+    """Return a process-wide OpenAI LLM adapter (MVP default)."""
+    global _llm_adapter
+    if _llm_adapter is None:
+        settings = get_settings()
+        if not settings.openai_api_key:
+            raise RuntimeError(
+                "OPENAI_API_KEY is required for the chat orchestrator (MVP)"
+            )
+        _llm_adapter = OpenAILLMAdapter()
+    return _llm_adapter
 
 
 async def get_current_user(
@@ -123,4 +175,21 @@ def get_semantic_memory(
         user_id=user_id,
         collection=collection,
         embeddings_adapter=embeddings,
+    )
+
+
+def get_orchestrator(
+    llm: Annotated[LLMAdapter, Depends(get_llm_adapter)],
+    stt: Annotated[STTAdapter, Depends(get_stt_adapter)],
+    tts: Annotated[TTSAdapter | None, Depends(get_tts_adapter)],
+    working_memory: Annotated[WorkingMemory, Depends(get_working_memory)],
+    semantic_memory: Annotated[SemanticMemory, Depends(get_semantic_memory)],
+) -> ChatOrchestrator:
+    """Wire a ChatOrchestrator for the current authenticated user."""
+    return ChatOrchestrator(
+        llm=llm,
+        stt=stt,
+        tts=tts,
+        working_memory=working_memory,
+        semantic_memory=semantic_memory,
     )
