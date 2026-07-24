@@ -31,6 +31,6 @@ build/
 *.egg
 
 # Piper / local model files
-models/piper/
+voice_models/piper/
 *.onnx
 *.onnx.json

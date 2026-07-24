@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     # STT
     whisper_model: str = "base"  # base | small | medium (CPU: base/small + int8)
     # TTS
-    piper_voice_path: str = "models/piper/en_US-lessac-medium.onnx"
+    piper_voice_path: str = "voice_models/piper/en_US-lessac-medium.onnx"
 
     model_config = SettingsConfigDict(
         env_file=".env",

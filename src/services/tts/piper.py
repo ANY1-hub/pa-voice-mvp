@@ -21,7 +21,7 @@ class PiperTTSAdapter(TTSAdapter):
         settings = get_settings()
         # Default path – user can override via config / env
         self.voice_path = voice_path or getattr(
-            settings, "piper_voice_path", "models/piper/en_US-lessac-medium.onnx"
+            settings, "piper_voice_path", "voice_models/piper/en_US-lessac-medium.onnx"
         )
 
         voice_file = Path(self.voice_path)
