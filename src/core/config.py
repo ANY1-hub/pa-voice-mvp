@@ -16,9 +16,7 @@ class Settings(BaseSettings):
     openai_api_key: str | None = None
     xai_api_key: str | None = None
     mongodb_uri: str = "mongodb://pa_admin:change-me@localhost:27017/?authSource=admin"
-    secret_key: (
-        str  # JWT signing key – must be set in .env, must not have a default value
-    )
+    secret_key: str  # JWT signing key – must not have a default value
 
     # --- Non-secret configuration ---
     mongodb_db_name: str = "jarvis_db"
@@ -28,6 +26,8 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 1440  # 24 hours
     # STT
     whisper_model: str = "base"  # base | small | medium (CPU: base/small + int8)
+    # TTS
+    piper_voice_path: str = "models/piper/en_US-lessac-medium.onnx"
 
     model_config = SettingsConfigDict(
         env_file=".env",
