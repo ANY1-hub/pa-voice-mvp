@@ -3,8 +3,7 @@
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from pydantic import BaseModel, Field
 
-from src.api.deps import get_current_user, get_orchestrator
-from src.models.user import User
+from src.api.deps import get_orchestrator
 from src.security.exceptions import InputValidationError
 from src.services.orchestrator import MAX_AUDIO_BYTES, ChatOrchestrator
 
@@ -41,10 +40,13 @@ class ChatResponse(BaseModel):
 @router.post("/text", response_model=ChatResponse)
 async def chat_text(
     body: TextChatRequest,
-    current_user: User = Depends(get_current_user),  # noqa: B008
     orchestrator: ChatOrchestrator = Depends(get_orchestrator),  # noqa: B008
 ) -> ChatResponse:
-    """Process a text message (fallback when voice is not used)."""
+    """Process a text message (fallback when voice is not used).
+
+    JWT is enforced via the orchestrator dependency chain
+    (WorkingMemory → current user).
+    """
     try:
         result = await orchestrator.process(text=body.text)
         return ChatResponse(
@@ -67,10 +69,13 @@ async def chat_text(
 async def chat_voice(
     audio: UploadFile = File(..., description="Audio file (wav, webm, …)"),  # noqa: B008
     language: str | None = Form(default=None),
-    current_user: User = Depends(get_current_user),  # noqa: B008
     orchestrator: ChatOrchestrator = Depends(get_orchestrator),  # noqa: B008
 ) -> ChatResponse:
-    """Process a voice message: STT → Memory → LLM → TTS."""
+    """Process a voice message: STT → Memory → LLM → TTS.
+
+    JWT is enforced via the orchestrator dependency chain
+    (WorkingMemory → current user).
+    """
     # Content-Type check (lenient but not completely open)
     content_type = (audio.content_type or "").lower().split(";")[0].strip()
     if content_type and content_type not in ALLOWED_AUDIO_CONTENT_TYPES:
@@ -79,7 +84,6 @@ async def chat_voice(
             detail=f"Unsupported audio type: {content_type}",
         )
 
-    # Size check before fully loading into memory if possible
     audio_bytes = await audio.read()
     if len(audio_bytes) == 0:
         raise HTTPException(
