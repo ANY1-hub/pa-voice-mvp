@@ -19,6 +19,30 @@ A local-first, privacy-centric voice assistant that actively learns and maintain
 - LLM (MVP): OpenAI (temporary) → later local Ollama
 - Auth: JWT + bcrypt
 
+## Authentication
+
+JWT + bcrypt. Multi-user isolation enforced on every memory route.
+
+### Endpoints
+
+| Method | Path                      | Description                  |
+|--------|---------------------------|------------------------------|
+| POST   | `/api/v1/auth/register`   | Register (email + password)  |
+| POST   | `/api/v1/auth/login`      | Returns access token         |
+| GET    | `/api/v1/auth/me`         | Current user (requires token)|
+
+### Token usage
+
+```http
+Authorization: Bearer <access_token>
+```
+
+- Lifetime: **24 hours**
+- User-ID is always a server-generated UUID v4 (client cannot supply one)
+- Email uniqueness is enforced by a MongoDB unique index created at startup
+- Memory routes are fully isolated via dependency injection  
+  → see `docs/decisions/001-dependency-injection-memory.md`
+
 ## Getting Started (Development)
 
 ```bash

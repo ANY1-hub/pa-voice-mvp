@@ -20,6 +20,10 @@ async def connect_to_mongo() -> None:
     settings = get_settings()
     db_client.client = AsyncIOMotorClient(settings.mongodb_uri)
     db_client.db = db_client.client[settings.mongodb_db_name]
+
+    # Ensure unique index on users.email (idempotent)
+    await db_client.db["users"].create_index("email", unique=True)
+
     # Vector search indexes will be initialized here in later phases
 
 
