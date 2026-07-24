@@ -1,5 +1,7 @@
 """Chat routes – text and voice entry points for the orchestrator."""
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from pydantic import BaseModel, Field
 
@@ -40,7 +42,7 @@ class ChatResponse(BaseModel):
 @router.post("/text", response_model=ChatResponse)
 async def chat_text(
     body: TextChatRequest,
-    orchestrator: ChatOrchestrator = Depends(get_orchestrator),  # noqa: B008
+    orchestrator: Annotated[ChatOrchestrator, Depends(get_orchestrator)],
 ) -> ChatResponse:
     """Process a text message (fallback when voice is not used).
 
@@ -67,9 +69,9 @@ async def chat_text(
 
 @router.post("/voice", response_model=ChatResponse)
 async def chat_voice(
-    audio: UploadFile = File(..., description="Audio file (wav, webm, …)"),  # noqa: B008
-    language: str | None = Form(default=None),
-    orchestrator: ChatOrchestrator = Depends(get_orchestrator),  # noqa: B008
+    audio: Annotated[UploadFile, File(description="Audio file (wav, webm, …)")],
+    language: Annotated[str | None, Form()] = None,
+    orchestrator: Annotated[ChatOrchestrator, Depends(get_orchestrator)] = ...,
 ) -> ChatResponse:
     """Process a voice message: STT → Memory → LLM → TTS.
 
