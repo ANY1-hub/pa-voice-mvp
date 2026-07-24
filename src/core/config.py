@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     embedding_model: str = "text-embedding-3-small"
     grok_model: str = "grok-2-latest"
     access_token_expire_minutes: int = 1440  # 24 hours
+    # STT
+    whisper_model: str = "base"  # base | small | medium (CPU: base/small + int8)
 
     model_config = SettingsConfigDict(
         env_file=".env",
