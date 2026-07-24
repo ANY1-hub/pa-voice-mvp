@@ -72,19 +72,8 @@ class ChatOrchestrator:
         if text and audio_bytes:
             raise ValueError("Provide either text or audio_bytes, not both")
 
-        # 1. STT if needed
-        if audio_bytes is not None:
-            if len(audio_bytes) > MAX_AUDIO_BYTES:
-                raise ValueError(
-                    f"Audio too large ({len(audio_bytes)} bytes). Max is {MAX_AUDIO_BYTES}"
-                )
-            if self.stt is None:
-                raise RuntimeError("STT adapter is not configured")
-            transcript = await self.stt.transcribe(audio_bytes, language=language)
-            if not transcript.strip():
-                raise ValueError("Could not transcribe audio (empty result)")
-        else:
-            transcript = text or ""
+        # 1. Resolve transcript (STT or plain text)
+        transcript = await self._resolve_transcript(text, audio_bytes, language)
 
         # 2. Input validation / guardrails
         sanitized = process_user_message(transcript)
@@ -103,20 +92,47 @@ class ChatOrchestrator:
         await self._store_turn(sanitized, response_text)
 
         # 6. TTS (optional – text-only clients can ignore audio)
-        audio_b64: str | None = None
-        if self.tts is not None:
-            try:
-                audio_raw = await self.tts.synthesize(response_text)
-                if audio_raw:
-                    audio_b64 = base64.b64encode(audio_raw).decode("ascii")
-            except Exception:
-                logger.exception("TTS failed – continuing without audio")
+        audio_b64 = await self._maybe_synthesize(response_text)
 
         return ChatResult(
             transcript=sanitized,
             response=response_text,
             audio_base64=audio_b64,
         )
+
+    async def _resolve_transcript(
+        self,
+        text: str | None,
+        audio_bytes: bytes | None,
+        language: str | None,
+    ) -> str:
+        """Return the user utterance as text (via STT when audio is given)."""
+        if audio_bytes is None:
+            return text or ""
+
+        if len(audio_bytes) > MAX_AUDIO_BYTES:
+            raise ValueError(
+                f"Audio too large ({len(audio_bytes)} bytes). Max is {MAX_AUDIO_BYTES}"
+            )
+        if self.stt is None:
+            raise RuntimeError("STT adapter is not configured")
+
+        transcript = await self.stt.transcribe(audio_bytes, language=language)
+        if not transcript.strip():
+            raise ValueError("Could not transcribe audio (empty result)")
+        return transcript
+
+    async def _maybe_synthesize(self, response_text: str) -> str | None:
+        """Run TTS if available; never let TTS failure break the turn."""
+        if self.tts is None:
+            return None
+        try:
+            audio_raw = await self.tts.synthesize(response_text)
+            if audio_raw:
+                return base64.b64encode(audio_raw).decode("ascii")
+        except Exception:
+            logger.exception("TTS failed – continuing without audio")
+        return None
 
     async def _build_memory_context(self, query: str) -> str:
         """Retrieve a short, relevant memory snippet for the LLM."""
