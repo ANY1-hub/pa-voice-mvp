@@ -1,6 +1,7 @@
 """Working Memory – short-term context with TTL and importance scoring."""
 
-from src.db.mongodb import db_client
+from motor.motor_asyncio import AsyncIOMotorCollection
+
 from src.models.memory import WorkingMemoryItem
 from src.security.guardrails import validate_memory_write
 
@@ -8,12 +9,20 @@ from src.security.guardrails import validate_memory_write
 class WorkingMemory:
     """Short-term memory store for the current session / recent interactions."""
 
-    def __init__(self, user_id: str) -> None:
-        """Initialize Working Memory for a specific user."""
+    def __init__(
+        self,
+        user_id: str,
+        collection: AsyncIOMotorCollection | None = None,
+    ) -> None:
+        """Initialize Working Memory for a specific user.
+
+        Args:
+            user_id: Owner of the memory items.
+            collection: MongoDB collection to use. Pass None for unit tests
+                        that should not touch the database.
+        """
         self.user_id = user_id
-        self.collection = (
-            db_client.db["working_memory"] if db_client.db is not None else None
-        )
+        self.collection = collection
 
     async def add(self, content: str, importance: float = 0.5) -> WorkingMemoryItem:
         """
