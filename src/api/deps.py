@@ -40,9 +40,7 @@ def get_semantic_memory_collection() -> AsyncIOMotorCollection | None:
 
 
 def get_user_repository(
-    collection: Annotated[
-        AsyncIOMotorCollection | None, Depends(get_users_collection)
-    ],
+    collection: Annotated[AsyncIOMotorCollection | None, Depends(get_users_collection)],
 ) -> UserRepository:
     """Provide a UserRepository instance with the injected collection."""
     return UserRepository(collection=collection)
