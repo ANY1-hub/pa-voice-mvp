@@ -1,11 +1,7 @@
-from fastapi.testclient import TestClient
-
-from src.main import app
-
-client = TestClient(app)
+"""API tests for memory endpoints."""
 
 
-def test_health_check():
+def test_health_check(client):
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {
@@ -14,7 +10,7 @@ def test_health_check():
     }
 
 
-def test_missing_auth_returns_401():
+def test_missing_auth_returns_401(client):
     response = client.post(
         "/api/v1/memory/working",
         json={"content": "no token", "importance_score": 0.5},
@@ -22,7 +18,7 @@ def test_missing_auth_returns_401():
     assert response.status_code == 401
 
 
-def test_add_working_memory_success(auth_headers):
+def test_add_working_memory_success(client, auth_headers):
     response = client.post(
         "/api/v1/memory/working",
         headers=auth_headers,
@@ -34,7 +30,7 @@ def test_add_working_memory_success(auth_headers):
     assert data["importance_score"] == 0.5
 
 
-def test_add_working_memory_injection(auth_headers):
+def test_add_working_memory_injection(client, auth_headers):
     response = client.post(
         "/api/v1/memory/working",
         headers=auth_headers,
@@ -47,7 +43,7 @@ def test_add_working_memory_injection(auth_headers):
     assert "prompt injection detected" in response.json()["detail"].lower()
 
 
-def test_add_semantic_memory_success(auth_headers):
+def test_add_semantic_memory_success(client, auth_headers):
     response = client.post(
         "/api/v1/memory/semantic",
         headers=auth_headers,
@@ -64,7 +60,7 @@ def test_add_semantic_memory_success(auth_headers):
     assert "cats" in data["entities_involved"]
 
 
-def test_add_semantic_memory_policy_violation(auth_headers):
+def test_add_semantic_memory_policy_violation(client, auth_headers):
     response = client.post(
         "/api/v1/memory/semantic",
         headers=auth_headers,
@@ -79,7 +75,7 @@ def test_add_semantic_memory_policy_violation(auth_headers):
     assert "policy" in detail or "rejected" in detail or "importance" in detail
 
 
-def test_retrieve_working_memory(auth_headers):
+def test_retrieve_working_memory(client, auth_headers):
     response = client.get("/api/v1/memory/working", headers=auth_headers)
     assert response.status_code == 200
     body = response.json()
@@ -87,7 +83,7 @@ def test_retrieve_working_memory(auth_headers):
     assert isinstance(body["data"], list)
 
 
-def test_search_semantic_memory(auth_headers):
+def test_search_semantic_memory(client, auth_headers):
     response = client.get(
         "/api/v1/memory/semantic",
         headers=auth_headers,
@@ -99,6 +95,6 @@ def test_search_semantic_memory(auth_headers):
     assert isinstance(body["data"], list)
 
 
-def test_search_semantic_memory_requires_query(auth_headers):
+def test_search_semantic_memory_requires_query(client, auth_headers):
     response = client.get("/api/v1/memory/semantic", headers=auth_headers)
     assert response.status_code == 422
