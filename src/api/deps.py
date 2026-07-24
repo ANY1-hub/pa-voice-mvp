@@ -1,5 +1,7 @@
 """API dependencies (Auth + Memory factories)."""
 
+from typing import Annotated
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from motor.motor_asyncio import AsyncIOMotorCollection
@@ -38,7 +40,9 @@ def get_semantic_memory_collection() -> AsyncIOMotorCollection | None:
 
 
 def get_user_repository(
-    collection: AsyncIOMotorCollection | None = Depends(get_users_collection),  # noqa: B008
+    collection: Annotated[
+        AsyncIOMotorCollection | None, Depends(get_users_collection)
+    ],
 ) -> UserRepository:
     """Provide a UserRepository instance with the injected collection."""
     return UserRepository(collection=collection)
@@ -58,8 +62,8 @@ def get_embeddings_adapter() -> OpenAIEmbeddingsAdapter | None:
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),  # noqa: B008
-    repo: UserRepository = Depends(get_user_repository),  # noqa: B008
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
+    repo: Annotated[UserRepository, Depends(get_user_repository)],
 ) -> User:
     """
     Extract and validate the JWT from the Authorization header.
@@ -88,7 +92,7 @@ async def get_current_user(
 
 
 async def get_current_user_id(
-    current_user: User = Depends(get_current_user),  # noqa: B008
+    current_user: Annotated[User, Depends(get_current_user)],
 ) -> str:
     """
     Convenience dependency that returns only the user_id string.
@@ -98,17 +102,23 @@ async def get_current_user_id(
 
 
 def get_working_memory(
-    user_id: str = Depends(get_current_user_id),  # noqa: B008
-    collection: AsyncIOMotorCollection | None = Depends(get_working_memory_collection),  # noqa: B008
+    user_id: Annotated[str, Depends(get_current_user_id)],
+    collection: Annotated[
+        AsyncIOMotorCollection | None, Depends(get_working_memory_collection)
+    ],
 ) -> WorkingMemory:
     """Provide a WorkingMemory instance for the current user."""
     return WorkingMemory(user_id=user_id, collection=collection)
 
 
 def get_semantic_memory(
-    user_id: str = Depends(get_current_user_id),  # noqa: B008
-    collection: AsyncIOMotorCollection | None = Depends(get_semantic_memory_collection),  # noqa: B008
-    embeddings: OpenAIEmbeddingsAdapter | None = Depends(get_embeddings_adapter),  # noqa: B008
+    user_id: Annotated[str, Depends(get_current_user_id)],
+    collection: Annotated[
+        AsyncIOMotorCollection | None, Depends(get_semantic_memory_collection)
+    ],
+    embeddings: Annotated[
+        OpenAIEmbeddingsAdapter | None, Depends(get_embeddings_adapter)
+    ],
 ) -> SemanticMemory:
     """Provide a SemanticMemory instance for the current user."""
     return SemanticMemory(
