@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.routes.auth import router as auth_router
+from src.api.routes.chat import router as chat_router
 from src.api.routes.memory import router as memory_router
 from src.db.mongodb import close_mongo_connection, connect_to_mongo
 from src.tasks.scheduler import start_scheduler, stop_scheduler
@@ -34,6 +35,7 @@ app.add_middleware(
 
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(memory_router, prefix="/api/v1/memory", tags=["memory"])
+app.include_router(chat_router, prefix="/api/v1/chat", tags=["chat"])
 
 
 @app.get("/health")
