@@ -71,7 +71,7 @@ async def chat_text(
 async def chat_voice(
     audio: Annotated[UploadFile, File(description="Audio file (wav, webm, …)")],
     language: Annotated[str | None, Form()] = None,
-    orchestrator: Annotated[ChatOrchestrator, Depends(get_orchestrator)] = ...,
+    orchestrator: Annotated[ChatOrchestrator, Depends(get_orchestrator)] = None,  # type: ignore[assignment]
 ) -> ChatResponse:
     """Process a voice message: STT → Memory → LLM → TTS.
 
