@@ -4,7 +4,8 @@ import logging
 import math
 from datetime import UTC, datetime, timedelta
 
-from src.db.mongodb import db_client
+from motor.motor_asyncio import AsyncIOMotorCollection
+
 from src.models.memory import SemanticMemoryFact
 from src.security.guardrails import validate_memory_write
 from src.services.embeddings.base import EmbeddingsAdapter
@@ -30,13 +31,19 @@ class SemanticMemory:
     def __init__(
         self,
         user_id: str,
+        collection: AsyncIOMotorCollection | None = None,
         embeddings_adapter: EmbeddingsAdapter | None = None,
     ) -> None:
-        """Initialize Semantic Memory for a specific user."""
+        """Initialize Semantic Memory for a specific user.
+
+        Args:
+            user_id: Owner of the memory facts.
+            collection: MongoDB collection to use. Pass None for unit tests
+                        that should not touch the database.
+            embeddings_adapter: Optional adapter for vector embeddings.
+        """
         self.user_id = user_id
-        self.collection = (
-            db_client.db["semantic_memory"] if db_client.db is not None else None
-        )
+        self.collection = collection
         self.embeddings = embeddings_adapter
 
     async def add_fact(
