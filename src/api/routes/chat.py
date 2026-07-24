@@ -70,8 +70,8 @@ async def chat_text(
 @router.post("/voice", response_model=ChatResponse)
 async def chat_voice(
     audio: Annotated[UploadFile, File(description="Audio file (wav, webm, …)")],
+    orchestrator: Annotated[ChatOrchestrator, Depends(get_orchestrator)],
     language: Annotated[str | None, Form()] = None,
-    orchestrator: Annotated[ChatOrchestrator, Depends(get_orchestrator)] = None,  # type: ignore[assignment]
 ) -> ChatResponse:
     """Process a voice message: STT → Memory → LLM → TTS.
 
