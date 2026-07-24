@@ -3,12 +3,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from src.api.deps import get_current_user_id
-from src.core.config import get_settings
+from src.api.deps import get_semantic_memory, get_working_memory
 from src.memory.semantic_memory import SemanticMemory
 from src.memory.working_memory import WorkingMemory
 from src.security.exceptions import InputValidationError, MemoryWritePolicyViolation
-from src.services.embeddings.openai import OpenAIEmbeddingsAdapter
 
 router = APIRouter()
 
@@ -28,26 +26,12 @@ class SemanticMemoryRequest(BaseModel):
     entities_involved: list[str] = Field(default_factory=list)
 
 
-def _get_embeddings_adapter() -> OpenAIEmbeddingsAdapter | None:
-    """
-    Create the embeddings adapter.
-
-    Returns None if no OpenAI API key is configured so the system can still
-    run without embeddings during local development / tests.
-    """
-    settings = get_settings()
-    if not settings.openai_api_key:
-        return None
-    return OpenAIEmbeddingsAdapter()
-
-
 @router.post("/working")
 async def add_working_memory(
     request: WorkingMemoryRequest,
-    user_id: str = Depends(get_current_user_id),
+    mem: WorkingMemory = Depends(get_working_memory),  # noqa: B008
 ):
     """Add a new item to the user's Working Memory."""
-    mem = WorkingMemory(user_id=user_id)
     try:
         item = await mem.add(
             content=request.content,
@@ -57,9 +41,6 @@ async def add_working_memory(
     except (InputValidationError, MemoryWritePolicyViolation) as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
-        # import traceback
-        #
-        # traceback.print_exc()
         raise HTTPException(
             status_code=500, detail=f"Internal Server Error: {e.__class__.__name__}"
         ) from e
@@ -69,10 +50,9 @@ async def add_working_memory(
 async def retrieve_working_memory(
     query: str | None = Query(default=None),
     limit: int = Query(default=20, ge=1, le=100),
-    user_id: str = Depends(get_current_user_id),
+    mem: WorkingMemory = Depends(get_working_memory),  # noqa: B008
 ):
     """Retrieve recent Working Memory items for the current user."""
-    mem = WorkingMemory(user_id=user_id)
     try:
         items = await mem.retrieve(query=query, limit=limit)
         return {"status": "success", "data": items}
@@ -85,11 +65,9 @@ async def retrieve_working_memory(
 @router.post("/semantic")
 async def add_semantic_memory(
     request: SemanticMemoryRequest,
-    user_id: str = Depends(get_current_user_id),
+    mem: SemanticMemory = Depends(get_semantic_memory),  # noqa: B008
 ):
     """Add a new long-term fact to the user's Semantic Memory."""
-    embeddings = _get_embeddings_adapter()
-    mem = SemanticMemory(user_id=user_id, embeddings_adapter=embeddings)
     try:
         fact = await mem.add_fact(
             fact=request.content,
@@ -109,11 +87,9 @@ async def add_semantic_memory(
 async def search_semantic_memory(
     query: str = Query(..., min_length=1),
     limit: int = Query(default=10, ge=1, le=50),
-    user_id: str = Depends(get_current_user_id),
+    mem: SemanticMemory = Depends(get_semantic_memory),  # noqa: B008
 ):
     """Search Semantic Memory for the current user (vector or text)."""
-    embeddings = _get_embeddings_adapter()
-    mem = SemanticMemory(user_id=user_id, embeddings_adapter=embeddings)
     try:
         facts = await mem.search(query=query, limit=limit)
         return {"status": "success", "data": facts}
