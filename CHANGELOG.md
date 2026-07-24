@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Phase 3 – Chat Orchestrator + endpoints:
+  - `POST /api/v1/chat/text` (JSON text)
+  - `POST /api/v1/chat/voice` (multipart audio)
+  - Flow: STT → guardrails → Working + Semantic Memory context → LLM → TTS
+  - JWT-protected, audio size limit (10 MB), content-type check
+- Thin `ChatOrchestrator` service with DI wiring for STT / TTS / LLM / Memory
+- `python-multipart` dependency for file uploads
 - UUID strict validation for `X-User-Id` header (must be valid UUID, else 401)
 - Minimal memory consolidation:
   - Promotion of high-importance Working Memory items (≥ 0.7) to Semantic Memory
