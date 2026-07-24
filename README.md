@@ -78,6 +78,11 @@ MONGODB_URI=mongodb://pa_admin:<PASSWORD>@<NAS_IP>:27017/?authSource=admin
 MONGODB_DB_NAME=jarvis_db
 ```
 
+### Piper TTS Voice Model
+
+Piper requires a local voice model (not included in the repo).  
+See **[docs/piper-voice-setup.md](docs/piper-voice-setup.md)** for download instructions (Windows + macOS/Linux).
+
 ## Development Standards
 - Clean Code + Best Practices
 - Tests with edge cases for every relevant function (pytest)
