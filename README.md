@@ -21,15 +21,34 @@ A local-first, privacy-centric voice assistant that actively learns and maintain
 
 ## Authentication
 
-JWT + bcrypt. Multi-user isolation enforced on every memory route.
+JWT + bcrypt. Multi-user isolation enforced on every memory and chat route.
 
-### Endpoints
+### Auth Endpoints
 
 | Method | Path                      | Description                  |
 |--------|---------------------------|------------------------------|
 | POST   | `/api/v1/auth/register`   | Register (email + password)  |
 | POST   | `/api/v1/auth/login`      | Returns access token         |
 | GET    | `/api/v1/auth/me`         | Current user (requires token)|
+
+### Chat Endpoints (Phase 3)
+
+| Method | Path                      | Description                                      |
+|--------|---------------------------|--------------------------------------------------|
+| POST   | `/api/v1/chat/text`       | Text message → Memory context → LLM → TTS        |
+| POST   | `/api/v1/chat/voice`      | Audio upload → STT → Memory → LLM → TTS          |
+
+Both require `Authorization: Bearer <token>`.
+
+Response shape:
+
+```json
+{
+  "transcript": "what the user said",
+  "response": "Jarvis reply",
+  "audio_base64": "..."   // optional, null if TTS unavailable
+}
+```
 
 ### Token usage
 
