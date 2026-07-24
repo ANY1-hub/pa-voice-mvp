@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from src.api.deps import get_current_user
+from src.api.deps import get_current_user, get_user_repository
 from src.auth.jwt import create_access_token
 from src.auth.password import hash_password, verify_password
 from src.auth.repository import UserRepository
@@ -14,10 +14,11 @@ router = APIRouter()
 @router.post(
     "/register", response_model=UserPublic, status_code=status.HTTP_201_CREATED
 )
-async def register(payload: UserCreate) -> UserPublic:
+async def register(
+    payload: UserCreate,
+    repo: UserRepository = Depends(get_user_repository),  # noqa: B008
+) -> UserPublic:
     """Register a new user. Email must be unique."""
-    repo = UserRepository()
-
     existing = await repo.get_by_email(payload.email)
     if existing is not None:
         raise HTTPException(
@@ -40,9 +41,11 @@ async def register(payload: UserCreate) -> UserPublic:
 
 
 @router.post("/login")
-async def login(payload: UserLogin) -> dict:
+async def login(
+    payload: UserLogin,
+    repo: UserRepository = Depends(get_user_repository),  # noqa: B008
+) -> dict:
     """Authenticate and return a JWT access token."""
-    repo = UserRepository()
     user = await repo.get_by_email(payload.email)
 
     if user is None or not verify_password(payload.password, user.hashed_password):
