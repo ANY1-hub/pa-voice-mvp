@@ -4,9 +4,9 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 from jose import jwt
+from pymongo import MongoClient
 
 from src.core.config import get_settings
-from src.db.mongodb import db_client
 
 
 def test_register_success(client):
@@ -152,12 +152,16 @@ def test_me_with_inactive_user(client):
     assert login.status_code == 200
     token = login.json()["access_token"]
 
-    # Deactivate the user directly in the DB
-    assert db_client.db is not None
-    result = db_client.db["users"].update_one(
-        {"id": user_id}, {"$set": {"is_active": False}}
-    )
-    assert result.modified_count == 1
+    # Deactivate via sync pymongo (Motor is async-only)
+    settings = get_settings()
+    sync_client = MongoClient(settings.mongodb_uri)
+    try:
+        result = sync_client[settings.mongodb_db_name]["users"].update_one(
+            {"id": user_id}, {"$set": {"is_active": False}}
+        )
+        assert result.modified_count == 1
+    finally:
+        sync_client.close()
 
     response = client.get(
         "/api/v1/auth/me",
