@@ -1,14 +1,21 @@
 """User repository – MongoDB access for authentication."""
 
-from src.db.mongodb import db_client
+from motor.motor_asyncio import AsyncIOMotorCollection
+
 from src.models.user import User
 
 
 class UserRepository:
     """CRUD operations for the users collection."""
 
-    def __init__(self) -> None:
-        self.collection = db_client.db["users"] if db_client.db is not None else None
+    def __init__(self, collection: AsyncIOMotorCollection | None = None) -> None:
+        """Initialize the repository.
+
+        Args:
+            collection: MongoDB collection to use. Pass None for unit tests
+                        that should not touch the database.
+        """
+        self.collection = collection
 
     async def create(self, user: User) -> User:
         """Insert a new user. Raises if email already exists (unique index)."""
