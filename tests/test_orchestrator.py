@@ -1,6 +1,6 @@
 """Unit tests for ChatOrchestrator."""
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, ANY
 
 import pytest
 
@@ -73,12 +73,12 @@ async def test_process_text_happy_path(
     assert result.audio_base64 is not None  # base64 of fake-wav-bytes
 
     mock_llm.generate_response.assert_awaited_once()
-    mock_tts.synthesize.assert_awaited_once_with("Hello from Jarvis.")
+    mock_tts.synthesize.assert_awaited_once_with("Hello from Jarvis.", language=ANY)
     assert mock_working_memory.add.await_count == 2  # user + jarvis turn
 
 
 @pytest.mark.asyncio
-async def test_process_voice_happy_path(orchestrator, mock_stt, mock_llm):
+async def test_process_voice_happy_path(orchestrator, mock_stt, mock_llm, mock_tts):
     audio = b"fake-audio-bytes"
     result = await orchestrator.process(audio_bytes=audio, language="de")
 
@@ -87,6 +87,7 @@ async def test_process_voice_happy_path(orchestrator, mock_stt, mock_llm):
 
     mock_stt.transcribe.assert_awaited_once_with(audio, language="de")
     mock_llm.generate_response.assert_awaited_once()
+    mock_tts.synthesize.assert_awaited_once_with("Hello from Jarvis.", language="de")
 
 
 # ---------------------------------------------------------------------------
