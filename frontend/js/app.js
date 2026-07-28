@@ -1,6 +1,6 @@
 import { getToken, login, clearAuth, getStoredUser } from "./auth.js";
 import { sendText, sendVoice, setStatus } from "./chat.js";
-import { startRecordingSession } from "./audio.js";
+import { startRecordingSession, setSpeakingHandlers, stopTts } from "./audio.js";
 
 // ------------------------------------------------------------------
 // DOM
@@ -12,6 +12,7 @@ const loginError   = document.getElementById("loginError");
 const speakBtn     = document.getElementById("speakBtn");
 const speakHint    = document.getElementById("speakHint");
 const recIndicator = document.getElementById("recIndicator");
+const speakingIndicator = document.getElementById("speakingIndicator");
 const textInput    = document.getElementById("textInput");
 const sendBtn      = document.getElementById("sendBtn");
 const logoutBtn    = document.getElementById("logoutBtn");
@@ -20,6 +21,12 @@ const userLabel    = document.getElementById("userLabel");
 let isRecording = false;
 let isProcessing = false;
 let currentStop = null;
+
+// Speaking indicator while TTS plays
+setSpeakingHandlers({
+    onStart: () => speakingIndicator?.classList.remove("hidden"),
+    onEnd:   () => speakingIndicator?.classList.add("hidden"),
+});
 
 // ------------------------------------------------------------------
 // UI helpers
@@ -62,12 +69,14 @@ loginForm.addEventListener("submit", async (e) => {
 });
 
 logoutBtn.addEventListener("click", () => {
+    stopTts();
     clearAuth();
     document.getElementById("chatContainer").innerHTML = "";
     showLogin();
 });
 
 window.addEventListener("jarvis:unauthorized", () => {
+    stopTts();
     showLogin();
 });
 
@@ -97,6 +106,7 @@ speakBtn.addEventListener("click", async () => {
     }
 
     // ---- Start ----
+    stopTts(); // don't overlap with previous reply
     try {
         const session = await startRecordingSession();
         currentStop = session.stop;
@@ -114,6 +124,7 @@ sendBtn.addEventListener("click", async () => {
     const text = textInput.value.trim();
     if (!text || isProcessing) return;
     textInput.value = "";
+    stopTts();
     setProcessing(true);
     try {
         await sendText(text);

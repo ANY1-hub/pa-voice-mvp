@@ -158,6 +158,33 @@ body {
     color: var(--text-muted);
 }
 
+/* Speaking indicator (TTS active) */
+.speaking-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--success);
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+}
+
+.speaker-icon {
+    width: 18px;
+    height: 18px;
+    animation: speakPulse 1s ease-in-out infinite;
+}
+
+.speaking-label {
+    text-transform: uppercase;
+    font-size: 0.65rem;
+    opacity: 0.9;
+}
+
+@keyframes speakPulse {
+    0%, 100% { opacity: 0.55; transform: scale(1); }
+    50%      { opacity: 1;    transform: scale(1.08); }
+}
+
 .btn-ghost {
     background: none;
     border: 1px solid var(--border);

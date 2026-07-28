@@ -12,17 +12,69 @@
  * avoids native ffmpeg installs on end-user machines.
  */
 
+/** Currently playing TTS element (if any). */
+let currentTts = null;
+
+/** Optional callbacks for speaking indicator. */
+let onSpeakingStart = null;
+let onSpeakingEnd = null;
+
 /**
- * Play a base64-encoded audio payload returned by the backend TTS.
- * @param {string|null|undefined} b64 - Base64 audio data (WAV-like)
+ * Register callbacks for TTS playback lifecycle.
+ * @param {{ onStart?: () => void, onEnd?: () => void }} handlers
+ */
+export function setSpeakingHandlers({ onStart, onEnd } = {}) {
+    onSpeakingStart = onStart || null;
+    onSpeakingEnd = onEnd || null;
+}
+
+/**
+ * Stop any currently playing TTS audio.
+ */
+export function stopTts() {
+    if (currentTts) {
+        currentTts.pause();
+        currentTts.src = "";
+        currentTts = null;
+        if (onSpeakingEnd) onSpeakingEnd();
+    }
+}
+
+/**
+ * Play a base64-encoded WAV payload returned by the backend TTS.
+ * @param {string|null|undefined} b64 - Base64 audio data (WAV)
  */
 export function playBase64Audio(b64) {
     if (!b64) return;
+
+    stopTts();
+
     try {
         const audio = new Audio("data:audio/wav;base64," + b64);
-        audio.play().catch((err) => console.warn("Audio playback failed:", err));
+        currentTts = audio;
+
+        const finish = () => {
+            if (currentTts === audio) {
+                currentTts = null;
+                if (onSpeakingEnd) onSpeakingEnd();
+            }
+        };
+
+        audio.addEventListener("ended", finish);
+        audio.addEventListener("error", (e) => {
+            console.warn("Audio playback error:", e);
+            finish();
+        });
+
+        if (onSpeakingStart) onSpeakingStart();
+
+        audio.play().catch((err) => {
+            console.warn("Audio playback failed:", err);
+            finish();
+        });
     } catch (err) {
         console.warn("Could not create audio element:", err);
+        if (onSpeakingEnd) onSpeakingEnd();
     }
 }
 
