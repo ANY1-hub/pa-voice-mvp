@@ -8,7 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- (Phase 4 starting) Skills: reminders/notes, memory-augmented web search
+- Phase 4 kick-off (Option A): thin Skill interface + SkillRegistry
+- Note model + dedicated `notes` collection (via NoteRepository)
+- NotesSkill (create + list) with Semantic Memory summary write
+- Unit tests for Note, NoteRepository, NotesSkill and Registry
 
 ## [0.2.0] - 2026-07-28 — Phase 3 closed
 
