@@ -14,7 +14,11 @@ from src.tasks.scheduler import start_scheduler, stop_scheduler
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan: connect DB + start background jobs on startup."""
+    """Application lifespan: connect DB + start background jobs on startup.
+
+    Args:
+        app: FastAPI application instance (unused, required by signature).
+    """
     await connect_to_mongo()
     start_scheduler()
     yield
@@ -40,5 +44,9 @@ app.include_router(chat_router, prefix="/api/v1/chat", tags=["chat"])
 
 @app.get("/health")
 async def health_check():
-    """Simple health check endpoint."""
+    """Simple health check endpoint.
+
+    Returns:
+        Dict with ``status`` and a short message.
+    """
     return {"status": "ok", "message": "Jarvis backend is running"}

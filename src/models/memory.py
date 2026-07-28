@@ -6,12 +6,24 @@ from pydantic import BaseModel, Field
 
 
 def now_utc() -> datetime:
-    """Return the current UTC timestamp."""
+    """Return the current UTC timestamp.
+
+    Returns:
+        Timezone-aware ``datetime`` in UTC.
+    """
     return datetime.now(UTC)
 
 
 class WorkingMemoryItem(BaseModel):
-    """Single item stored in short-term Working Memory."""
+    """Single item stored in short-term Working Memory.
+
+    Attributes:
+        user_id: Owner of the item.
+        content: Text content.
+        importance_score: Score in ``[0.0, 1.0]`` (default ``0.5``).
+        created_at: Creation timestamp (UTC).
+        last_accessed: Last access timestamp (UTC).
+    """
 
     user_id: str
     content: str
@@ -21,7 +33,17 @@ class WorkingMemoryItem(BaseModel):
 
 
 class SemanticMemoryFact(BaseModel):
-    """Long-term fact stored in Semantic Memory (with optional embedding)."""
+    """Long-term fact stored in Semantic Memory (with optional embedding).
+
+    Attributes:
+        user_id: Owner of the fact.
+        content: Text content of the fact.
+        importance_score: Score in ``[0.0, 1.0]`` (default ``0.5``).
+        entities_involved: Related entity names.
+        created_at: Creation timestamp (UTC).
+        last_accessed: Last access timestamp (UTC).
+        embedding: Optional vector embedding for similarity search.
+    """
 
     user_id: str
     content: str
