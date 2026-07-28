@@ -129,7 +129,7 @@ async def test_process_no_stt_configured_raises(mock_llm):
 
 
 # ---------------------------------------------------------------------------
-# Resilience
+# Resilience / edge cases
 # ---------------------------------------------------------------------------
 
 
@@ -151,3 +151,52 @@ async def test_empty_llm_response_gets_fallback(orchestrator, mock_llm):
     result = await orchestrator.process(text="Hello")
 
     assert result.response == "I am sorry, I could not generate a response."
+
+
+@pytest.mark.asyncio
+async def test_working_memory_retrieve_failure_does_not_break_turn(
+    orchestrator, mock_working_memory
+):
+    mock_working_memory.retrieve.side_effect = RuntimeError("mongo down")
+
+    result = await orchestrator.process(text="Continue please")
+
+    assert result.transcript == "Continue please"
+    assert result.response == "Hello from Jarvis."
+
+
+@pytest.mark.asyncio
+async def test_semantic_memory_search_failure_does_not_break_turn(
+    orchestrator, mock_semantic_memory
+):
+    mock_semantic_memory.search.side_effect = RuntimeError("search failed")
+
+    result = await orchestrator.process(text="Continue please")
+
+    assert result.response == "Hello from Jarvis."
+
+
+@pytest.mark.asyncio
+async def test_store_turn_failure_does_not_break_turn(
+    orchestrator, mock_working_memory
+):
+    mock_working_memory.add.side_effect = RuntimeError("write failed")
+
+    result = await orchestrator.process(text="Still ok")
+
+    assert result.transcript == "Still ok"
+    assert result.response == "Hello from Jarvis."
+
+
+@pytest.mark.asyncio
+async def test_no_tts_adapter_returns_no_audio(mock_llm):
+    orch = ChatOrchestrator(llm=mock_llm, tts=None)
+    result = await orch.process(text="Hi")
+    assert result.audio_base64 is None
+
+
+@pytest.mark.asyncio
+async def test_tts_empty_bytes_returns_no_audio(orchestrator, mock_tts):
+    mock_tts.synthesize.return_value = b""
+    result = await orchestrator.process(text="Hi")
+    assert result.audio_base64 is None

@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 from src.api.deps import get_orchestrator
 from src.main import app
-from src.services.orchestrator import ChatResult
+from src.services.orchestrator import MAX_AUDIO_BYTES, ChatResult
 
 
 @pytest.fixture
@@ -75,6 +75,19 @@ def test_chat_text_orchestrator_value_error(
     assert "bad input" in res.json()["detail"]
 
 
+def test_chat_text_orchestrator_unexpected_error(
+    client_with_mock_orch, auth_headers, mock_orchestrator
+):
+    mock_orchestrator.process.side_effect = RuntimeError("boom")
+    res = client_with_mock_orch.post(
+        "/api/v1/chat/text",
+        headers=auth_headers,
+        json={"text": "trigger 500"},
+    )
+    assert res.status_code == 500
+    assert "Chat failed" in res.json()["detail"]
+
+
 # ---------------------------------------------------------------------------
 # /chat/voice
 # ---------------------------------------------------------------------------
@@ -120,3 +133,29 @@ def test_chat_voice_unsupported_content_type(client_with_mock_orch, auth_headers
         files=files,
     )
     assert res.status_code == 415
+
+
+def test_chat_voice_too_large(client_with_mock_orch, auth_headers):
+    huge = b"x" * (MAX_AUDIO_BYTES + 1)
+    files = {"audio": ("big.wav", huge, "audio/wav")}
+    res = client_with_mock_orch.post(
+        "/api/v1/chat/voice",
+        headers=auth_headers,
+        files=files,
+    )
+    assert res.status_code == 413
+    assert "exceeds limit" in res.json()["detail"]
+
+
+def test_chat_voice_orchestrator_unexpected_error(
+    client_with_mock_orch, auth_headers, mock_orchestrator
+):
+    mock_orchestrator.process.side_effect = RuntimeError("stt exploded")
+    files = {"audio": ("recording.wav", b"fake-wav-content", "audio/wav")}
+    res = client_with_mock_orch.post(
+        "/api/v1/chat/voice",
+        headers=auth_headers,
+        files=files,
+    )
+    assert res.status_code == 500
+    assert "Voice chat failed" in res.json()["detail"]
