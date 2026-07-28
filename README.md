@@ -79,9 +79,23 @@ uv pip install -e ".[dev]"
 # Copy env and set MONGODB_URI (local Docker or NAS)
 cp .env.example .env
 
-# Run the app
-uvicorn src.main:app --reload
+# Run the backend
+uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 ```
+
+### Frontend (Voice UI)
+
+```bash
+# Terminal 2 – from project root
+cd frontend
+python -m http.server 5500
+```
+
+Open http://localhost:5500  
+Login with a registered user, then use the big Speak button (or the text input).
+
+Backend must be running on port 8000.  
+Piper voice model must be present (see [docs/piper-voice-setup.md](docs/piper-voice-setup.md)).
 
 ### MongoDB
 

@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Phase 3 closed: full voice pipeline (STT → Memory → LLM → TTS)
+- Frontend modular Jarvis-style UI with live transcript + response + audio playback
+- Unit tests for ChatOrchestrator (`tests/test_orchestrator.py`)
+- API tests for `/chat/text` and `/chat/voice` (`tests/test_chat_api.py`)
+- Scheduler start/stop made idempotent
 - Phase 3 – Chat Orchestrator + endpoints:
   - `POST /api/v1/chat/text` (JSON text)
   - `POST /api/v1/chat/voice` (multipart audio)
