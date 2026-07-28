@@ -128,7 +128,9 @@ async def test_search_text_fallback():
     ]
     collection = MagicMock()
     collection.find.return_value = _chainable_find(docs)
-    mem = SemanticMemory(user_id=USER_ID, collection=collection, embeddings_adapter=None)
+    mem = SemanticMemory(
+        user_id=USER_ID, collection=collection, embeddings_adapter=None
+    )
 
     results = await mem.search("coffee", limit=5)
 

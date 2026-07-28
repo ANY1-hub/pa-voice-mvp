@@ -78,9 +78,7 @@ class PiperTTSAdapter(TTSAdapter):
                 + " – see docs/piper-voice-setup.md"
             )
 
-        self._default_lang = (
-            "en" if "en" in self._voices else next(iter(self._voices))
-        )
+        self._default_lang = "en" if "en" in self._voices else next(iter(self._voices))
         self._executor = ThreadPoolExecutor(max_workers=1)
 
     def _resolve_voice(self, language: str | None) -> tuple[str, PiperVoice]:
