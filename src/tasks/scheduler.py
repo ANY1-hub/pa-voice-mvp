@@ -13,10 +13,13 @@ scheduler = AsyncIOScheduler()
 
 
 async def consolidation_job() -> None:
-    """
-    Background consolidation job (runs periodically).
-    Minimal Scope: Promote high-importance Working Memory to Semantic Memory,
-    then run SemanticMemory.consolidate() for cleanup/deduplication.
+    """Promote high-importance Working Memory items and clean Semantic Memory.
+
+    Runs periodically (default every 60 minutes). For each user that has
+    Working Memory entries:
+
+    1. Promote items with importance >= 0.7 into Semantic Memory.
+    2. Run ``SemanticMemory.consolidate()`` (cleanup + deduplication).
     """
     logger.info("Starting memory consolidation job...")
     if db_client.db is None:
@@ -59,7 +62,11 @@ async def consolidation_job() -> None:
 
 
 def start_scheduler() -> None:
-    """Start the background scheduler (idempotent)."""
+    """Start the background scheduler (idempotent).
+
+    Registers the consolidation job (every 60 minutes) and starts the
+    scheduler. Subsequent calls are no-ops if already running.
+    """
     if scheduler.running:
         return
     scheduler.add_job(consolidation_job, "interval", minutes=60)
@@ -68,7 +75,11 @@ def start_scheduler() -> None:
 
 
 def stop_scheduler() -> None:
-    """Stop the background scheduler (idempotent)."""
+    """Stop the background scheduler (idempotent).
+
+    No-op if the scheduler is not running. Uses ``wait=False`` for a fast
+    shutdown suitable for process exit.
+    """
     if not scheduler.running:
         return
     scheduler.shutdown(wait=False)

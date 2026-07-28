@@ -6,7 +6,12 @@ from src.core.config import get_settings
 
 
 class MongoDB:
-    """Simple holder for the global MongoDB client and database."""
+    """Simple holder for the global MongoDB client and database.
+
+    Attributes:
+        client: Async Motor client, or ``None`` before connect / after close.
+        db: Selected database handle, or ``None`` before connect / after close.
+    """
 
     client: AsyncIOMotorClient | None = None
     db: AsyncIOMotorDatabase | None = None
@@ -16,7 +21,10 @@ db_client = MongoDB()
 
 
 async def connect_to_mongo() -> None:
-    """Establish the connection to MongoDB and select the database."""
+    """Establish the connection to MongoDB and select the database.
+
+    Also ensures a unique index on ``users.email`` (idempotent).
+    """
     settings = get_settings()
     db_client.client = AsyncIOMotorClient(settings.mongodb_uri)
     db_client.db = db_client.client[settings.mongodb_db_name]
