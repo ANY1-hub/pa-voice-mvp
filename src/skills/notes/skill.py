@@ -87,7 +87,7 @@ class NotesSkill(Skill):
 
         try:
             note = await self.repository.create(content=content)
-        except Exception as e:
+        except Exception:
             logger.exception("Failed to create note")
             return SkillResult(
                 response_text="Sorry, I could not save the note.",
