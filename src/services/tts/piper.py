@@ -106,7 +106,7 @@ class PiperTTSAdapter(TTSAdapter):
         """Extract raw 16-bit PCM bytes from a Piper chunk."""
         if hasattr(chunk, "audio_int16_bytes"):
             return chunk.audio_int16_bytes  # type: ignore[attr-defined]
-        if isinstance(chunk, (bytes, bytearray)):
+        if isinstance(chunk, bytes | bytearray):
             return bytes(chunk)
         if hasattr(chunk, "audio_bytes"):
             return bytes(chunk.audio_bytes)  # type: ignore[attr-defined]
