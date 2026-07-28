@@ -1,8 +1,12 @@
 """Faster-Whisper implementation for Speech-to-Text."""
 
 import asyncio
+import subprocess
+import tempfile
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
+import imageio_ffmpeg
 from faster_whisper import WhisperModel
 
 from src.core.config import get_settings
@@ -12,7 +16,9 @@ from src.services.stt.base import STTAdapter
 class FasterWhisperSTTAdapter(STTAdapter):
     """
     Local STT using faster-whisper (CTranslate2).
-    Default: base model + int8 for CPU-friendly latency.
+    Incoming browser audio (often webm/opus) is converted to
+    16 kHz mono WAV via a bundled ffmpeg binary (imageio-ffmpeg).
+    No system-wide ffmpeg install required.
     """
 
     def __init__(
@@ -25,8 +31,8 @@ class FasterWhisperSTTAdapter(STTAdapter):
         self.model_size = model_size or getattr(settings, "whisper_model", "base")
         self.device = device
         self.compute_type = compute_type
+        self.ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
 
-        # Load once at startup (blocking is fine here)
         self.model = WhisperModel(
             self.model_size,
             device=self.device,
@@ -34,18 +40,51 @@ class FasterWhisperSTTAdapter(STTAdapter):
         )
         self._executor = ThreadPoolExecutor(max_workers=1)
 
+    def _to_wav_16k_mono(self, audio_bytes: bytes) -> Path:
+        """Convert arbitrary audio bytes to 16 kHz mono WAV. Returns temp path."""
+        with tempfile.NamedTemporaryFile(suffix=".input", delete=False) as src:
+            src.write(audio_bytes)
+            src_path = Path(src.name)
+
+        dst_path = src_path.with_suffix(".wav")
+
+        cmd = [
+            self.ffmpeg_exe,
+            "-y",
+            "-i",
+            str(src_path),
+            "-ar",
+            "16000",
+            "-ac",
+            "1",
+            "-c:a",
+            "pcm_s16le",
+            str(dst_path),
+        ]
+        try:
+            subprocess.run(
+                cmd,
+                check=True,
+                capture_output=True,
+            )
+        finally:
+            src_path.unlink(missing_ok=True)
+
+        return dst_path
+
     def _transcribe_sync(self, audio_bytes: bytes, language: str | None) -> str:
         """Blocking transcription (runs in thread pool)."""
-        # faster-whisper accepts file-like or path; we use BytesIO
-        from io import BytesIO
-
-        segments, _ = self.model.transcribe(
-            BytesIO(audio_bytes),
-            language=language,
-            beam_size=5,
-            vad_filter=True,  # helps with silence
-        )
-        return " ".join(segment.text.strip() for segment in segments).strip()
+        wav_path = self._to_wav_16k_mono(audio_bytes)
+        try:
+            segments, _ = self.model.transcribe(
+                str(wav_path),
+                language=language,
+                beam_size=5,
+                vad_filter=True,
+            )
+            return " ".join(segment.text.strip() for segment in segments).strip()
+        finally:
+            wav_path.unlink(missing_ok=True)
 
     async def transcribe(self, audio_bytes: bytes, language: str | None = None) -> str:
         """Async wrapper around the blocking faster-whisper call."""

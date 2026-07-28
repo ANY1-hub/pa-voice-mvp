@@ -1,5 +1,6 @@
 import { getToken, login, clearAuth, getStoredUser } from "./auth.js";
 import { sendText, sendVoice, setStatus } from "./chat.js";
+import { startRecordingSession } from "./audio.js";
 
 // ------------------------------------------------------------------
 // DOM
@@ -70,45 +71,35 @@ window.addEventListener("jarvis:unauthorized", () => {
     showLogin();
 });
 
-// Click to toggle recording (simple & reliable)
+// Toggle recording: click to start, click again to stop → WAV → backend
 speakBtn.addEventListener("click", async () => {
     if (isProcessing) return;
 
+    // ---- Stop ----
     if (isRecording) {
-        // Stop
-        if (currentStop) currentStop();
         isRecording = false;
         speakBtn.classList.remove("recording");
         recIndicator.classList.add("hidden");
-        speakHint.textContent = "Hold to speak";
+        speakHint.textContent = "Click to speak";
+
+        setProcessing(true);
+        setStatus("Converting & thinking…");
+        try {
+            const wavBlob = await currentStop(); // from startRecordingSession
+            await sendVoice(wavBlob);
+        } catch (err) {
+            setStatus(err.message || "Voice request failed", true);
+        } finally {
+            currentStop = null;
+            setProcessing(false);
+        }
         return;
     }
 
-    // Start
+    // ---- Start ----
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
-        const chunks = [];
-
-        recorder.ondataavailable = (e) => {
-            if (e.data.size > 0) chunks.push(e.data);
-        };
-
-        recorder.onstop = async () => {
-            stream.getTracks().forEach((t) => t.stop());
-            const blob = new Blob(chunks, { type: "audio/webm" });
-            setProcessing(true);
-            try {
-                await sendVoice(blob);
-            } catch (err) {
-                setStatus(err.message || "Voice request failed", true);
-            } finally {
-                setProcessing(false);
-            }
-        };
-
-        recorder.start();
-        currentStop = () => recorder.stop();
+        const session = await startRecordingSession();
+        currentStop = session.stop;
         isRecording = true;
         speakBtn.classList.add("recording");
         recIndicator.classList.remove("hidden");

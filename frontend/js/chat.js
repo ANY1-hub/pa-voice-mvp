@@ -56,7 +56,7 @@ export async function sendText(text) {
 export async function sendVoice(blob) {
     setStatus("Transcribing & thinking…");
     const form = new FormData();
-    form.append("audio", blob, "recording.webm");
+    form.append("audio", blob, "recording.wav");
 
     const res = await api("/api/v1/chat/voice", {
         method: "POST",

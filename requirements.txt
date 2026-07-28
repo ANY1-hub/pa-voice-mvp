@@ -80,6 +80,8 @@ idna==3.18
     #   anyio
     #   email-validator
     #   httpx
+imageio-ffmpeg==0.6.0
+    # via pa-voice-mvp
 jiter==0.16.0
     # via openai
 motor==3.7.1
@@ -93,7 +95,9 @@ numpy==2.5.1 ; python_full_version >= '3.12'
     #   ctranslate2
     #   onnxruntime
 onnxruntime==1.27.0
-    # via faster-whisper
+    # via
+    #   faster-whisper
+    #   piper-tts
 openai==2.47.0
     # via pa-voice-mvp
 packaging==26.2
@@ -101,6 +105,10 @@ packaging==26.2
     #   huggingface-hub
     #   onnxruntime
 passlib==1.7.4
+    # via pa-voice-mvp
+pathvalidate==3.3.1
+    # via piper-tts
+piper-tts==1.6.0
     # via pa-voice-mvp
 protobuf==7.35.1
     # via onnxruntime
@@ -129,6 +137,8 @@ python-dotenv==1.2.2
     #   pydantic-settings
     #   uvicorn
 python-jose==3.5.0
+    # via pa-voice-mvp
+python-multipart==0.0.32
     # via pa-voice-mvp
 pyyaml==6.0.3
     # via
