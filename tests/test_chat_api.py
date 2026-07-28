@@ -1,4 +1,8 @@
-"""API tests for /api/v1/chat/text and /api/v1/chat/voice."""
+"""API tests for /api/v1/chat/text and /api/v1/chat/voice.
+
+Orchestrator is dependency-overridden so these tests focus on HTTP mapping:
+status codes, request validation, and payload wiring — not LLM/STT internals.
+"""
 
 from unittest.mock import AsyncMock
 
@@ -36,6 +40,7 @@ def client_with_mock_orch(mock_orchestrator):
 
 
 def test_chat_text_happy_path(client_with_mock_orch, auth_headers, mock_orchestrator):
+    """200 + body fields; process() called with text only."""
     res = client_with_mock_orch.post(
         "/api/v1/chat/text",
         headers=auth_headers,
@@ -54,6 +59,7 @@ def test_chat_text_happy_path(client_with_mock_orch, auth_headers, mock_orchestr
 
 
 def test_chat_text_empty_body(client_with_mock_orch, auth_headers):
+    """Pydantic rejects empty text → 422 Unprocessable Entity."""
     res = client_with_mock_orch.post(
         "/api/v1/chat/text",
         headers=auth_headers,
@@ -65,6 +71,7 @@ def test_chat_text_empty_body(client_with_mock_orch, auth_headers):
 def test_chat_text_orchestrator_value_error(
     client_with_mock_orch, auth_headers, mock_orchestrator
 ):
+    """ValueError from orchestrator is mapped to HTTP 400."""
     mock_orchestrator.process.side_effect = ValueError("bad input")
     res = client_with_mock_orch.post(
         "/api/v1/chat/text",
@@ -78,6 +85,7 @@ def test_chat_text_orchestrator_value_error(
 def test_chat_text_orchestrator_unexpected_error(
     client_with_mock_orch, auth_headers, mock_orchestrator
 ):
+    """Unexpected errors become HTTP 500 (no internal traceback leaked)."""
     mock_orchestrator.process.side_effect = RuntimeError("boom")
     res = client_with_mock_orch.post(
         "/api/v1/chat/text",
@@ -94,6 +102,7 @@ def test_chat_text_orchestrator_unexpected_error(
 
 
 def test_chat_voice_happy_path(client_with_mock_orch, auth_headers, mock_orchestrator):
+    """200; audio bytes + language form field forwarded to process()."""
     files = {"audio": ("recording.wav", b"fake-wav-content", "audio/wav")}
     res = client_with_mock_orch.post(
         "/api/v1/chat/voice",
@@ -115,6 +124,7 @@ def test_chat_voice_happy_path(client_with_mock_orch, auth_headers, mock_orchest
 
 
 def test_chat_voice_empty_audio(client_with_mock_orch, auth_headers):
+    """Zero-length upload is rejected before orchestrator runs."""
     files = {"audio": ("empty.wav", b"", "audio/wav")}
     res = client_with_mock_orch.post(
         "/api/v1/chat/voice",
@@ -126,6 +136,7 @@ def test_chat_voice_empty_audio(client_with_mock_orch, auth_headers):
 
 
 def test_chat_voice_unsupported_content_type(client_with_mock_orch, auth_headers):
+    """Non-audio Content-Type → 415 Unsupported Media Type."""
     files = {"audio": ("file.txt", b"not-audio", "text/plain")}
     res = client_with_mock_orch.post(
         "/api/v1/chat/voice",
@@ -136,6 +147,7 @@ def test_chat_voice_unsupported_content_type(client_with_mock_orch, auth_headers
 
 
 def test_chat_voice_too_large(client_with_mock_orch, auth_headers):
+    """Payload above MAX_AUDIO_BYTES → 413 Request Entity Too Large."""
     huge = b"x" * (MAX_AUDIO_BYTES + 1)
     files = {"audio": ("big.wav", huge, "audio/wav")}
     res = client_with_mock_orch.post(
@@ -150,6 +162,7 @@ def test_chat_voice_too_large(client_with_mock_orch, auth_headers):
 def test_chat_voice_orchestrator_unexpected_error(
     client_with_mock_orch, auth_headers, mock_orchestrator
 ):
+    """Unexpected orchestrator errors on voice route → HTTP 500."""
     mock_orchestrator.process.side_effect = RuntimeError("stt exploded")
     files = {"audio": ("recording.wav", b"fake-wav-content", "audio/wav")}
     res = client_with_mock_orch.post(
