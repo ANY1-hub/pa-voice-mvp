@@ -85,6 +85,7 @@ async def test_repo_get_by_id_none_collection():
 async def test_repo_create_inserts():
     collection = AsyncMock()
     repo = UserRepository(collection=collection)
+    # EmailStr lowercases the domain part
     user = User(email="Test@Example.com", hashed_password="hash")
 
     result = await repo.create(user)
@@ -92,7 +93,7 @@ async def test_repo_create_inserts():
     assert result is user
     collection.insert_one.assert_awaited_once()
     dumped = collection.insert_one.await_args.args[0]
-    assert dumped["email"] == "Test@Example.com"
+    assert dumped["email"] == "Test@example.com"
 
 
 @pytest.mark.asyncio
