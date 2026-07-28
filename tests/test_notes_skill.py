@@ -109,7 +109,10 @@ async def test_execute_create_note():
     )
     assert isinstance(result, SkillResult)
     assert result.handled is True
-    assert "saved the note" in result.response_text.lower() or "Got it" in result.response_text
+    assert (
+        "saved the note" in result.response_text.lower()
+        or "Got it" in result.response_text
+    )
     assert "buy oat milk" in result.response_text.lower()
 
 
@@ -137,7 +140,10 @@ async def test_execute_create_writes_semantic_summary():
     assert result.handled is True
     mock_sem.add_fact.assert_awaited_once()
     call_kwargs = mock_sem.add_fact.call_args.kwargs
-    assert "note" in call_kwargs["fact"].lower() or "meeting" in call_kwargs["fact"].lower()
+    assert (
+        "note" in call_kwargs["fact"].lower()
+        or "meeting" in call_kwargs["fact"].lower()
+    )
 
 
 # ---------------------------------------------------------------------------
