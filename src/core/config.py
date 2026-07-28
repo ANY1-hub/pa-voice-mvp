@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     # STT
     whisper_model: str = "base"  # base | small | medium (CPU: base/small + int8)
     # TTS – one voice per language (British English default for en)
-    piper_voice_en: str = "voice_models/piper/en_GB-alan-medium.onnx"
+    piper_voice_en: str = "voice_models/piper/en_US-amy-medium.onnx"
     piper_voice_de: str = "voice_models/piper/de_DE-thorsten-medium.onnx"
     piper_voice_hu: str = "voice_models/piper/hu_HU-anna-medium.onnx"
 
