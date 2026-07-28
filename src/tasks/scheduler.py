@@ -59,13 +59,17 @@ async def consolidation_job() -> None:
 
 
 def start_scheduler() -> None:
-    """Start the background scheduler."""
+    """Start the background scheduler (idempotent)."""
+    if scheduler.running:
+        return
     scheduler.add_job(consolidation_job, "interval", minutes=60)
     scheduler.start()
     logger.info("APScheduler started (consolidation runs every 60m).")
 
 
 def stop_scheduler() -> None:
-    """Stop the background scheduler."""
-    scheduler.shutdown()
+    """Stop the background scheduler (idempotent)."""
+    if not scheduler.running:
+        return
+    scheduler.shutdown(wait=False)
     logger.info("APScheduler stopped.")
