@@ -33,21 +33,33 @@ _llm_adapter: OpenAILLMAdapter | None = None
 
 
 def get_users_collection() -> AsyncIOMotorCollection | None:
-    """Return the users collection or None if DB is not connected."""
+    """Return the users collection or ``None`` if DB is not connected.
+
+    Returns:
+        MongoDB collection for users, or ``None``.
+    """
     if db_client.db is None:
         return None
     return db_client.db["users"]
 
 
 def get_working_memory_collection() -> AsyncIOMotorCollection | None:
-    """Return the working_memory collection or None if DB is not connected."""
+    """Return the working_memory collection or ``None`` if DB is not connected.
+
+    Returns:
+        MongoDB collection for working memory, or ``None``.
+    """
     if db_client.db is None:
         return None
     return db_client.db["working_memory"]
 
 
 def get_semantic_memory_collection() -> AsyncIOMotorCollection | None:
-    """Return the semantic_memory collection or None if DB is not connected."""
+    """Return the semantic_memory collection or ``None`` if DB is not connected.
+
+    Returns:
+        MongoDB collection for semantic memory, or ``None``.
+    """
     if db_client.db is None:
         return None
     return db_client.db["semantic_memory"]
@@ -56,16 +68,23 @@ def get_semantic_memory_collection() -> AsyncIOMotorCollection | None:
 def get_user_repository(
     collection: Annotated[AsyncIOMotorCollection | None, Depends(get_users_collection)],
 ) -> UserRepository:
-    """Provide a UserRepository instance with the injected collection."""
+    """Provide a UserRepository instance with the injected collection.
+
+    Args:
+        collection: Users collection (may be ``None`` in tests).
+
+    Returns:
+        Configured ``UserRepository``.
+    """
     return UserRepository(collection=collection)
 
 
 def get_embeddings_adapter() -> OpenAIEmbeddingsAdapter | None:
-    """
-    Create the embeddings adapter.
+    """Create the embeddings adapter.
 
-    Returns None if no OpenAI API key is configured so the system can still
-    run without embeddings during local development / tests.
+    Returns:
+        ``OpenAIEmbeddingsAdapter`` if an API key is configured, otherwise
+        ``None`` so the system can still run without embeddings.
     """
     settings = get_settings()
     if not settings.openai_api_key:
@@ -74,7 +93,11 @@ def get_embeddings_adapter() -> OpenAIEmbeddingsAdapter | None:
 
 
 def get_stt_adapter() -> STTAdapter:
-    """Return a process-wide Faster-Whisper instance (loaded once)."""
+    """Return a process-wide Faster-Whisper instance (loaded once).
+
+    Returns:
+        Shared ``STTAdapter`` singleton.
+    """
     global _stt_adapter
     if _stt_adapter is None:
         _stt_adapter = FasterWhisperSTTAdapter()
@@ -82,11 +105,11 @@ def get_stt_adapter() -> STTAdapter:
 
 
 def get_tts_adapter() -> TTSAdapter | None:
-    """
-    Return a process-wide Piper instance (loaded once).
+    """Return a process-wide Piper instance (loaded once).
 
-    Returns None if the voice model file is missing so the rest of the
-    system can still run (text-only mode).
+    Returns:
+        Shared ``TTSAdapter`` singleton, or ``None`` if the voice model file
+        is missing (text-only mode).
     """
     global _tts_adapter
     if _tts_adapter is None:
@@ -99,7 +122,14 @@ def get_tts_adapter() -> TTSAdapter | None:
 
 
 def get_llm_adapter() -> LLMAdapter:
-    """Return a process-wide OpenAI LLM adapter (MVP default)."""
+    """Return a process-wide OpenAI LLM adapter (MVP default).
+
+    Returns:
+        Shared ``LLMAdapter`` singleton.
+
+    Raises:
+        RuntimeError: If ``OPENAI_API_KEY`` is not configured.
+    """
     global _llm_adapter
     if _llm_adapter is None:
         settings = get_settings()
@@ -115,9 +145,18 @@ async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
     repo: Annotated[UserRepository, Depends(get_user_repository)],
 ) -> User:
-    """
-    Extract and validate the JWT from the Authorization header.
-    Returns the full User object or raises 401.
+    """Extract and validate the JWT from the Authorization header.
+
+    Args:
+        credentials: Bearer token from the request.
+        repo: User repository used to load the full user record.
+
+    Returns:
+        Authenticated ``User`` object.
+
+    Raises:
+        HTTPException: 401 if the token is invalid/expired or the user is
+            missing/inactive.
     """
     token = credentials.credentials
     user_id = verify_access_token(token)
@@ -144,9 +183,13 @@ async def get_current_user(
 async def get_current_user_id(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> str:
-    """
-    Convenience dependency that returns only the user_id string.
-    Keeps existing Memory routes working with minimal changes.
+    """Return only the user_id string of the authenticated user.
+
+    Args:
+        current_user: Full user resolved by ``get_current_user``.
+
+    Returns:
+        User ID (UUID string).
     """
     return current_user.id
 
@@ -157,7 +200,15 @@ def get_working_memory(
         AsyncIOMotorCollection | None, Depends(get_working_memory_collection)
     ],
 ) -> WorkingMemory:
-    """Provide a WorkingMemory instance for the current user."""
+    """Provide a WorkingMemory instance for the current user.
+
+    Args:
+        user_id: Authenticated user ID.
+        collection: Working-memory MongoDB collection (may be ``None``).
+
+    Returns:
+        ``WorkingMemory`` bound to the current user.
+    """
     return WorkingMemory(user_id=user_id, collection=collection)
 
 
@@ -170,7 +221,16 @@ def get_semantic_memory(
         OpenAIEmbeddingsAdapter | None, Depends(get_embeddings_adapter)
     ],
 ) -> SemanticMemory:
-    """Provide a SemanticMemory instance for the current user."""
+    """Provide a SemanticMemory instance for the current user.
+
+    Args:
+        user_id: Authenticated user ID.
+        collection: Semantic-memory MongoDB collection (may be ``None``).
+        embeddings: Optional embeddings adapter for vector search.
+
+    Returns:
+        ``SemanticMemory`` bound to the current user.
+    """
     return SemanticMemory(
         user_id=user_id,
         collection=collection,
@@ -185,7 +245,18 @@ def get_orchestrator(
     working_memory: Annotated[WorkingMemory, Depends(get_working_memory)],
     semantic_memory: Annotated[SemanticMemory, Depends(get_semantic_memory)],
 ) -> ChatOrchestrator:
-    """Wire a ChatOrchestrator for the current authenticated user."""
+    """Wire a ChatOrchestrator for the current authenticated user.
+
+    Args:
+        llm: LLM adapter singleton.
+        stt: STT adapter singleton.
+        tts: Optional TTS adapter singleton.
+        working_memory: User-scoped working memory.
+        semantic_memory: User-scoped semantic memory.
+
+    Returns:
+        Fully wired ``ChatOrchestrator``.
+    """
     return ChatOrchestrator(
         llm=llm,
         stt=stt,

@@ -18,7 +18,15 @@ async def register(
     payload: UserCreate,
     repo: UserRepository = Depends(get_user_repository),  # noqa: B008
 ) -> UserPublic:
-    """Register a new user. Email must be unique."""
+    """Register a new user. Email must be unique.
+
+    Args:
+        payload: Registration data (email + password).
+        repo: Injected user repository.
+
+    Returns:
+        Public user representation of the newly created account.
+    """
     existing = await repo.get_by_email(payload.email)
     if existing is not None:
         raise HTTPException(
@@ -45,7 +53,15 @@ async def login(
     payload: UserLogin,
     repo: UserRepository = Depends(get_user_repository),  # noqa: B008
 ) -> dict:
-    """Authenticate and return a JWT access token."""
+    """Authenticate and return a JWT access token.
+
+    Args:
+        payload: Login credentials (email + password).
+        repo: Injected user repository.
+
+    Returns:
+        Dict with ``access_token`` and ``token_type`` (``"bearer"``).
+    """
     user = await repo.get_by_email(payload.email)
 
     if user is None or not verify_password(payload.password, user.hashed_password):
@@ -68,7 +84,14 @@ async def login(
 async def me(
     current_user: User = Depends(get_current_user),  # noqa: B008
 ) -> UserPublic:
-    """Return the currently authenticated user."""
+    """Return the currently authenticated user.
+
+    Args:
+        current_user: User resolved from the JWT (via dependency).
+
+    Returns:
+        Public user representation.
+    """
     return UserPublic(
         id=current_user.id,
         email=current_user.email,

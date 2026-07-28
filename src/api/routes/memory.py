@@ -12,14 +12,25 @@ router = APIRouter()
 
 
 class WorkingMemoryRequest(BaseModel):
-    """Request body for adding an item to Working Memory."""
+    """Request body for adding an item to Working Memory.
+
+    Attributes:
+        content: Text content of the memory item.
+        importance_score: Score in ``[0.0, 1.0]`` (default ``0.5``).
+    """
 
     content: str
     importance_score: float = Field(default=0.5, ge=0.0, le=1.0)
 
 
 class SemanticMemoryRequest(BaseModel):
-    """Request body for adding a fact to Semantic Memory."""
+    """Request body for adding a fact to Semantic Memory.
+
+    Attributes:
+        content: Text content of the fact.
+        importance_score: Score in ``[0.0, 1.0]`` (default ``0.7``).
+        entities_involved: Optional list of related entity names.
+    """
 
     content: str
     importance_score: float = Field(default=0.7, ge=0.0, le=1.0)
@@ -31,7 +42,15 @@ async def add_working_memory(
     request: WorkingMemoryRequest,
     mem: WorkingMemory = Depends(get_working_memory),  # noqa: B008
 ):
-    """Add a new item to the user's Working Memory."""
+    """Add a new item to the user's Working Memory.
+
+    Args:
+        request: Content and importance for the new item.
+        mem: Injected WorkingMemory for the current user.
+
+    Returns:
+        Dict with ``status`` and the created item under ``data``.
+    """
     try:
         item = await mem.add(
             content=request.content,
@@ -52,7 +71,16 @@ async def retrieve_working_memory(
     limit: int = Query(default=20, ge=1, le=100),
     mem: WorkingMemory = Depends(get_working_memory),  # noqa: B008
 ):
-    """Retrieve recent Working Memory items for the current user."""
+    """Retrieve recent Working Memory items for the current user.
+
+    Args:
+        query: Optional case-insensitive substring filter.
+        limit: Max items to return (1–100, default 20).
+        mem: Injected WorkingMemory for the current user.
+
+    Returns:
+        Dict with ``status`` and the list of items under ``data``.
+    """
     try:
         items = await mem.retrieve(query=query, limit=limit)
         return {"status": "success", "data": items}
@@ -67,7 +95,15 @@ async def add_semantic_memory(
     request: SemanticMemoryRequest,
     mem: SemanticMemory = Depends(get_semantic_memory),  # noqa: B008
 ):
-    """Add a new long-term fact to the user's Semantic Memory."""
+    """Add a new long-term fact to the user's Semantic Memory.
+
+    Args:
+        request: Content, importance and optional entities.
+        mem: Injected SemanticMemory for the current user.
+
+    Returns:
+        Dict with ``status`` and the created fact under ``data``.
+    """
     try:
         fact = await mem.add_fact(
             fact=request.content,
@@ -89,7 +125,16 @@ async def search_semantic_memory(
     limit: int = Query(default=10, ge=1, le=50),
     mem: SemanticMemory = Depends(get_semantic_memory),  # noqa: B008
 ):
-    """Search Semantic Memory for the current user (vector or text)."""
+    """Search Semantic Memory for the current user (vector or text).
+
+    Args:
+        query: Free-text search query (required).
+        limit: Max facts to return (1–50, default 10).
+        mem: Injected SemanticMemory for the current user.
+
+    Returns:
+        Dict with ``status`` and the ranked facts under ``data``.
+    """
     try:
         facts = await mem.search(query=query, limit=limit)
         return {"status": "success", "data": facts}

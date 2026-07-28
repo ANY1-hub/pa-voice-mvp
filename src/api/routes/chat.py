@@ -26,13 +26,23 @@ ALLOWED_AUDIO_CONTENT_TYPES = {
 
 
 class TextChatRequest(BaseModel):
-    """JSON body for pure text chat."""
+    """JSON body for pure text chat.
+
+    Attributes:
+        text: User message (1–4000 characters).
+    """
 
     text: str = Field(..., min_length=1, max_length=4000)
 
 
 class ChatResponse(BaseModel):
-    """Unified response for both text and voice turns."""
+    """Unified response for both text and voice turns.
+
+    Attributes:
+        transcript: Sanitized user utterance.
+        response: LLM reply text.
+        audio_base64: Optional base64-encoded TTS audio.
+    """
 
     transcript: str
     response: str
@@ -48,6 +58,13 @@ async def chat_text(
 
     JWT is enforced via the orchestrator dependency chain
     (WorkingMemory → current user).
+
+    Args:
+        body: JSON body with the user text.
+        orchestrator: Injected chat orchestrator for the current user.
+
+    Returns:
+        ChatResponse with transcript, reply and optional audio.
     """
     try:
         result = await orchestrator.process(text=body.text)
@@ -81,6 +98,14 @@ async def chat_voice(
 
     JWT is enforced via the orchestrator dependency chain
     (WorkingMemory → current user).
+
+    Args:
+        audio: Uploaded audio file (wav, webm, …).
+        orchestrator: Injected chat orchestrator for the current user.
+        language: Optional STT language code (e.g. ``"de"``, ``"en"``, ``"hu"``).
+
+    Returns:
+        ChatResponse with transcript, reply and optional audio.
     """
     # Content-Type check (lenient but not completely open)
     content_type = (audio.content_type or "").lower().split(";")[0].strip()
