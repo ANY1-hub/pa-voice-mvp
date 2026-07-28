@@ -48,9 +48,7 @@ class NotesSkill(Skill):
         self.repository = repository
         self.semantic_memory = semantic_memory
 
-    def can_handle(
-        self, user_text: str, context: dict[str, Any] | None = None
-    ) -> bool:
+    def can_handle(self, user_text: str, context: dict[str, Any] | None = None) -> bool:
         """Cheap keyword check for create or list intents."""
         text = user_text.strip()
         if not text:

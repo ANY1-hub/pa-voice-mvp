@@ -38,9 +38,7 @@ class Skill(ABC):
     name: str
 
     @abstractmethod
-    def can_handle(
-        self, user_text: str, context: dict[str, Any] | None = None
-    ) -> bool:
+    def can_handle(self, user_text: str, context: dict[str, Any] | None = None) -> bool:
         """Return True if this skill should handle the given user text.
 
         Args:

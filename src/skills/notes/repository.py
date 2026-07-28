@@ -92,11 +92,7 @@ class NoteRepository:
                 {"title": {"$regex": query, "$options": "i"}},
             ]
 
-        cursor = (
-            self.collection.find(filters)
-            .sort("created_at", -1)
-            .limit(limit)
-        )
+        cursor = self.collection.find(filters).sort("created_at", -1).limit(limit)
 
         notes: list[Note] = []
         async for doc in cursor:
