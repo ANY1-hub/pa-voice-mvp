@@ -35,6 +35,7 @@ dev = [
     "mypy",
     "pytest",
     "httpx",
+    "httpx2",
     "pytest-cov",
     "pytest-asyncio",
     "pre-commit",
@@ -42,6 +43,7 @@ dev = [
 test = [
     "pytest",
     "httpx",
+    "httpx2",
     "pytest-cov",
     "pytest-asyncio",
 ]
