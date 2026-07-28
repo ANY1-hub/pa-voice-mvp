@@ -1,6 +1,6 @@
 # Piper Voice Model Setup
 
-Piper needs a local voice model (`.onnx` + `.onnx.json`).  
+Piper needs local voice models (`.onnx` + `.onnx.json`) per language.  
 These files are **not** committed to the repository (they are large).
 
 Recommended location:
@@ -9,22 +9,44 @@ Recommended location:
 voice_models/piper/
 ```
 
-Default voice used by the project: `en_US-lessac-medium`
+## Supported languages (MVP)
+
+| Code | Voice | File |
+|------|--------|------|
+| `en` | British English – Alan (medium) | `en_GB-alan-medium.onnx` |
+| `de` | German – Thorsten (medium) | `de_DE-thorsten-medium.onnx` |
+| `hu` | Hungarian – Anna (medium) | `hu_HU-anna-medium.onnx` |
+
+At least **one** model must be present. Missing languages fall back to the
+default loaded voice (preferring `en`).
+
+Paths can be overridden via env / `.env`:
+
+```env
+PIPER_VOICE_EN=voice_models/piper/en_GB-alan-medium.onnx
+PIPER_VOICE_DE=voice_models/piper/de_DE-thorsten-medium.onnx
+PIPER_VOICE_HU=voice_models/piper/hu_HU-anna-medium.onnx
+```
 
 ---
 
 ## Download (Windows – PowerShell)
 
 ```powershell
-# Create the directory
 mkdir voice_models\piper
 cd voice_models\piper
 
-# Download the .onnx model
-Invoke-WebRequest -Uri "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx" -OutFile "en_US-lessac-medium.onnx"
+# British English
+Invoke-WebRequest -Uri "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_GB/alan/medium/en_GB-alan-medium.onnx" -OutFile "en_GB-alan-medium.onnx"
+Invoke-WebRequest -Uri "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_GB/alan/medium/en_GB-alan-medium.onnx.json" -OutFile "en_GB-alan-medium.onnx.json"
 
-# Download the .json config
-Invoke-WebRequest -Uri "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json" -OutFile "en_US-lessac-medium.onnx.json"
+# German
+Invoke-WebRequest -Uri "https://huggingface.co/rhasspy/piper-voices/resolve/main/de/de_DE/thorsten/medium/de_DE-thorsten-medium.onnx" -OutFile "de_DE-thorsten-medium.onnx"
+Invoke-WebRequest -Uri "https://huggingface.co/rhasspy/piper-voices/resolve/main/de/de_DE/thorsten/medium/de_DE-thorsten-medium.onnx.json" -OutFile "de_DE-thorsten-medium.onnx.json"
+
+# Hungarian
+Invoke-WebRequest -Uri "https://huggingface.co/rhasspy/piper-voices/resolve/main/hu/hu_HU/anna/medium/hu_HU-anna-medium.onnx" -OutFile "hu_HU-anna-medium.onnx"
+Invoke-WebRequest -Uri "https://huggingface.co/rhasspy/piper-voices/resolve/main/hu/hu_HU/anna/medium/hu_HU-anna-medium.onnx.json" -OutFile "hu_HU-anna-medium.onnx.json"
 ```
 
 ---
@@ -32,28 +54,42 @@ Invoke-WebRequest -Uri "https://huggingface.co/rhasspy/piper-voices/resolve/main
 ## Download (macOS / Linux)
 
 ```bash
-# Create the directory
 mkdir -p voice_models/piper
 cd voice_models/piper
 
-# Download the .onnx model
-curl -L -o en_US-lessac-medium.onnx \
-  https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx
+# British English
+curl -L -o en_GB-alan-medium.onnx \
+  https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_GB/alan/medium/en_GB-alan-medium.onnx
+curl -L -o en_GB-alan-medium.onnx.json \
+  https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_GB/alan/medium/en_GB-alan-medium.onnx.json
 
-# Download the .json config
-curl -L -o en_US-lessac-medium.onnx.json \
-  https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json
+# German
+curl -L -o de_DE-thorsten-medium.onnx \
+  https://huggingface.co/rhasspy/piper-voices/resolve/main/de/de_DE/thorsten/medium/de_DE-thorsten-medium.onnx
+curl -L -o de_DE-thorsten-medium.onnx.json \
+  https://huggingface.co/rhasspy/piper-voices/resolve/main/de/de_DE/thorsten/medium/de_DE-thorsten-medium.onnx.json
+
+# Hungarian
+curl -L -o hu_HU-anna-medium.onnx \
+  https://huggingface.co/rhasspy/piper-voices/resolve/main/hu/hu_HU/anna/medium/hu_HU-anna-medium.onnx
+curl -L -o hu_HU-anna-medium.onnx.json \
+  https://huggingface.co/rhasspy/piper-voices/resolve/main/hu/hu_HU/anna/medium/hu_HU-anna-medium.onnx.json
 ```
 
 ---
 
 ## Verify
 
-After downloading you should see both files:
+You should have pairs of files:
 
 ```
-voice_models/piper/en_US-lessac-medium.onnx
-voice_models/piper/en_US-lessac-medium.onnx.json
+voice_models/piper/en_GB-alan-medium.onnx
+voice_models/piper/en_GB-alan-medium.onnx.json
+voice_models/piper/de_DE-thorsten-medium.onnx
+voice_models/piper/de_DE-thorsten-medium.onnx.json
+voice_models/piper/hu_HU-anna-medium.onnx
+voice_models/piper/hu_HU-anna-medium.onnx.json
 ```
 
-The application will look for the model at the path configured in `Settings.piper_voice_path` (default: `voice_models/piper/en_US-lessac-medium.onnx`).
+On startup the backend logs which voices were loaded.  
+Language for TTS is chosen from STT hint + simple heuristics on the reply text.

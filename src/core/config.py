@@ -21,7 +21,9 @@ class Settings(BaseSettings):
         grok_model: Grok model name.
         access_token_expire_minutes: JWT lifetime in minutes (default 24h).
         whisper_model: faster-whisper model size (``base`` / ``small`` / …).
-        piper_voice_path: Path to the Piper ``.onnx`` voice file.
+        piper_voice_en: Path to British-English Piper voice.
+        piper_voice_de: Path to German Piper voice.
+        piper_voice_hu: Path to Hungarian Piper voice.
     """
 
     # --- Secrets ---
@@ -38,8 +40,10 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 1440  # 24 hours
     # STT
     whisper_model: str = "base"  # base | small | medium (CPU: base/small + int8)
-    # TTS
-    piper_voice_path: str = "voice_models/piper/en_US-lessac-medium.onnx"
+    # TTS – one voice per language (British English default for en)
+    piper_voice_en: str = "voice_models/piper/en_GB-alan-medium.onnx"
+    piper_voice_de: str = "voice_models/piper/de_DE-thorsten-medium.onnx"
+    piper_voice_hu: str = "voice_models/piper/hu_HU-anna-medium.onnx"
 
     model_config = SettingsConfigDict(
         env_file=".env",

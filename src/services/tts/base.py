@@ -10,11 +10,13 @@ class TTSAdapter(ABC):
     """
 
     @abstractmethod
-    async def synthesize(self, text: str) -> bytes:
+    async def synthesize(self, text: str, language: str | None = None) -> bytes:
         """Convert text to audio bytes.
 
         Args:
             text: Text to speak.
+            language: Optional ISO language code (``"en"``, ``"de"``, ``"hu"``).
+                ``None`` lets the adapter choose a default voice.
 
         Returns:
             Audio bytes (WAV or raw PCM) ready for the client.

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import base64
 import logging
+import re
 from dataclasses import dataclass
 
 from src.memory.semantic_memory import SemanticMemory
@@ -27,6 +28,48 @@ You are helpful, concise, slightly witty, and you remember personal details abou
 Use the provided personal context naturally when relevant. Do not invent facts about the user.
 If you lack information, say so briefly.
 Respond in the same language the user is using."""
+
+# Characters unique / strongly indicative for language heuristics
+_HU_CHARS = set("őűŐŰ")
+_DE_CHARS = set("äöüÄÖÜß")
+_HU_WORDS = re.compile(
+    r"\b(hogy|nem|van|egy|és|vagy|mit|ez|az|igen|köszönöm)\b",
+    re.IGNORECASE,
+)
+_DE_WORDS = re.compile(
+    r"\b(und|der|die|das|ich|nicht|ist|ein|eine|mit|für|auf)\b",
+    re.IGNORECASE,
+)
+
+
+def detect_response_language(text: str, hint: str | None = None) -> str:
+    """Guess the language of a reply for TTS voice selection.
+
+    Priority: explicit hint (from STT) → character heuristics → word markers → en.
+
+    Args:
+        text: User or assistant text to inspect.
+        hint: Optional language code from STT (``"en"``, ``"de"``, ``"hu"``).
+
+    Returns:
+        One of ``"en"``, ``"de"``, ``"hu"``.
+    """
+    if hint:
+        code = hint.lower().strip()[:2]
+        if code in {"en", "de", "hu"}:
+            return code
+
+    if any(c in _HU_CHARS for c in text):
+        return "hu"
+    if any(c in _DE_CHARS for c in text):
+        return "de"
+
+    if _HU_WORDS.search(text):
+        return "hu"
+    if _DE_WORDS.search(text):
+        return "de"
+
+    return "en"
 
 
 @dataclass
@@ -83,7 +126,7 @@ class ChatOrchestrator:
         Args:
             text: Plain-text user message (fallback when no audio).
             audio_bytes: Raw audio payload for STT.
-            language: Optional language code for STT (e.g. ``"de"``, ``"en"``,
+            language: Optional language code for STT/TTS (e.g. ``"de"``, ``"en"``,
                 ``"hu"``). ``None`` triggers auto-detect.
 
         Returns:
@@ -105,6 +148,9 @@ class ChatOrchestrator:
         # 2. Input validation / guardrails
         sanitized = process_user_message(transcript)
 
+        # Language for TTS: prefer explicit hint, else detect from user text
+        tts_lang = detect_response_language(sanitized, hint=language)
+
         # 3. Memory context
         memory_context = await self._build_memory_context(sanitized)
 
@@ -115,11 +161,14 @@ class ChatOrchestrator:
         if not response_text:
             response_text = "I am sorry, I could not generate a response."
 
+        # Prefer language of the *reply* if clearly different (e.g. mixed turns)
+        tts_lang = detect_response_language(response_text, hint=tts_lang)
+
         # 5. Persist the turn in Working Memory (active use of memory)
         await self._store_turn(sanitized, response_text)
 
         # 6. TTS (optional – text-only clients can ignore audio)
-        audio_b64 = await self._maybe_synthesize(response_text)
+        audio_b64 = await self._maybe_synthesize(response_text, tts_lang)
 
         return ChatResult(
             transcript=sanitized,
@@ -162,11 +211,14 @@ class ChatOrchestrator:
             raise ValueError("Could not transcribe audio (empty result)")
         return transcript
 
-    async def _maybe_synthesize(self, response_text: str) -> str | None:
+    async def _maybe_synthesize(
+        self, response_text: str, language: str | None = None
+    ) -> str | None:
         """Run TTS if available; never let TTS failure break the turn.
 
         Args:
             response_text: Text to synthesize.
+            language: Language code for voice selection.
 
         Returns:
             Base64-encoded audio, or ``None`` if TTS is unavailable or fails.
@@ -174,7 +226,7 @@ class ChatOrchestrator:
         if self.tts is None:
             return None
         try:
-            audio_raw = await self.tts.synthesize(response_text)
+            audio_raw = await self.tts.synthesize(response_text, language=language)
             if audio_raw:
                 return base64.b64encode(audio_raw).decode("ascii")
         except Exception:
