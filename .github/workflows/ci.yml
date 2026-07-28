@@ -31,6 +31,12 @@ jobs:
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            **/pyproject.toml
+            **/uv.lock
+            **/requirements*.txt
 
       - name: Install dependencies
         run: uv pip install --system -e ".[dev]"
@@ -46,4 +52,6 @@ jobs:
           SECRET_KEY: "ci-test-secret-key-do-not-use-in-prod!"
           MONGODB_URI: "mongodb://localhost:27017"
           MONGODB_DB_NAME: "jarvis_test"
-        run: pytest
+        # --cov-fail-under enforces a minimum total coverage (currently ~86%+).
+        # STT/ffmpeg paths stay low on purpose; overall floor keeps regressions in check.
+        run: pytest --cov=src --cov-report=term-missing --cov-fail-under=80
