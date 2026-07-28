@@ -4,19 +4,32 @@
 
 A local-first, privacy-centric voice assistant that actively learns and maintains personal insights.
 
-## Features (MVP)
-- Voice interaction (STT + TTS)
+## Status (2026-07-28)
+
+| Phase | Status |
+|-------|--------|
+| 0 Setup & Foundation | ✅ |
+| 1 Memory Core | ✅ |
+| 2 Auth + Multi-User | ✅ |
+| **3 Voice Pipeline MVP** | **✅ closed** |
+| 4 Skills (reminders, web search) | ← next |
+| 5 Polish & Demo | pending |
+
+## Features (MVP scope)
+- Voice interaction (STT + TTS) with visible transcript and reply
 - Working Memory + Semantic Memory with active consolidation
-- Reminders, notes, and memory-augmented web search
-- Multi-user support with proper isolation
-- Browser UI with one big "Speak" button
+- Multi-user isolation (JWT)
+- Multi-language TTS voices (en / de / hu)
+- Browser UI with one big "Speak" button + text fallback
+
+**Not in MVP (Phase 4+):** reminders/notes skills, memory-augmented web search, streaming, local LLM, GDPR data UI.
 
 ## Tech Stack
 - Backend: FastAPI
 - Database: MongoDB Community (Docker) on Synology NAS — embeddings in documents; in-app ranking for Phase 1
 - STT: faster-whisper
-- TTS: Piper
-- LLM (MVP): OpenAI (temporary) → later local Ollama
+- TTS: Piper (multi-voice)
+- LLM (MVP): OpenAI (temporary) → later local / Adapter Pattern
 - Auth: JWT + bcrypt
 
 ## Authentication
@@ -46,7 +59,7 @@ Response shape:
 {
   "transcript": "what the user said",
   "response": "Jarvis reply",
-  "audio_base64": "..."   // optional, null if TTS unavailable
+  "audio_base64": "..."
 }
 ```
 
@@ -95,7 +108,7 @@ Open http://localhost:5500
 Login with a registered user, then use the big Speak button (or the text input).
 
 Backend must be running on port 8000.  
-Piper voice model must be present (see [docs/piper-voice-setup.md](docs/piper-voice-setup.md)).
+Piper voice models must be present (see [docs/piper-voice-setup.md](docs/piper-voice-setup.md)).
 
 ### MongoDB
 
@@ -113,15 +126,23 @@ MONGODB_DB_NAME=jarvis_db
 
 ### Piper TTS Voice Model
 
-Piper requires a local voice model (not included in the repo).  
+Piper requires local voice models (not included in the repo).  
 See **[docs/piper-voice-setup.md](docs/piper-voice-setup.md)** for download instructions (Windows + macOS/Linux).
+
+Optional per-language override in `.env`:
+
+```env
+PIPER_VOICE_EN=voice_models/piper/en_US-amy-medium.onnx
+PIPER_VOICE_DE=voice_models/piper/de_DE-thorsten-medium.onnx
+PIPER_VOICE_HU=voice_models/piper/hu_HU-anna-medium.onnx
+```
 
 ## Development Standards
 - Clean Code + Best Practices
 - Tests with edge cases for every relevant function (pytest)
 - Security by Design (aligned with ISO/IEC 27001 principles)
 - Accessibility considerations (WCAG 2.2 / ISO 40500)
-- Automated checks via Ruff, Black, mypy, pytest
+- Automated checks via Ruff, Black, pytest (CI coverage ≥ 80%)
 
 ## Project Memory
 All major decisions are documented in the Project Memory (see internal docs or ask the maintainer).

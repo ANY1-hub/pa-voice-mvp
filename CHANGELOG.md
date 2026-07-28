@@ -8,30 +8,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Phase 3 closed: full voice pipeline (STT → Memory → LLM → TTS)
-- Frontend modular Jarvis-style UI with live transcript + response + audio playback
-- Unit tests for ChatOrchestrator (`tests/test_orchestrator.py`)
-- API tests for `/chat/text` and `/chat/voice` (`tests/test_chat_api.py`)
-- Scheduler start/stop made idempotent
-- Phase 3 – Chat Orchestrator + endpoints:
-  - `POST /api/v1/chat/text` (JSON text)
-  - `POST /api/v1/chat/voice` (multipart audio)
-  - Flow: STT → guardrails → Working + Semantic Memory context → LLM → TTS
-  - JWT-protected, audio size limit (10 MB), content-type check
-- Thin `ChatOrchestrator` service with DI wiring for STT / TTS / LLM / Memory
-- `python-multipart` dependency for file uploads
-- UUID strict validation for `X-User-Id` header (must be valid UUID, else 401)
-- Minimal memory consolidation:
-  - Promotion of high-importance Working Memory items (≥ 0.7) to Semantic Memory
-  - Cleanup of old + low-importance Semantic facts (< 0.25 and > 30 days)
-  - Exact-content deduplication in Semantic Memory
-- Structured extension points in `consolidate()` for later entity linking and drift detection
-- Tests for consolidation logic (`tests/test_consolidation.py`)
-- Updated memory design documentation
+- (Phase 4 starting) Skills: reminders/notes, memory-augmented web search
+
+## [0.2.0] - 2026-07-28 — Phase 3 closed
+
+Full voice pipeline with multi-language TTS, hardened tests/CI, and MVP prompt-injection guardrails.
+
+### Added
+- Voice pipeline end-to-end: STT → transcript → Memory context → LLM → TTS
+- Chat API: `POST /api/v1/chat/text`, `POST /api/v1/chat/voice` (JWT)
+- Frontend: modular Jarvis UI, live transcript + response, speaking indicator, 16 kHz WAV upload
+- Multi-voice Piper TTS (`en` / `de` / `hu`) with language detection heuristic
+- Prompt-injection blocklist + regression tests (PATT-inspired)
+- Broad unit/API test suite (orchestrator, chat, memory, auth, security, scheduler, piper)
+- CI: Ruff, Black, Pytest, Mongo service, uv cache, **coverage floor 80%**
+- Scheduler start/stop idempotent; consolidation job covered by tests
+
+### Fixed
+- Piper generator API + WAV wrapping for browser playback
+- STT browser WAV path + imageio-ffmpeg conversion
+- EmailStr domain lowercasing assertion in auth tests
+- Ruff UP038 / import hygiene for CI green builds
 
 ### Changed
-- Semantic search remains in-memory cosine similarity (native `$vectorSearch` deferred).
-  Reason: Current NAS setup uses plain Community Edition Docker image without `mongot` / search index. Native vector search is possible in CE since 2025/26 but requires extra components not yet part of the local-first deployment.
+- Orchestrator stays thin; STT/TTS as services; memory failures do not break a turn
+- Semantic search remains in-memory cosine (native `$vectorSearch` deferred for NAS CE)
 
 ## [0.1.0] - 2026-07-16
 
