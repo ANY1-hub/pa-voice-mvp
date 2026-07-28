@@ -123,7 +123,7 @@ async def chat_voice(
         )
     if len(audio_bytes) > MAX_AUDIO_BYTES:
         raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail=f"Audio exceeds limit of {MAX_AUDIO_BYTES // (1024 * 1024)} MB",
         )
 
