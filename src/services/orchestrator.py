@@ -31,7 +31,13 @@ Respond in the same language the user is using."""
 
 @dataclass
 class ChatResult:
-    """Result of one full chat turn."""
+    """Result of one full chat turn.
+
+    Attributes:
+        transcript: Sanitized user utterance (from text or STT).
+        response: LLM-generated reply text.
+        audio_base64: Optional base64-encoded TTS audio (WAV-like).
+    """
 
     transcript: str
     response: str
@@ -49,6 +55,15 @@ class ChatOrchestrator:
         working_memory: WorkingMemory | None = None,
         semantic_memory: SemanticMemory | None = None,
     ) -> None:
+        """Wire the adapters used for one chat turn.
+
+        Args:
+            llm: Language-model adapter (required).
+            stt: Optional speech-to-text adapter (needed for voice turns).
+            tts: Optional text-to-speech adapter.
+            working_memory: Optional short-term memory store.
+            semantic_memory: Optional long-term fact store.
+        """
         self.llm = llm
         self.stt = stt
         self.tts = tts
@@ -61,11 +76,23 @@ class ChatOrchestrator:
         audio_bytes: bytes | None = None,
         language: str | None = None,
     ) -> ChatResult:
-        """
-        Run one full turn.
+        """Run one full conversational turn.
 
-        Exactly one of `text` or `audio_bytes` must be provided.
-        Returns transcript, LLM response text and optional TTS audio (base64).
+        Exactly one of ``text`` or ``audio_bytes`` must be provided.
+
+        Args:
+            text: Plain-text user message (fallback when no audio).
+            audio_bytes: Raw audio payload for STT.
+            language: Optional language code for STT (e.g. ``"de"``, ``"en"``,
+                ``"hu"``). ``None`` triggers auto-detect.
+
+        Returns:
+            ChatResult with transcript, LLM response and optional base64 audio.
+
+        Raises:
+            ValueError: If both/neither input is given, audio exceeds the size
+                limit, or transcription yields an empty result.
+            RuntimeError: If STT is required but not configured.
         """
         if not text and not audio_bytes:
             raise ValueError("Either text or audio_bytes must be provided")
@@ -106,7 +133,20 @@ class ChatOrchestrator:
         audio_bytes: bytes | None,
         language: str | None,
     ) -> str:
-        """Return the user utterance as text (via STT when audio is given)."""
+        """Return the user utterance as text (via STT when audio is given).
+
+        Args:
+            text: Plain text when no audio is provided.
+            audio_bytes: Raw audio to transcribe.
+            language: Optional STT language hint.
+
+        Returns:
+            Transcribed or plain-text utterance.
+
+        Raises:
+            ValueError: If audio is too large or transcription is empty.
+            RuntimeError: If STT adapter is missing.
+        """
         if audio_bytes is None:
             return text or ""
 
@@ -123,7 +163,14 @@ class ChatOrchestrator:
         return transcript
 
     async def _maybe_synthesize(self, response_text: str) -> str | None:
-        """Run TTS if available; never let TTS failure break the turn."""
+        """Run TTS if available; never let TTS failure break the turn.
+
+        Args:
+            response_text: Text to synthesize.
+
+        Returns:
+            Base64-encoded audio, or ``None`` if TTS is unavailable or fails.
+        """
         if self.tts is None:
             return None
         try:
@@ -135,7 +182,14 @@ class ChatOrchestrator:
         return None
 
     async def _build_memory_context(self, query: str) -> str:
-        """Retrieve a short, relevant memory snippet for the LLM."""
+        """Retrieve a short, relevant memory snippet for the LLM.
+
+        Args:
+            query: User utterance used as search seed for semantic memory.
+
+        Returns:
+            Formatted context string, or empty string if nothing relevant found.
+        """
         parts: list[str] = []
 
         if self.working_memory is not None:
@@ -161,7 +215,15 @@ class ChatOrchestrator:
     def _build_messages(
         self, user_text: str, memory_context: str
     ) -> list[dict[str, str]]:
-        """Assemble the chat messages for the LLM."""
+        """Assemble the chat messages for the LLM.
+
+        Args:
+            user_text: Sanitized user utterance.
+            memory_context: Pre-formatted personal context block.
+
+        Returns:
+            List of role/content dicts ready for the LLM adapter.
+        """
         system = SYSTEM_PROMPT
         if memory_context:
             system += (
@@ -175,7 +237,12 @@ class ChatOrchestrator:
         ]
 
     async def _store_turn(self, user_text: str, assistant_text: str) -> None:
-        """Store the turn in Working Memory so future turns have context."""
+        """Store the turn in Working Memory so future turns have context.
+
+        Args:
+            user_text: Sanitized user utterance.
+            assistant_text: LLM response text.
+        """
         if self.working_memory is None:
             return
         try:

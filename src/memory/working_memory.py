@@ -18,17 +18,28 @@ class WorkingMemory:
 
         Args:
             user_id: Owner of the memory items.
-            collection: MongoDB collection to use. Pass None for unit tests
-                        that should not touch the database.
+            collection: MongoDB collection to use. Pass ``None`` for unit tests
+                that should not touch the database.
         """
         self.user_id = user_id
         self.collection = collection
 
     async def add(self, content: str, importance: float = 0.5) -> WorkingMemoryItem:
-        """
-        Add a new item to Working Memory.
+        """Add a new item to Working Memory.
 
         Performs security validation before persisting.
+
+        Args:
+            content: Text content of the memory item.
+            importance: Importance score in ``[0.0, 1.0]`` (default ``0.5``).
+
+        Returns:
+            The created ``WorkingMemoryItem`` (also persisted when a collection
+            is configured).
+
+        Raises:
+            InputValidationError / MemoryWritePolicyViolation: From guardrails
+                when the content is rejected.
         """
         # 1. Security Check
         fact_dict = {"content": content}
@@ -52,11 +63,15 @@ class WorkingMemory:
         query: str | None = None,
         limit: int = 20,
     ) -> list[WorkingMemoryItem]:
-        """
-        Retrieve recent Working Memory items for this user.
+        """Retrieve recent Working Memory items for this user.
 
-        Optional `query` filters by case-insensitive substring match on content.
-        Results are ordered by last_accessed descending.
+        Args:
+            query: Optional case-insensitive substring filter on content.
+            limit: Maximum number of items to return (default ``20``).
+
+        Returns:
+            List of ``WorkingMemoryItem``, ordered by ``last_accessed``
+            descending. Empty list when no collection is configured.
         """
         if self.collection is None:
             return []

@@ -14,8 +14,8 @@ from src.services.stt.base import STTAdapter
 
 
 class FasterWhisperSTTAdapter(STTAdapter):
-    """
-    Local STT using faster-whisper (CTranslate2).
+    """Local STT using faster-whisper (CTranslate2).
+
     Incoming browser audio (often webm/opus) is converted to
     16 kHz mono WAV via a bundled ffmpeg binary (imageio-ffmpeg).
     No system-wide ffmpeg install required.
@@ -26,7 +26,15 @@ class FasterWhisperSTTAdapter(STTAdapter):
         model_size: str | None = None,
         device: str = "cpu",
         compute_type: str = "int8",
-    ):
+    ) -> None:
+        """Load the Whisper model once.
+
+        Args:
+            model_size: Whisper model size (e.g. ``"base"``, ``"small"``).
+                Falls back to settings / ``"base"``.
+            device: Inference device (``"cpu"`` or ``"cuda"``).
+            compute_type: Quantization type (e.g. ``"int8"``, ``"float16"``).
+        """
         settings = get_settings()
         self.model_size = model_size or getattr(settings, "whisper_model", "base")
         self.device = device
@@ -41,7 +49,14 @@ class FasterWhisperSTTAdapter(STTAdapter):
         self._executor = ThreadPoolExecutor(max_workers=1)
 
     def _to_wav_16k_mono(self, audio_bytes: bytes) -> Path:
-        """Convert arbitrary audio bytes to 16 kHz mono WAV. Returns temp path."""
+        """Convert arbitrary audio bytes to 16 kHz mono WAV.
+
+        Args:
+            audio_bytes: Raw input audio.
+
+        Returns:
+            Path to a temporary WAV file (caller must delete it).
+        """
         with tempfile.NamedTemporaryFile(suffix=".input", delete=False) as src:
             src.write(audio_bytes)
             src_path = Path(src.name)
@@ -73,7 +88,15 @@ class FasterWhisperSTTAdapter(STTAdapter):
         return dst_path
 
     def _transcribe_sync(self, audio_bytes: bytes, language: str | None) -> str:
-        """Blocking transcription (runs in thread pool)."""
+        """Blocking transcription (runs in thread pool).
+
+        Args:
+            audio_bytes: Raw audio payload.
+            language: Optional language code; ``None`` = auto-detect.
+
+        Returns:
+            Transcribed text.
+        """
         wav_path = self._to_wav_16k_mono(audio_bytes)
         try:
             segments, _ = self.model.transcribe(
@@ -87,7 +110,15 @@ class FasterWhisperSTTAdapter(STTAdapter):
             wav_path.unlink(missing_ok=True)
 
     async def transcribe(self, audio_bytes: bytes, language: str | None = None) -> str:
-        """Async wrapper around the blocking faster-whisper call."""
+        """Transcribe audio asynchronously via the thread-pool worker.
+
+        Args:
+            audio_bytes: Raw audio payload (any common format).
+            language: Optional ISO language code; ``None`` = auto-detect.
+
+        Returns:
+            Transcribed text.
+        """
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(
             self._executor,

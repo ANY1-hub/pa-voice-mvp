@@ -12,12 +12,21 @@ from src.services.tts.base import TTSAdapter
 
 
 class PiperTTSAdapter(TTSAdapter):
-    """
-    Local TTS using Piper.
+    """Local TTS using Piper.
+
     Voice model is loaded once at startup.
     """
 
-    def __init__(self, voice_path: str | None = None):
+    def __init__(self, voice_path: str | None = None) -> None:
+        """Load the Piper voice model.
+
+        Args:
+            voice_path: Path to the ``.onnx`` voice file. Falls back to settings
+                / default relative path.
+
+        Raises:
+            FileNotFoundError: If the voice model file does not exist.
+        """
         settings = get_settings()
         # Default path – user can override via config / env
         self.voice_path = voice_path or getattr(
@@ -36,7 +45,14 @@ class PiperTTSAdapter(TTSAdapter):
         self._executor = ThreadPoolExecutor(max_workers=1)
 
     def _synthesize_sync(self, text: str) -> bytes:
-        """Blocking synthesis (runs in thread pool)."""
+        """Blocking synthesis (runs in thread pool).
+
+        Args:
+            text: Text to speak.
+
+        Returns:
+            Raw audio bytes from Piper.
+        """
         audio_buffer = BytesIO()
         with self.voice.synthesize(text) as stream:
             for audio_bytes in stream:
@@ -44,7 +60,14 @@ class PiperTTSAdapter(TTSAdapter):
         return audio_buffer.getvalue()
 
     async def synthesize(self, text: str) -> bytes:
-        """Async wrapper around the blocking Piper call."""
+        """Synthesize speech asynchronously via the thread-pool worker.
+
+        Args:
+            text: Text to speak.
+
+        Returns:
+            Audio bytes ready for the client. Empty bytes if ``text`` is blank.
+        """
         if not text.strip():
             return b""
         loop = asyncio.get_running_loop()

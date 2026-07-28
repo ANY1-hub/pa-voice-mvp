@@ -14,7 +14,15 @@ logger = logging.getLogger(__name__)
 
 
 def _cosine_similarity(a: list[float], b: list[float]) -> float:
-    """Compute cosine similarity between two vectors."""
+    """Compute cosine similarity between two vectors.
+
+    Args:
+        a: First embedding vector.
+        b: Second embedding vector.
+
+    Returns:
+        Similarity in ``[-1.0, 1.0]``, or ``0.0`` if vectors are invalid.
+    """
     if not a or not b or len(a) != len(b):
         return 0.0
     dot = sum(x * y for x, y in zip(a, b, strict=True))
@@ -38,8 +46,8 @@ class SemanticMemory:
 
         Args:
             user_id: Owner of the memory facts.
-            collection: MongoDB collection to use. Pass None for unit tests
-                        that should not touch the database.
+            collection: MongoDB collection to use. Pass ``None`` for unit tests
+                that should not touch the database.
             embeddings_adapter: Optional adapter for vector embeddings.
         """
         self.user_id = user_id
@@ -52,10 +60,22 @@ class SemanticMemory:
         importance: float = 0.7,
         entities: list[str] | None = None,
     ) -> SemanticMemoryFact:
-        """
-        Store a new long-term fact.
+        """Store a new long-term fact.
 
         Performs security validation and optionally creates an embedding.
+
+        Args:
+            fact: Text content of the fact.
+            importance: Importance score in ``[0.0, 1.0]`` (default ``0.7``).
+            entities: Optional list of entity names involved in the fact.
+
+        Returns:
+            The created ``SemanticMemoryFact`` (also persisted when a collection
+            is configured).
+
+        Raises:
+            InputValidationError / MemoryWritePolicyViolation: From guardrails
+                when the content is rejected.
         """
         # 1. Security Check
         fact_dict = {"content": fact}
@@ -86,13 +106,20 @@ class SemanticMemory:
         query: str,
         limit: int = 10,
     ) -> list[SemanticMemoryFact]:
-        """
-        Search Semantic Memory for this user.
+        """Search Semantic Memory for this user.
 
         Strategy:
         1. If an embeddings adapter is available → embed the query and rank
            stored facts by cosine similarity (in-memory, fine for MVP scale).
         2. Otherwise → case-insensitive text substring match on content.
+
+        Args:
+            query: Free-text search query.
+            limit: Maximum number of facts to return (default ``10``).
+
+        Returns:
+            Ranked list of ``SemanticMemoryFact``. Empty list when no collection
+            is configured.
         """
         if self.collection is None:
             return []
@@ -135,14 +162,13 @@ class SemanticMemory:
         return results
 
     async def consolidate(self) -> None:
-        """
-        Background consolidation job.
+        """Run background consolidation for this user's semantic facts.
 
         Minimal Scope (MVP):
         - Cleanup of very old + low-importance facts
         - Exact-content deduplication (keep highest importance)
 
-        Prepared for Ambitioniert (later):
+        Prepared for later:
         - Entity linking
         - Preference drift detection
         """
@@ -181,7 +207,7 @@ class SemanticMemory:
             )
 
     async def _deduplicate(self) -> None:
-        """Detect and remove exact duplicate facts (normalized content). Keep highest importance."""
+        """Remove exact duplicate facts (normalized content); keep highest importance."""
         if self.collection is None:
             return
 
@@ -223,11 +249,11 @@ class SemanticMemory:
             )
 
     async def _link_entities(self) -> None:
-        """Prepared for later: Build relationships between entities."""
+        """Prepared for later: build relationships between entities."""
         # Intentionally empty in MVP – extension point for ambitious consolidation
         pass
 
     async def _detect_drift(self) -> None:
-        """Prepared for later: Detect preference drift over time."""
+        """Prepared for later: detect preference drift over time."""
         # Intentionally empty in MVP – extension point for ambitious consolidation
         pass
