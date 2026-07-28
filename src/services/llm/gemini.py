@@ -11,7 +11,9 @@ class GeminiLLMAdapter(LLMAdapter):
     Placeholder for future implementation (post-MVP).
     """
 
-    def __init__(self, api_key: str | None = None, model: str = "gemini-1.5-flash") -> None:
+    def __init__(
+        self, api_key: str | None = None, model: str = "gemini-1.5-flash"
+    ) -> None:
         """Initialize the Gemini client (not implemented yet).
 
         Args:
