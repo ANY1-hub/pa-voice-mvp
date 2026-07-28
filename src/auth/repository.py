@@ -12,20 +12,38 @@ class UserRepository:
         """Initialize the repository.
 
         Args:
-            collection: MongoDB collection to use. Pass None for unit tests
-                        that should not touch the database.
+            collection: MongoDB collection to use. Pass ``None`` for unit tests
+                that should not touch the database.
         """
         self.collection = collection
 
     async def create(self, user: User) -> User:
-        """Insert a new user. Raises if email already exists (unique index)."""
+        """Insert a new user.
+
+        Args:
+            user: Fully constructed ``User`` model to persist.
+
+        Returns:
+            The same ``User`` instance after successful insert.
+
+        Raises:
+            RuntimeError: If no collection is configured.
+            DuplicateKeyError: If the email already exists (unique index).
+        """
         if self.collection is None:
             raise RuntimeError("Database not connected")
         await self.collection.insert_one(user.model_dump(mode="json"))
         return user
 
     async def get_by_email(self, email: str) -> User | None:
-        """Find a user by email (case-insensitive)."""
+        """Find a user by email (case-insensitive).
+
+        Args:
+            email: Email address to look up.
+
+        Returns:
+            Matching ``User``, or ``None`` if not found / no collection.
+        """
         if self.collection is None:
             return None
         doc = await self.collection.find_one({"email": email.lower()})
@@ -35,7 +53,14 @@ class UserRepository:
         return User.model_validate(doc)
 
     async def get_by_id(self, user_id: str) -> User | None:
-        """Find a user by UUID."""
+        """Find a user by UUID.
+
+        Args:
+            user_id: User ID (UUID string).
+
+        Returns:
+            Matching ``User``, or ``None`` if not found / no collection.
+        """
         if self.collection is None:
             return None
         doc = await self.collection.find_one({"id": user_id})

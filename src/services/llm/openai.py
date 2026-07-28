@@ -10,13 +10,18 @@ from src.services.llm.base import LLMAdapter
 
 
 class OpenAILLMAdapter(LLMAdapter):
-    """
-    OpenAI-based LLM adapter.
+    """OpenAI-based LLM adapter.
+
     Uses the model configured in Settings (default: gpt-4o-mini).
     """
 
-    def __init__(self, api_key: str | None = None, model: str | None = None):
-        """Initialize the OpenAI client."""
+    def __init__(self, api_key: str | None = None, model: str | None = None) -> None:
+        """Initialize the OpenAI client.
+
+        Args:
+            api_key: Optional override for the API key (defaults to settings).
+            model: Optional model name override (defaults to settings).
+        """
         settings = get_settings()
         self.client = AsyncOpenAI(api_key=api_key or settings.openai_api_key)
         self.model = model or settings.llm_model
@@ -26,7 +31,15 @@ class OpenAILLMAdapter(LLMAdapter):
         messages: list[dict[str, str]],
         **kwargs: Any,
     ) -> str:
-        """Generate a response from a list of chat messages."""
+        """Generate a response from a list of chat messages.
+
+        Args:
+            messages: Chat messages as ``{"role": ..., "content": ...}`` dicts.
+            **kwargs: Extra arguments forwarded to the OpenAI API.
+
+        Returns:
+            Generated reply text (empty string if the model returns nothing).
+        """
         response = await self.client.chat.completions.create(
             model=self.model,
             messages=messages,
@@ -35,8 +48,13 @@ class OpenAILLMAdapter(LLMAdapter):
         return response.choices[0].message.content or ""
 
     async def extract_entities(self, text: str) -> list[str]:
-        """
-        Extract named entities from the given text using structured JSON output.
+        """Extract named entities using structured JSON output.
+
+        Args:
+            text: Input text to analyse.
+
+        Returns:
+            List of entity strings, or an empty list on parse failure.
         """
         messages = [
             {

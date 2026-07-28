@@ -6,11 +6,18 @@ from .exceptions import InputValidationError
 
 
 def sanitize_user_input(text: str) -> str:
-    """
-    Basic sanitization of user input.
+    """Basic sanitization of user input.
 
-    Currently very conservative for the MVP.
-    Raises InputValidationError on obvious prompt-injection attempts.
+    Conservative checks for the MVP against obvious prompt-injection patterns.
+
+    Args:
+        text: Raw user input.
+
+    Returns:
+        Stripped text.
+
+    Raises:
+        InputValidationError: If input is not a string or matches a blocked pattern.
     """
     if not isinstance(text, str):
         raise InputValidationError("Input must be a string")
@@ -35,7 +42,14 @@ def sanitize_user_input(text: str) -> str:
 
 
 def validate_memory_fact(fact: dict[str, Any]) -> None:
-    """Validate that a fact about to be written to memory is structurally safe."""
+    """Validate that a fact about to be written to memory is structurally safe.
+
+    Args:
+        fact: Dict that must contain a non-empty ``content`` key.
+
+    Raises:
+        InputValidationError: If structure or content fails validation.
+    """
     if not isinstance(fact, dict):
         raise InputValidationError("Memory fact must be a dictionary")
 

@@ -11,10 +11,16 @@ logger = logging.getLogger(__name__)
 
 
 def process_user_message(message: str) -> str:
-    """
-    Process and validate incoming user messages.
+    """Process and validate an incoming user message.
 
-    Raises InputValidationError on failure.
+    Args:
+        message: Raw user text.
+
+    Returns:
+        Sanitized message string.
+
+    Raises:
+        InputValidationError: On validation failure or unexpected errors.
     """
     try:
         return sanitize_user_input(message)
@@ -31,10 +37,16 @@ def validate_memory_write(
     importance_score: float,
     source: str = "user",
 ) -> None:
-    """
-    Validate and apply policy before writing to memory.
+    """Validate structure and policy before writing to memory.
 
-    Raises MemoryWritePolicyViolation or InputValidationError on failure.
+    Args:
+        fact: Dict that must contain a non-empty ``content`` key.
+        importance_score: Proposed importance in ``[0.0, 1.0]``.
+        source: Origin of the write (``"user"``, ``"system"``, ``"consolidation"``).
+
+    Raises:
+        InputValidationError: If the fact structure or content is invalid.
+        MemoryWritePolicyViolation: If the write is rejected by policy.
     """
     try:
         validate_memory_fact(fact)
@@ -58,10 +70,15 @@ def validate_memory_write(
 def try_process_user_message(
     message: str,
 ) -> tuple[bool, str | None, str | None]:
-    """
-    Safe wrapper around process_user_message.
+    """Safe wrapper around ``process_user_message`` that never raises.
 
-    Returns (success, sanitized_message, error_message).
+    Args:
+        message: Raw user text.
+
+    Returns:
+        Tuple ``(success, sanitized_message, error_message)``.
+        On success: ``(True, sanitized, None)``.
+        On failure: ``(False, None, error_string)``.
     """
     try:
         sanitized = process_user_message(message)

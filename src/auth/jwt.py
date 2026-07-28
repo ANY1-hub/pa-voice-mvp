@@ -8,10 +8,13 @@ from src.core.config import get_settings
 
 
 def create_access_token(subject: str) -> str:
-    """
-    Create a JWT access token.
+    """Create a JWT access token.
 
-    subject = user_id (UUID as string)
+    Args:
+        subject: User ID (UUID as string) stored in the ``sub`` claim.
+
+    Returns:
+        Encoded JWT access token string.
     """
     settings = get_settings()
     expire = datetime.now(UTC) + timedelta(minutes=settings.access_token_expire_minutes)
@@ -20,9 +23,13 @@ def create_access_token(subject: str) -> str:
 
 
 def verify_access_token(token: str) -> str | None:
-    """
-    Verify a JWT and return the subject (user_id) or None if invalid/expired.
-    :return: subject or None
+    """Verify a JWT and return the subject (user_id).
+
+    Args:
+        token: Encoded JWT string from the Authorization header.
+
+    Returns:
+        The ``sub`` claim (user_id) if the token is valid, otherwise ``None``.
     """
     settings = get_settings()
     try:
