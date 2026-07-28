@@ -12,7 +12,6 @@ from src.skills.notes.repository import NoteRepository
 from src.skills.notes.skill import NotesSkill
 from src.skills.registry import SkillRegistry
 
-
 # ---------------------------------------------------------------------------
 # Note model
 # ---------------------------------------------------------------------------
