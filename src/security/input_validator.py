@@ -4,6 +4,26 @@ from typing import Any
 
 from .exceptions import InputValidationError
 
+# Conservative MVP blocklist inspired by common direct prompt-injection patterns
+# (see PayloadsAllTheThings / Prompt Injection). Prefer low false-positive phrases.
+DANGEROUS_PATTERNS: list[str] = [
+    "ignore previous instructions",
+    "ignore all previous rules",
+    "ignore all previous instructions",
+    "disregard any previous",
+    "disregard all previous",
+    "forget previous instructions",
+    "system:",
+    "assistant:",
+    "you are now",
+    "developer mode",
+    "jailbreak",
+    '"role": "system"',
+    "'role': 'system'",
+    "reveal the system prompt",
+    "show me the system prompt",
+]
+
 
 def sanitize_user_input(text: str) -> str:
     """Basic sanitization of user input.
@@ -22,17 +42,8 @@ def sanitize_user_input(text: str) -> str:
     if not isinstance(text, str):
         raise InputValidationError("Input must be a string")
 
-    # Very basic protection against obvious prompt injection attempts
-    dangerous_patterns = [
-        "ignore previous instructions",
-        "ignore all previous rules",
-        "system:",
-        "assistant:",
-        "you are now",
-    ]
-
     lowered = text.lower()
-    for pattern in dangerous_patterns:
+    for pattern in DANGEROUS_PATTERNS:
         if pattern in lowered:
             raise InputValidationError(
                 f"Potential prompt injection detected: '{pattern}'"
