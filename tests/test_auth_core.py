@@ -1,6 +1,6 @@
 """Unit tests for auth core (JWT, password hashing, UserRepository)."""
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 
