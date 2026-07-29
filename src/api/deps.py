@@ -6,6 +6,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from motor.motor_asyncio import AsyncIOMotorCollection
 
+# from skills import SkillRegistry
 from src.auth.jwt import verify_access_token
 from src.auth.repository import UserRepository
 from src.core.config import get_settings
@@ -21,6 +22,9 @@ from src.services.stt.base import STTAdapter
 from src.services.stt.faster_whisper import FasterWhisperSTTAdapter
 from src.services.tts.base import TTSAdapter
 from src.services.tts.piper import PiperTTSAdapter
+from src.skills.notes.repository import NoteRepository
+from src.skills.notes.skill import NotesSkill
+from src.skills.registry import SkillRegistry
 
 security = HTTPBearer()
 
@@ -65,13 +69,27 @@ def get_semantic_memory_collection() -> AsyncIOMotorCollection | None:
     return db_client.db["semantic_memory"]
 
 
+def get_notes_collection() -> AsyncIOMotorCollection | None:
+    """Return the notes collection or ``None`` if DB is not connected.
+
+    Returns:
+        MongoDB collection for notes, or ``None``.
+    """
+    if db_client.db is None:
+        return None
+    return db_client.db["notes"]
+
+
+# -----------------------------------------------------------------------------
+
+
 def get_user_repository(
     collection: Annotated[AsyncIOMotorCollection | None, Depends(get_users_collection)],
 ) -> UserRepository:
     """Provide a UserRepository instance with the injected collection.
 
     Args:
-        collection: Users collection (may be ``None`` in tests).
+        collection: Users collection (maybe ``None`` in tests).
 
     Returns:
         Configured ``UserRepository``.
@@ -204,7 +222,7 @@ def get_working_memory(
 
     Args:
         user_id: Authenticated user ID.
-        collection: Working-memory MongoDB collection (may be ``None``).
+        collection: Working-memory MongoDB collection (maybe ``None``).
 
     Returns:
         ``WorkingMemory`` bound to the current user.
@@ -225,7 +243,7 @@ def get_semantic_memory(
 
     Args:
         user_id: Authenticated user ID.
-        collection: Semantic-memory MongoDB collection (may be ``None``).
+        collection: Semantic-memory MongoDB collection (maybe ``None``).
         embeddings: Optional embeddings adapter for vector search.
 
     Returns:
@@ -238,12 +256,29 @@ def get_semantic_memory(
     )
 
 
+def get_note_repository(
+    user_id: Annotated[str, Depends(get_current_user_id)],
+    collection: Annotated[AsyncIOMotorCollection | None, Depends(get_notes_collection)],
+) -> NoteRepository:
+    return NoteRepository(user_id=user_id, collection=collection)
+
+
+def get_skill_registry(
+    note_repo: Annotated[NoteRepository, Depends(get_note_repository)],
+    semantic_memory: Annotated[SemanticMemory, Depends(get_semantic_memory)],
+) -> SkillRegistry:
+    registry = SkillRegistry()
+    registry.register(NotesSkill(repository=note_repo, semantic_memory=semantic_memory))
+    return registry
+
+
 def get_orchestrator(
     llm: Annotated[LLMAdapter, Depends(get_llm_adapter)],
     stt: Annotated[STTAdapter, Depends(get_stt_adapter)],
     tts: Annotated[TTSAdapter | None, Depends(get_tts_adapter)],
     working_memory: Annotated[WorkingMemory, Depends(get_working_memory)],
     semantic_memory: Annotated[SemanticMemory, Depends(get_semantic_memory)],
+    skill_registry: Annotated[SkillRegistry, Depends(get_skill_registry)],
 ) -> ChatOrchestrator:
     """Wire a ChatOrchestrator for the current authenticated user.
 
@@ -253,6 +288,7 @@ def get_orchestrator(
         tts: Optional TTS adapter singleton.
         working_memory: User-scoped working memory.
         semantic_memory: User-scoped semantic memory.
+        skill_registry: Registry of available skills for the current user.
 
     Returns:
         Fully wired ``ChatOrchestrator``.
@@ -263,4 +299,5 @@ def get_orchestrator(
         tts=tts,
         working_memory=working_memory,
         semantic_memory=semantic_memory,
+        skill_registry=skill_registry,
     )

@@ -17,6 +17,8 @@ from src.security.guardrails import process_user_message
 from src.services.llm.base import LLMAdapter
 from src.services.stt.base import STTAdapter
 from src.services.tts.base import TTSAdapter
+from src.skills.base import SkillResult
+from src.skills.registry import SkillRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -97,6 +99,7 @@ class ChatOrchestrator:
         tts: TTSAdapter | None = None,
         working_memory: WorkingMemory | None = None,
         semantic_memory: SemanticMemory | None = None,
+        skill_registry: SkillRegistry | None = None,
     ) -> None:
         """Wire the adapters used for one chat turn.
 
@@ -112,6 +115,7 @@ class ChatOrchestrator:
         self.tts = tts
         self.working_memory = working_memory
         self.semantic_memory = semantic_memory
+        self.skill_registry = skill_registry
 
     async def process(
         self,
@@ -145,11 +149,40 @@ class ChatOrchestrator:
         # 1. Resolve transcript (STT or plain text)
         transcript = await self._resolve_transcript(text, audio_bytes, language)
 
-        # 2. Input validation / guardrails
+        # 2a. Input validation / guardrails
         sanitized = process_user_message(transcript)
 
         # Language for TTS: prefer explicit hint, else detect from user text
         tts_lang = detect_response_language(sanitized, hint=language)
+
+        # 2b. Skill routing (thin – first match wins)
+        if self.skill_registry is not None:
+            skill = self.skill_registry.find_handler(sanitized)
+            if skill is not None:
+                # user_id comes from the memory instances (already scoped)
+                user_id = (
+                    self.working_memory.user_id
+                    if self.working_memory is not None
+                    else (
+                        self.semantic_memory.user_id
+                        if self.semantic_memory
+                        else "unknown"
+                    )
+                )
+                skill_result: SkillResult = await skill.execute(
+                    user_text=sanitized,
+                    user_id=user_id,
+                )
+                if skill_result.handled:
+                    response_text = skill_result.response_text.strip()
+                    tts_lang = detect_response_language(response_text, hint=language)
+                    await self._store_turn(sanitized, response_text)
+                    audio_b64 = await self._maybe_synthesize(response_text, tts_lang)
+                    return ChatResult(
+                        transcript=sanitized,
+                        response=response_text,
+                        audio_base64=audio_b64,
+                    )
 
         # 3. Memory context
         memory_context = await self._build_memory_context(sanitized)
