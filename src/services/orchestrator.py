@@ -109,6 +109,7 @@ class ChatOrchestrator:
             tts: Optional text-to-speech adapter.
             working_memory: Optional short-term memory store.
             semantic_memory: Optional long-term fact store.
+            skill_registry: Optional skills store for the current user.
         """
         self.llm = llm
         self.stt = stt
@@ -262,8 +263,9 @@ class ChatOrchestrator:
             audio_raw = await self.tts.synthesize(response_text, language=language)
             if audio_raw:
                 return base64.b64encode(audio_raw).decode("ascii")
-        except Exception:
+        except (RuntimeError, OSError, ValueError, TypeError):
             logger.exception("TTS failed – continuing without audio")
+
         return None
 
     async def _build_memory_context(self, query: str) -> str:
@@ -283,7 +285,7 @@ class ChatOrchestrator:
                 if recent:
                     lines = [f"- {item.content}" for item in recent]
                     parts.append("Recent conversation context:\n" + "\n".join(lines))
-            except Exception:
+            except (RuntimeError, ValueError, OSError):
                 logger.exception("Failed to retrieve working memory")
 
         if self.semantic_memory is not None:
@@ -292,14 +294,13 @@ class ChatOrchestrator:
                 if facts:
                     lines = [f"- {fact.content}" for fact in facts]
                     parts.append("Relevant personal facts:\n" + "\n".join(lines))
-            except Exception:
+            except (RuntimeError, ValueError, OSError):
                 logger.exception("Failed to search semantic memory")
 
         return "\n\n".join(parts) if parts else ""
 
-    def _build_messages(
-        self, user_text: str, memory_context: str
-    ) -> list[dict[str, str]]:
+    @staticmethod
+    def _build_messages(user_text: str, memory_context: str) -> list[dict[str, str]]:
         """Assemble the chat messages for the LLM.
 
         Args:
@@ -339,5 +340,5 @@ class ChatOrchestrator:
                 content=f"Jarvis: {assistant_text}",
                 importance=0.4,
             )
-        except Exception:
+        except (RuntimeError, ValueError, OSError):
             logger.exception("Failed to store turn in working memory")

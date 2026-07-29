@@ -6,7 +6,6 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from motor.motor_asyncio import AsyncIOMotorCollection
 
-# from skills import SkillRegistry
 from src.auth.jwt import verify_access_token
 from src.auth.repository import UserRepository
 from src.core.config import get_settings
@@ -260,6 +259,15 @@ def get_note_repository(
     user_id: Annotated[str, Depends(get_current_user_id)],
     collection: Annotated[AsyncIOMotorCollection | None, Depends(get_notes_collection)],
 ) -> NoteRepository:
+    """Provide a NoteRepository instance for the current user.
+
+    Args:
+        user_id: Authenticated user ID.
+        collection: Notes MongoDB collection (maybe ``None``).
+
+    Returns:
+        ``NoteRepository`` bound to the current user.
+    """
     return NoteRepository(user_id=user_id, collection=collection)
 
 
@@ -267,6 +275,15 @@ def get_skill_registry(
     note_repo: Annotated[NoteRepository, Depends(get_note_repository)],
     semantic_memory: Annotated[SemanticMemory, Depends(get_semantic_memory)],
 ) -> SkillRegistry:
+    """Build and return a SkillRegistry with all available skills for the user.
+
+    Args:
+        note_repo: User-scoped note repository.
+        semantic_memory: User-scoped semantic memory (for summary facts).
+
+    Returns:
+        ``SkillRegistry`` with registered skills (currently NotesSkill).
+    """
     registry = SkillRegistry()
     registry.register(NotesSkill(repository=note_repo, semantic_memory=semantic_memory))
     return registry
