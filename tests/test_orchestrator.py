@@ -4,11 +4,12 @@ Covers the full turn pipeline (STT/text → guardrails → memory → LLM → TT
 plus validation errors and resilience when optional subsystems fail.
 """
 
-from unittest.mock import ANY, AsyncMock
+from unittest.mock import ANY, AsyncMock, MagicMock
 
 import pytest
 
 from src.services.orchestrator import MAX_AUDIO_BYTES, ChatOrchestrator, ChatResult
+from src.skills.base import SkillResult
 
 
 @pytest.fixture
@@ -219,3 +220,109 @@ async def test_tts_empty_bytes_returns_no_audio(orchestrator, mock_tts):
     mock_tts.synthesize.return_value = b""
     result = await orchestrator.process(text="Hi")
     assert result.audio_base64 is None
+
+
+# ---------------------------------------------------------------------------
+# Skill routing
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def mock_skill():
+    skill = AsyncMock()
+    skill.name = "notes"
+    skill.can_handle.return_value = True
+    skill.execute.return_value = SkillResult(
+        response_text="Got it. I saved the note: buy milk",
+        handled=True,
+    )
+    return skill
+
+
+@pytest.fixture
+def mock_registry(mock_skill):
+    registry = MagicMock()
+    registry.find_handler.return_value = mock_skill
+    return registry
+
+
+@pytest.mark.asyncio
+async def test_skill_handles_turn_skips_llm(
+    mock_llm,
+    mock_tts,
+    mock_working_memory,
+    mock_semantic_memory,
+    mock_registry,
+    mock_skill,
+):
+    """When a skill claims the turn, LLM is never called."""
+    mock_working_memory.user_id = "u-test"
+    orch = ChatOrchestrator(
+        llm=mock_llm,
+        tts=mock_tts,
+        working_memory=mock_working_memory,
+        semantic_memory=mock_semantic_memory,
+        skill_registry=mock_registry,
+    )
+
+    result = await orch.process(text="note: buy milk")
+
+    assert result.transcript == "note: buy milk"
+    assert "saved the note" in result.response.lower() or "Got it" in result.response
+    mock_registry.find_handler.assert_called_once()
+    mock_skill.execute.assert_awaited_once()
+    mock_llm.generate_response.assert_not_awaited()
+    assert mock_working_memory.add.await_count == 2  # user + jarvis
+
+
+@pytest.mark.asyncio
+async def test_no_skill_match_uses_llm(
+    mock_llm, mock_tts, mock_working_memory, mock_semantic_memory
+):
+    """When no skill matches, the normal LLM path runs."""
+    registry = MagicMock()
+    registry.find_handler.return_value = None
+
+    orch = ChatOrchestrator(
+        llm=mock_llm,
+        tts=mock_tts,
+        working_memory=mock_working_memory,
+        semantic_memory=mock_semantic_memory,
+        skill_registry=registry,
+    )
+
+    result = await orch.process(text="How is the weather?")
+
+    assert result.response == "Hello from Jarvis."
+    registry.find_handler.assert_called_once()
+    mock_llm.generate_response.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_skill_handled_false_falls_through_to_llm(
+    mock_llm, mock_tts, mock_working_memory, mock_semantic_memory
+):
+    """Skill that returns handled=False does not short-circuit the turn."""
+    skill = AsyncMock()
+    skill.can_handle.return_value = True
+    skill.execute.return_value = SkillResult(
+        response_text="partial",
+        handled=False,
+    )
+    registry = MagicMock()
+    registry.find_handler.return_value = skill
+    mock_working_memory.user_id = "u-test"
+
+    orch = ChatOrchestrator(
+        llm=mock_llm,
+        tts=mock_tts,
+        working_memory=mock_working_memory,
+        semantic_memory=mock_semantic_memory,
+        skill_registry=registry,
+    )
+
+    result = await orch.process(text="note: something")
+
+    skill.execute.assert_awaited_once()
+    mock_llm.generate_response.assert_awaited_once()
+    assert result.response == "Hello from Jarvis."
