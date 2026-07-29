@@ -24,6 +24,8 @@ from src.services.tts.piper import PiperTTSAdapter
 from src.skills.notes.repository import NoteRepository
 from src.skills.notes.skill import NotesSkill
 from src.skills.registry import SkillRegistry
+from src.skills.reminders.repository import ReminderRepository
+from src.skills.reminders.skill import RemindersSkill
 
 security = HTTPBearer()
 
@@ -77,6 +79,17 @@ def get_notes_collection() -> AsyncIOMotorCollection | None:
     if db_client.db is None:
         return None
     return db_client.db["notes"]
+
+
+def get_reminders_collection() -> AsyncIOMotorCollection | None:
+    """Return the reminders collection or ``None`` if DB is not connected.
+
+    Returns:
+        MongoDB collection for reminders, or ``None``.
+    """
+    if db_client.db is None:
+        return None
+    return db_client.db["reminders"]
 
 
 # -----------------------------------------------------------------------------
@@ -271,21 +284,35 @@ def get_note_repository(
     return NoteRepository(user_id=user_id, collection=collection)
 
 
+def get_reminder_repository(
+    user_id: Annotated[str, Depends(get_current_user_id)],
+    collection: Annotated[
+        AsyncIOMotorCollection | None, Depends(get_reminders_collection)
+    ],
+) -> ReminderRepository:
+    return ReminderRepository(user_id=user_id, collection=collection)
+
+
 def get_skill_registry(
     note_repo: Annotated[NoteRepository, Depends(get_note_repository)],
+    reminder_repo: Annotated[ReminderRepository, Depends(get_reminder_repository)],
     semantic_memory: Annotated[SemanticMemory, Depends(get_semantic_memory)],
 ) -> SkillRegistry:
     """Build and return a SkillRegistry with all available skills for the user.
 
     Args:
         note_repo: User-scoped note repository.
+        reminder_repo: User-scoped reminder repository
         semantic_memory: User-scoped semantic memory (for summary facts).
 
     Returns:
-        ``SkillRegistry`` with registered skills (currently NotesSkill).
+        ``SkillRegistry`` with registered skills.
     """
     registry = SkillRegistry()
     registry.register(NotesSkill(repository=note_repo, semantic_memory=semantic_memory))
+    registry.register(
+        RemindersSkill(repository=reminder_repo, semantic_memory=semantic_memory)
+    )
     return registry
 
 
