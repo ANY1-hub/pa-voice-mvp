@@ -8,10 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Phase 4 kick-off (Option A): thin Skill interface + SkillRegistry
-- Note model + dedicated `notes` collection (via NoteRepository)
-- NotesSkill (create + list) with Semantic Memory summary write
-- Unit tests for Note, NoteRepository, NotesSkill and Registry
+- Phase 4 Skills foundation (Option A):
+  - Thin `Skill` protocol + `SkillResult`
+  - `SkillRegistry` (first-match-wins routing)
+- NotesSkill (create + list) with dedicated `notes` collection + Semantic Memory summary write
+- RemindersSkill (create + list) with dedicated `reminders` collection + Semantic Memory summary write
+- Note + Reminder Pydantic models and repositories (user-scoped)
+- Both skills wired into Orchestrator via `get_skill_registry` (deps)
+- Unit tests for models, repositories, skills and registry
+- Skill-routing tests (LLM skipped when a skill returns `handled=True`)
+
+### Changed
+- Orchestrator stays thin: skill routing happens after Guardrails, before memory/LLM path
+- `_build_messages` made staticmethod; more precise exception handling in orchestrator paths
 
 ## [0.2.0] - 2026-07-28 — Phase 3 closed
 
