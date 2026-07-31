@@ -42,6 +42,7 @@ class FakeSearchClient:
 
 
 def test_can_handle_search_intents():
+    """Skill must claim clear search utterances and reject unrelated chat."""
     skill = WebSearchSkill(client=FakeSearchClient())
     assert skill.can_handle("search for the capital of France") is True
     assert skill.can_handle("google the weather tomorrow") is True
@@ -61,6 +62,7 @@ def test_can_handle_search_intents():
 
 @pytest.mark.asyncio
 async def test_execute_returns_search_results():
+    """Happy path: a valid query must return formatted results and a cleaned query."""
     client = FakeSearchClient()
     skill = WebSearchSkill(client=client, semantic_memory=None)
 
@@ -84,6 +86,7 @@ async def test_execute_returns_search_results():
 
 @pytest.mark.asyncio
 async def test_execute_empty_query_handled_gracefully():
+    """Search intent without actual terms must not call the engine; ask for clarification instead."""
     skill = WebSearchSkill(client=FakeSearchClient())
     result = await skill.execute(user_text="search for", user_id="u1")
     assert result.handled is True
@@ -95,6 +98,7 @@ async def test_execute_empty_query_handled_gracefully():
 
 @pytest.mark.asyncio
 async def test_execute_no_results():
+    """When the search backend returns an empty list, the skill must report that clearly."""
     client = FakeSearchClient(results=[])
     skill = WebSearchSkill(client=client)
 
@@ -116,6 +120,7 @@ async def test_execute_no_results():
 
 @pytest.mark.asyncio
 async def test_execute_uses_semantic_memory_context():
+    """Relevant personal facts from Semantic Memory must appear in the reply."""
     client = FakeSearchClient()
     mock_sem = MagicMock()
     mock_fact = MagicMock()
@@ -132,7 +137,6 @@ async def test_execute_uses_semantic_memory_context():
 
     assert result.handled is True
     mock_sem.search.assert_awaited()
-    # Personal context should appear in the reply
     assert (
         "vegetarian" in result.response_text.lower()
         or "prefer" in result.response_text.lower()
@@ -141,6 +145,7 @@ async def test_execute_uses_semantic_memory_context():
 
 @pytest.mark.asyncio
 async def test_execute_writes_summary_to_semantic_memory():
+    """After a successful search a short summary fact must be written to Semantic Memory."""
     client = FakeSearchClient()
     mock_sem = MagicMock()
     mock_sem.search = AsyncMock(return_value=[])
@@ -168,6 +173,7 @@ async def test_execute_writes_summary_to_semantic_memory():
 
 
 def test_registry_finds_web_search():
+    """Skill must be findable by name and by intent through the SkillRegistry."""
     registry = SkillRegistry()
     skill = WebSearchSkill(client=FakeSearchClient())
     registry.register(skill)
