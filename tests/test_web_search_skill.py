@@ -19,13 +19,16 @@ class FakeSearchClient:
     """Deterministic search client for unit tests."""
 
     def __init__(self, results: list[dict[str, str]] | None = None) -> None:
-        self.results = results or [
-            {
-                "title": "Example Result",
-                "href": "https://example.com",
-                "body": "This is a short snippet about the topic.",
-            }
-        ]
+        if results is None:
+            self.results = [
+                {
+                    "title": "Example Result",
+                    "href": "https://example.com",
+                    "body": "This is a short snippet about the topic.",
+                }
+            ]
+        else:
+            self.results = results
         self.last_query: str | None = None
 
     async def search(self, query: str, max_results: int = 5) -> list[dict[str, str]]:

@@ -21,6 +21,13 @@ _SEARCH_PATTERNS = re.compile(
     re.IGNORECASE,
 )
 
+_TRIGGER_PHRASES = [
+    # longer phrases first – order matters
+    r"^(search for|look up|find out|google for|suche nach|finde heraus|keress rá)\s+",
+    r"^(search|google|look up|lookup|find out|suche|finde|keress|"
+    r"what is|who is|what's|was ist|wer ist|mi az|ki az)\s+",
+]
+
 
 class WebSearchSkill(Skill):
     """Perform a web search and weave in personal Semantic Memory context."""
@@ -55,10 +62,19 @@ class WebSearchSkill(Skill):
             )
         return await self._run_search(query)
 
+    _TRIGGER_PHRASES = [
+        # longer phrases first – order matters
+        r"^(search for|look up|find out|google for|suche nach|finde heraus|keress rá)\s+",
+        r"^(search|google|look up|lookup|find out|suche|finde|keress|"
+        r"what is|who is|what's|was ist|wer ist|mi az|ki az)\s+",
+    ]
+
     def _extract_query(self, user_text: str) -> str:
-        """Strip trigger phrases and clean the remaining query."""
-        query = _SEARCH_PATTERNS.sub("", user_text).strip(" :,-?").strip()
-        return query or user_text.strip()
+        """Remove known trigger phrases, return the remaining substance."""
+        text = user_text.strip()
+        for pat in _TRIGGER_PHRASES:
+            text = re.sub(pat, "", text, flags=re.IGNORECASE).strip()
+        return text.strip(" :,-?")
 
     async def _run_search(self, query: str) -> SkillResult:
         """Fetch personal context + web results and build the reply."""
