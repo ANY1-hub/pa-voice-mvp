@@ -26,6 +26,7 @@ from src.skills.notes.skill import NotesSkill
 from src.skills.registry import SkillRegistry
 from src.skills.reminders.repository import ReminderRepository
 from src.skills.reminders.skill import RemindersSkill
+from src.skills.web_search.skill import WebSearchSkill
 
 security = HTTPBearer()
 
@@ -313,6 +314,7 @@ def get_skill_registry(
     registry.register(
         RemindersSkill(repository=reminder_repo, semantic_memory=semantic_memory)
     )
+    registry.register(WebSearchSkill(semantic_memory=semantic_memory))
     return registry
 
 

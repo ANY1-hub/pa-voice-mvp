@@ -16,7 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Note + Reminder Pydantic models and repositories (user-scoped)
 - Both skills wired into Orchestrator via `get_skill_registry` (deps)
 - Unit tests for models, repositories, skills and registry
-- Skill-routing tests (LLM skipped when a skill returns `handled=True`)
+- Skill-routing tests (LLM skipped when a skill returns `handled=True`)- WebSearchSkill (memory-augmented DuckDuckGo search)
+- Thin SearchClient + DuckDuckGoClient (ddgs)
+- Personal context from Semantic Memory woven into results
+- Short summary fact written back to Semantic Memory
+- Unit tests with mocked client
 
 ### Changed
 - Orchestrator stays thin: skill routing happens after Guardrails, before memory/LLM path
