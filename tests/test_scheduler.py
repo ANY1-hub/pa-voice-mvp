@@ -29,12 +29,14 @@ class AsyncCursor:
 
 @pytest.mark.asyncio
 async def test_consolidation_skips_when_db_none():
+    """Job must no-op safely when DB is not connected."""
     with patch.object(sched_mod.db_client, "db", None):
         await consolidation_job()  # must not raise
 
 
 @pytest.mark.asyncio
 async def test_consolidation_promotes_high_importance_items():
+    """High-importance working-memory items must be promoted to Semantic Memory and deleted."""
     working_coll = MagicMock()
     semantic_coll = MagicMock()
 
@@ -78,6 +80,7 @@ async def test_consolidation_promotes_high_importance_items():
 
 @pytest.mark.asyncio
 async def test_consolidation_continues_on_item_error():
+    """A failing item must not abort the job; successful items still promote."""
     working_coll = MagicMock()
     semantic_coll = MagicMock()
 
@@ -118,6 +121,7 @@ async def test_consolidation_continues_on_item_error():
 
 @pytest.mark.asyncio
 async def test_consolidation_no_users():
+    """No users in working memory must skip SemanticMemory entirely."""
     working_coll = MagicMock()
     semantic_coll = MagicMock()
     working_coll.distinct = AsyncMock(return_value=[])
@@ -145,6 +149,7 @@ async def test_consolidation_no_users():
 
 
 def test_start_scheduler_idempotent():
+    """start_scheduler must not add/start twice while already running."""
     fake = MagicMock()
     fake.running = False
 
@@ -161,6 +166,7 @@ def test_start_scheduler_idempotent():
 
 
 def test_stop_scheduler_idempotent():
+    """stop_scheduler must not shutdown twice when already stopped."""
     fake = MagicMock()
     fake.running = True
 

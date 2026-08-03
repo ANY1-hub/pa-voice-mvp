@@ -64,6 +64,7 @@ def adapter_en_de():
 
 
 def test_no_voices_raises():
+    """Missing voice model files must raise FileNotFoundError at init."""
     with (
         patch("src.services.tts.piper.get_settings") as mock_settings,
         patch("src.services.tts.piper.Path") as mock_path_cls,
@@ -83,36 +84,42 @@ def test_no_voices_raises():
 
 
 def test_resolve_voice_exact(adapter_en_de):
+    """Exact language code must select the matching voice."""
     lang, voice = adapter_en_de._resolve_voice("de")
     assert lang == "de"
     assert voice is adapter_en_de._test_de
 
 
 def test_resolve_voice_iso_variant(adapter_en_de):
+    """ISO variant like de-DE must resolve to the base language voice."""
     lang, voice = adapter_en_de._resolve_voice("de-DE")
     assert lang == "de"
     assert voice is adapter_en_de._test_de
 
 
 def test_resolve_voice_fallback_to_default(adapter_en_de):
+    """Unsupported language must fall back to the default (en) voice."""
     lang, voice = adapter_en_de._resolve_voice("fr")
     assert lang == "en"
     assert voice is adapter_en_de._test_en
 
 
 def test_resolve_voice_none_uses_default(adapter_en_de):
+    """None language must use the default voice."""
     lang, voice = adapter_en_de._resolve_voice(None)
     assert lang == "en"
 
 
 @pytest.mark.asyncio
 async def test_synthesize_empty_text_returns_empty(adapter_en_de):
+    """Blank text must return empty bytes without calling the voice model."""
     assert await adapter_en_de.synthesize("   ") == b""
     assert await adapter_en_de.synthesize("") == b""
 
 
 @pytest.mark.asyncio
 async def test_synthesize_returns_wav_header(adapter_en_de):
+    """Successful synthesis must return a RIFF/WAVE payload."""
     data = await adapter_en_de.synthesize("Hello", language="en")
     assert data[:4] == b"RIFF"
     assert b"WAVE" in data[:16]
@@ -121,20 +128,24 @@ async def test_synthesize_returns_wav_header(adapter_en_de):
 
 @pytest.mark.asyncio
 async def test_synthesize_uses_requested_language(adapter_en_de):
+    """Requested language must drive which voice.synthesize is called."""
     await adapter_en_de.synthesize("Guten Tag", language="de")
     adapter_en_de._test_de.synthesize.assert_called()
     adapter_en_de._test_en.synthesize.assert_not_called()
 
 
 def test_chunk_to_pcm_bytes(adapter_en_de):
+    """Raw bytes chunks must pass through unchanged."""
     assert adapter_en_de._chunk_to_pcm(b"abc") == b"abc"
 
 
 def test_chunk_to_pcm_audio_int16(adapter_en_de):
+    """Objects with audio_int16_bytes must yield that field."""
     chunk = SimpleNamespace(audio_int16_bytes=b"\x01\x02")
     assert adapter_en_de._chunk_to_pcm(chunk) == b"\x01\x02"
 
 
 def test_chunk_to_pcm_unsupported_raises(adapter_en_de):
+    """Unsupported chunk types must raise TypeError."""
     with pytest.raises(TypeError, match="Unsupported"):
         adapter_en_de._chunk_to_pcm(12345)
