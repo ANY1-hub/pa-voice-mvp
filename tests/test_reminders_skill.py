@@ -1,8 +1,9 @@
-"""Unit tests for RemindersSkill and ReminderRepository (Phase 4 Option A)."""
+"""Unit tests for RemindersSkill and ReminderRepository (Phase 4 + date-aware Phase 5)."""
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -54,6 +55,115 @@ async def test_repository_create_calls_insert():
     assert dumped["status"] == "pending"
 
 
+@pytest.mark.asyncio
+async def test_repository_create_with_due_at():
+    """Create must accept and store an explicit due_at datetime."""
+    repo = ReminderRepository(user_id="u1", collection=None)
+    due = datetime(2026, 8, 10, 14, 0, tzinfo=UTC)
+    r = await repo.create(content="Arbeitsagentur", due_at=due)
+    assert r.due_at == due
+    assert r.content == "Arbeitsagentur"
+
+
+@pytest.mark.asyncio
+async def test_repository_list_with_due_range():
+    """list_reminders must filter by due_from / due_to when provided."""
+    mock_coll = MagicMock()
+
+    due = datetime(2026, 8, 5, 10, 0, tzinfo=UTC)
+    docs = [
+        {
+            "id": "r1",
+            "user_id": "u1",
+            "content": "Zahnarzt",
+            "due_at": due.isoformat(),
+            "status": "pending",
+            "created_at": due.isoformat(),
+            "last_accessed": due.isoformat(),
+        }
+    ]
+
+    class Cursor:
+        def __init__(self, data):
+            self._data = data
+            self._idx = 0
+
+        def sort(self, *args, **kwargs):
+            return self
+
+        def limit(self, n):
+            return self
+
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            if self._idx >= len(self._data):
+                raise StopAsyncIteration
+            item = self._data[self._idx]
+            self._idx += 1
+            return item
+
+    mock_coll.find = MagicMock(return_value=Cursor(docs))
+    repo = ReminderRepository(user_id="u1", collection=mock_coll)
+
+    due_from = datetime(2026, 8, 1, tzinfo=UTC)
+    due_to = datetime(2026, 8, 10, tzinfo=UTC)
+    results = await repo.list_reminders(due_from=due_from, due_to=due_to)
+    assert len(results) == 1
+    assert results[0].content == "Zahnarzt"
+    call_filters = mock_coll.find.call_args[0][0]
+    assert "due_at" in call_filters
+
+
+@pytest.mark.asyncio
+async def test_repository_search_by_content():
+    """search_by_content must return reminders whose content matches the query."""
+    mock_coll = MagicMock()
+
+    docs = [
+        {
+            "id": "r1",
+            "user_id": "u1",
+            "content": "Termin bei der Arbeitsagentur",
+            "due_at": datetime(2026, 8, 12, 9, 30, tzinfo=UTC).isoformat(),
+            "status": "pending",
+            "created_at": datetime(2026, 8, 1, tzinfo=UTC).isoformat(),
+            "last_accessed": datetime(2026, 8, 1, tzinfo=UTC).isoformat(),
+        }
+    ]
+
+    class Cursor:
+        def __init__(self, data):
+            self._data = data
+            self._idx = 0
+
+        def sort(self, *args, **kwargs):
+            return self
+
+        def limit(self, n):
+            return self
+
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            if self._idx >= len(self._data):
+                raise StopAsyncIteration
+            item = self._data[self._idx]
+            self._idx += 1
+            return item
+
+    mock_coll.find = MagicMock(return_value=Cursor(docs))
+    repo = ReminderRepository(user_id="u1", collection=mock_coll)
+
+    results = await repo.search_by_content("Arbeitsagentur")
+    assert len(results) == 1
+    assert "Arbeitsagentur" in results[0].content
+    assert results[0].due_at is not None
+    assert results[0].due_at.hour == 9
+
+
 def test_can_handle_create_intents():
     """Skill must claim create-reminder utterances and reject unrelated chat."""
     skill = RemindersSkill(repository=ReminderRepository(user_id="u1"))
@@ -67,6 +177,24 @@ def test_can_handle_list_intents():
     skill = RemindersSkill(repository=ReminderRepository(user_id="u1"))
     assert skill.can_handle("show reminders") is True
     assert skill.can_handle("meine Erinnerungen") is True
+
+
+def test_can_handle_agenda_intents():
+    """Skill must claim agenda queries (today / this week / next week / this month)."""
+    skill = RemindersSkill(repository=ReminderRepository(user_id="u1"))
+    assert skill.can_handle("was steht heute an?") is True
+    assert skill.can_handle("what's on today") is True
+    assert skill.can_handle("was steht diese Woche an") is True
+    assert skill.can_handle("what is next week") is True
+    assert skill.can_handle("was steht diesen Monat an") is True
+
+
+def test_can_handle_lookup_intents():
+    """Skill must claim specific-event lookup questions."""
+    skill = RemindersSkill(repository=ReminderRepository(user_id="u1"))
+    assert skill.can_handle("wann habe ich meinen Termin bei der Arbeitsagentur?") is True
+    assert skill.can_handle("when is the dentist appointment?") is True
+    assert skill.can_handle("Wann muss ich X.Y. anrufen?") is True
 
 
 @pytest.mark.asyncio
@@ -86,6 +214,40 @@ async def test_execute_create_reminder():
 
 
 @pytest.mark.asyncio
+async def test_execute_create_sets_due_at_tomorrow():
+    """Create with 'tomorrow' must set due_at to the next calendar day."""
+    repo = ReminderRepository(user_id="u1", collection=None)
+    skill = RemindersSkill(repository=repo, semantic_memory=None)
+
+    with patch("src.skills.reminders.skill._now_utc") as mock_now:
+        mock_now.return_value = datetime(2026, 8, 3, 12, 0, tzinfo=UTC)
+        result = await skill.execute(
+            user_text="remind me tomorrow: call the dentist",
+            user_id="u1",
+        )
+
+    assert result.handled is True
+    assert "dentist" in result.response_text.lower()
+
+
+@pytest.mark.asyncio
+async def test_execute_create_sets_due_at_with_time():
+    """Create with explicit time must store hour and minute on due_at."""
+    repo = ReminderRepository(user_id="u1", collection=None)
+    skill = RemindersSkill(repository=repo, semantic_memory=None)
+
+    with patch("src.skills.reminders.skill._now_utc") as mock_now:
+        mock_now.return_value = datetime(2026, 8, 3, 9, 0, tzinfo=UTC)
+        result = await skill.execute(
+            user_text="Erinner mich morgen um 14 Uhr an den Zahnarzt",
+            user_id="u1",
+        )
+
+    assert result.handled is True
+    assert "Zahnarzt" in result.response_text or "zahnarzt" in result.response_text.lower()
+
+
+@pytest.mark.asyncio
 async def test_execute_list_empty():
     """List with no pending reminders must say so clearly."""
     repo = ReminderRepository(user_id="u1", collection=None)
@@ -94,6 +256,47 @@ async def test_execute_list_empty():
     result = await skill.execute(user_text="show reminders", user_id="u1")
     assert result.handled is True
     assert "no pending" in result.response_text.lower()
+
+
+@pytest.mark.asyncio
+async def test_execute_agenda_today_empty():
+    """Agenda 'today' with no matching reminders must say so."""
+    repo = ReminderRepository(user_id="u1", collection=None)
+    skill = RemindersSkill(repository=repo)
+
+    result = await skill.execute(user_text="was steht heute an?", user_id="u1")
+    assert result.handled is True
+    assert (
+        "nothing" in result.response_text.lower()
+        or "no" in result.response_text.lower()
+        or "keine" in result.response_text.lower()
+    )
+
+
+@pytest.mark.asyncio
+async def test_execute_lookup_by_content():
+    """Lookup must find a reminder by keyword and return date + time if set."""
+    due = datetime(2026, 8, 12, 9, 30, tzinfo=UTC)
+    mock_repo = MagicMock(spec=ReminderRepository)
+    mock_repo.search_by_content = AsyncMock(
+        return_value=[
+            Reminder(
+                user_id="u1",
+                content="Termin bei der Arbeitsagentur",
+                due_at=due,
+            )
+        ]
+    )
+    skill = RemindersSkill(repository=mock_repo)
+
+    result = await skill.execute(
+        user_text="wann habe ich meinen Termin bei der Arbeitsagentur?",
+        user_id="u1",
+    )
+    assert result.handled is True
+    text = result.response_text.lower()
+    assert "arbeitsagentur" in text
+    assert "9" in result.response_text or "09" in result.response_text or "12" in result.response_text
 
 
 @pytest.mark.asyncio
