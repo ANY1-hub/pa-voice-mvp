@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from src.api.routes.admin import router as admin_router
 from src.api.routes.auth import router as auth_router
 from src.api.routes.chat import router as chat_router
 from src.api.routes.memory import router as memory_router
@@ -38,6 +39,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
+app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
 app.include_router(memory_router, prefix="/api/v1/memory", tags=["memory"])
 app.include_router(chat_router, prefix="/api/v1/chat", tags=["chat"])
 

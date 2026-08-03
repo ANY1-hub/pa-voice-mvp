@@ -8,14 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- ActiveRecallSkill – explicit recall of personal facts from Semantic Memory
-  - Trigger phrases in EN/DE ("what do you know about…", "was weißt du über…")
-  - Ranked facts returned without going through the full LLM path
-  - Registered first in SkillRegistry so knowledge questions are not stolen by other skills
-  - Unit tests with purpose docstrings
+- SuperUser bootstrap: first successful registration on an empty users collection becomes SuperUser
+- `is_superuser` flag on User / UserPublic
+- Admin routes (SuperUser only) under `/api/v1/admin/`:
+  - `GET /users` – list users
+  - `POST /users` – create user (optional `is_superuser`)
+  - `PATCH /users/{user_id}` – update `is_active` / `is_superuser`
+- Dependency `get_current_superuser` (403 for non-superusers)
+- User vocabulary guide: `docs/user-guide.md` (EN/DE/HU trigger phrases for Notes, Reminders, WebSearch, ActiveRecall)
+- Tests for bootstrap, SuperUser guard and admin endpoints
 
 ### Notes
-- Next: Phase 5 (Polish & Demo)
+- Phase 5 (Polish & Demo) in progress
+- Public registration remains open for now
 
 ## [0.3.0] - 2026-08-03 — Phase 4 closed
 
@@ -36,6 +41,11 @@ Skills layer complete (Notes, Reminders, memory-augmented Web Search).
   - Personal context from Semantic Memory woven into results
   - Short summary fact written back to Semantic Memory
   - Unit tests with mocked client + purpose docstrings
+- ActiveRecallSkill – explicit recall of personal facts from Semantic Memory
+  - Trigger phrases in EN/DE ("what do you know about…", "was weißt du über…")
+  - Ranked facts returned without going through the full LLM path
+  - Registered first in SkillRegistry so knowledge questions are not stolen by other skills
+  - Unit tests with purpose docstrings
 
 ### Changed
 - Orchestrator stays thin: skill routing happens after Guardrails, before memory/LLM path

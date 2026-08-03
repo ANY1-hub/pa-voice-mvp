@@ -13,7 +13,7 @@ A local-first, privacy-centric voice assistant that actively learns and maintain
 | 2 Auth + Multi-User | ✅ |
 | 3 Voice Pipeline MVP | ✅ |
 | **4 Skills** | **✅ closed** |
-| 5 Polish & Demo | ← next |
+| 5 Polish & Demo | ← current |
 
 ## Features (MVP scope)
 - Voice interaction (STT + TTS) with visible transcript and reply
@@ -21,9 +21,10 @@ A local-first, privacy-centric voice assistant that actively learns and maintain
 - Multi-user isolation (JWT)
 - Multi-language TTS voices (en / de / hu)
 - Browser UI with one big "Speak" button + text fallback
-- Skills: Notes, Reminders, memory-augmented Web Search (DuckDuckGo)
+- Skills: Notes, Reminders, memory-augmented Web Search (DuckDuckGo), Active Recall
+- Minimal SuperUser bootstrap + admin endpoints (Phase 5)
 
-**Not in MVP (Phase 5+ / post-MVP):** streaming, local LLM, Active Recall as dedicated skill, GDPR data rights UI, 4-level memory, Home Assistant.
+**Not in MVP (post-MVP):** streaming, local LLM, GDPR data-rights UI, 4-level memory, Home Assistant, complex roles matrix.
 
 ## Tech Stack
 - Backend: FastAPI
@@ -41,9 +42,17 @@ JWT + bcrypt. Multi-user isolation enforced on every memory and chat route.
 
 | Method | Path                      | Description                  |
 |--------|---------------------------|------------------------------|
-| POST   | `/api/v1/auth/register`   | Register (email + password)  |
+| POST   | `/api/v1/auth/register`   | Register (email + password). First user becomes SuperUser |
 | POST   | `/api/v1/auth/login`      | Returns access token         |
 | GET    | `/api/v1/auth/me`         | Current user (requires token)|
+
+### Admin Endpoints (SuperUser only)
+
+| Method | Path                           | Description                          |
+|--------|--------------------------------|--------------------------------------|
+| GET    | `/api/v1/admin/users`          | List users                           |
+| POST   | `/api/v1/admin/users`          | Create user (optional `is_superuser`)|
+| PATCH  | `/api/v1/admin/users/{user_id}`| Update `is_active` / `is_superuser`  |
 
 ### Chat Endpoints (Phase 3)
 
@@ -76,6 +85,10 @@ Authorization: Bearer <access_token>
 - Memory routes are fully isolated via dependency injection
   → see `docs/decisions/001-dependency-injection-memory.md`
 
+### Skill Vocabulary
+
+Trigger phrases (EN / DE / HU) for Notes, Reminders, Web Search and Active Recall are documented in **[docs/user-guide.md](docs/user-guide.md)**.
+
 ## Getting Started (Development)
 
 ```bash
@@ -85,7 +98,7 @@ cd pa-voice-mvp
 
 # Create virtual environment (recommended: uv or venv)
 uv venv .venv
-source .venv/bin/activate   # or .venv\Scripts\activate on Windows
+source .venv/bin/activate   # or .venv\\Scripts\\activate on Windows
 
 # Install dependencies
 uv pip install -e ".[dev]"

@@ -68,3 +68,68 @@ class UserRepository:
             return None
         doc.pop("_id", None)
         return User.model_validate(doc)
+
+    async def count(self) -> int:
+        """Return the number of users in the collection.
+
+        Returns:
+            Document count, or 0 if no collection is configured.
+        """
+        if self.collection is None:
+            return 0
+        return await self.collection.count_documents({})
+
+    async def list_users(self, limit: int = 100) -> list[User]:
+        """Return users ordered by creation time (oldest first).
+
+        Args:
+            limit: Maximum number of users to return.
+
+        Returns:
+            List of ``User`` models (empty when no collection).
+        """
+        if self.collection is None:
+            return []
+        cursor = self.collection.find().sort("created_at", 1).limit(limit)
+        users: list[User] = []
+        async for doc in cursor:
+            doc.pop("_id", None)
+            users.append(User.model_validate(doc))
+        return users
+
+    async def update(
+        self,
+        user_id: str,
+        *,
+        is_active: bool | None = None,
+        is_superuser: bool | None = None,
+    ) -> User | None:
+        """Update selected fields on a user.
+
+        Args:
+            user_id: Target user UUID.
+            is_active: New active flag (ignored if None).
+            is_superuser: New superuser flag (ignored if None).
+
+        Returns:
+            Updated ``User``, or ``None`` if not found / no collection.
+        """
+        if self.collection is None:
+            return None
+        update_fields: dict = {}
+        if is_active is not None:
+            update_fields["is_active"] = is_active
+        if is_superuser is not None:
+            update_fields["is_superuser"] = is_superuser
+        if not update_fields:
+            return await self.get_by_id(user_id)
+
+        result = await self.collection.find_one_and_update(
+            {"id": user_id},
+            {"$set": update_fields},
+            return_document=True,
+        )
+        if result is None:
+            return None
+        result.pop("_id", None)
+        return User.model_validate(result)

@@ -20,6 +20,9 @@ async def register(
 ) -> UserPublic:
     """Register a new user. Email must be unique.
 
+    The first successful registration on an empty users collection
+    automatically becomes a SuperUser (bootstrap).
+
     Args:
         payload: Registration data (email + password).
         repo: Injected user repository.
@@ -34,9 +37,13 @@ async def register(
             detail="Email already registered",
         )
 
+    # Bootstrap: first user becomes SuperUser
+    is_first = (await repo.count()) == 0
+
     user = User(
         email=payload.email.lower(),
         hashed_password=hash_password(payload.password),
+        is_superuser=is_first,
     )
     await repo.create(user)
 
@@ -45,6 +52,7 @@ async def register(
         email=user.email,
         created_at=user.created_at,
         is_active=user.is_active,
+        is_superuser=user.is_superuser,
     )
 
 
@@ -60,7 +68,7 @@ async def login(
         repo: Injected user repository.
 
     Returns:
-        Dict with ``access_token`` and ``token_type`` (``"bearer"``).
+        Dict with ``access_token`` and ``token_type`` (``\"bearer\"``).
     """
     user = await repo.get_by_email(payload.email)
 
@@ -97,4 +105,5 @@ async def me(
         email=current_user.email,
         created_at=current_user.created_at,
         is_active=current_user.is_active,
+        is_superuser=current_user.is_superuser,
     )

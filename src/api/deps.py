@@ -212,6 +212,28 @@ async def get_current_user(
     return user
 
 
+async def get_current_superuser(
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> User:
+    """Require that the authenticated user is a SuperUser.
+
+    Args:
+        current_user: User resolved by ``get_current_user``.
+
+    Returns:
+        The same ``User`` if ``is_superuser`` is True.
+
+    Raises:
+        HTTPException: 403 if the user is not a SuperUser.
+    """
+    if not current_user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Superuser privileges required",
+        )
+    return current_user
+
+
 async def get_current_user_id(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> str:
