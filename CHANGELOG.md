@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dependency `get_current_superuser` (403 for non-superusers)
 - User vocabulary guide: `docs/user-guide.md` (EN/DE/HU trigger phrases for Notes, Reminders, WebSearch, ActiveRecall)
 - Tests for bootstrap, SuperUser guard and admin endpoints
+- Date-aware Reminders (Phase 5):
+  - NL date/time parsing on create (today/tomorrow/weekdays + “um 14 Uhr” / “at 14:00”)
+  - Agenda queries: today / this week / next week / this month (day-grouped output)
+  - Specific event lookup (“wann habe ich meinen Termin bei …?”) with date + time
+  - Repository: `due_from`/`due_to` filter + `search_by_content`
+  - Vocabulary + tests updated
 
 ### Notes
 - Phase 5 (Polish & Demo) in progress
