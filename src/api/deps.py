@@ -21,6 +21,7 @@ from src.services.stt.base import STTAdapter
 from src.services.stt.faster_whisper import FasterWhisperSTTAdapter
 from src.services.tts.base import TTSAdapter
 from src.services.tts.piper import PiperTTSAdapter
+from src.skills.active_recall.skill import ActiveRecallSkill
 from src.skills.notes.repository import NoteRepository
 from src.skills.notes.skill import NotesSkill
 from src.skills.registry import SkillRegistry
@@ -301,6 +302,9 @@ def get_skill_registry(
 ) -> SkillRegistry:
     """Build and return a SkillRegistry with all available skills for the user.
 
+    ActiveRecall is registered first so pure knowledge questions are not
+    claimed by Notes / Reminders / WebSearch.
+
     Args:
         note_repo: User-scoped note repository.
         reminder_repo: User-scoped reminder repository
@@ -310,6 +314,7 @@ def get_skill_registry(
         ``SkillRegistry`` with registered skills.
     """
     registry = SkillRegistry()
+    registry.register(ActiveRecallSkill(semantic_memory=semantic_memory))
     registry.register(NotesSkill(repository=note_repo, semantic_memory=semantic_memory))
     registry.register(
         RemindersSkill(repository=reminder_repo, semantic_memory=semantic_memory)
