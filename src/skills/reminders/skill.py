@@ -61,14 +61,11 @@ _WEEKDAYS = {
     "sunday": 6,
     "sonntag": 6,
 }
-_WEEKDAY_RE = re.compile(
-    r"\b(" + "|".join(_WEEKDAYS.keys()) + r")\b", re.IGNORECASE
-)
+_WEEKDAY_RE = re.compile(r"\b(" + "|".join(_WEEKDAYS.keys()) + r")\b", re.IGNORECASE)
 
 # Time: "um 14 Uhr", "at 14:00", "14:30", "um 9"
 _TIME_RE = re.compile(
-    r"(?:um|at)\s*(\d{1,2})(?:[:.](\d{2}))?\s*(?:uhr)?"
-    r"|\b(\d{1,2})[:.](\d{2})\b",
+    r"(?:um|at)\s*(\d{1,2})(?:[:.](\d{2}))?\s*(?:uhr)?" r"|\b(\d{1,2})[:.](\d{2})\b",
     re.IGNORECASE,
 )
 
@@ -321,7 +318,9 @@ class RemindersSkill(Skill):
             )
 
         return SkillResult(
-            response_text=self._format_list(reminders, header="Here are your pending reminders:"),
+            response_text=self._format_list(
+                reminders, header="Here are your pending reminders:"
+            ),
             handled=True,
         )
 
