@@ -230,10 +230,9 @@ def test_admin_patch_unknown_user(client):
 def test_admin_patch_requires_superuser(client):
     """Normal user cannot patch via admin route."""
     _wipe_users()
-    _make_superuser_headers(client)
+    super_headers = _make_superuser_headers(client)
     normal = _make_normal_headers(client)
     # grab a real id from list (as super) then try as normal
-    super_headers = _make_superuser_headers(client)
     listing = client.get("/api/v1/admin/users", headers=super_headers)
     user_id = listing.json()[0]["id"]
     response = client.patch(
