@@ -22,10 +22,17 @@ You can speak or type them. Matching is case-insensitive and works in English, G
 |--------|---------|--------|-----------|
 | Create | remind me, reminder, set a reminder | erinner mich, erinnerung, stell eine erinnerung | emlékeztess |
 | List   | list reminders, show reminders, what reminders | meine erinnerungen, erinnerungen zeigen, zeig mir die erinnerungen | listázd az emlékeztetőket |
+| Agenda | what's on today, this week, next week, this month | was steht heute an, diese Woche, nächste Woche, diesen Monat | – |
+| Lookup | when is …, when do I … | wann habe ich …, wann muss ich … | – |
+
+**Date tokens on create** (optional): today/heute, tomorrow/morgen, weekdays, “um 14 Uhr” / “at 14:00”.
 
 **Example**  
-- “Remind me to call the dentist”  
-- “Erinner mich an den Arzttermin”  
+- “Remind me tomorrow at 10 to call the dentist”  
+- “Erinner mich morgen um 14 Uhr an den Zahnarzt”  
+- “Was steht heute an?”  
+- “Was steht nächste Woche an?”  
+- “Wann habe ich meinen Termin bei der Arbeitsagentur?”  
 - “Show reminders”
 
 ## Web Search
