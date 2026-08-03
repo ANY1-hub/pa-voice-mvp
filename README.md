@@ -4,16 +4,16 @@
 
 A local-first, privacy-centric voice assistant that actively learns and maintains personal insights.
 
-## Status (2026-07-28)
+## Status (2026-08-03)
 
 | Phase | Status |
 |-------|--------|
 | 0 Setup & Foundation | ✅ |
 | 1 Memory Core | ✅ |
 | 2 Auth + Multi-User | ✅ |
-| **3 Voice Pipeline MVP** | **✅ closed** |
-| 4 Skills (reminders, web search) | ← next |
-| 5 Polish & Demo | pending |
+| 3 Voice Pipeline MVP | ✅ |
+| **4 Skills** | **✅ closed** |
+| 5 Polish & Demo | ← next |
 
 ## Features (MVP scope)
 - Voice interaction (STT + TTS) with visible transcript and reply
@@ -21,8 +21,9 @@ A local-first, privacy-centric voice assistant that actively learns and maintain
 - Multi-user isolation (JWT)
 - Multi-language TTS voices (en / de / hu)
 - Browser UI with one big "Speak" button + text fallback
+- Skills: Notes, Reminders, memory-augmented Web Search (DuckDuckGo)
 
-**Not in MVP (Phase 4+):** reminders/notes skills, memory-augmented web search, streaming, local LLM, GDPR data UI.
+**Not in MVP (Phase 5+ / post-MVP):** streaming, local LLM, Active Recall as dedicated skill, GDPR data rights UI, 4-level memory, Home Assistant.
 
 ## Tech Stack
 - Backend: FastAPI
@@ -72,7 +73,7 @@ Authorization: Bearer <access_token>
 - Lifetime: **24 hours**
 - User-ID is always a server-generated UUID v4 (client cannot supply one)
 - Email uniqueness is enforced by a MongoDB unique index created at startup
-- Memory routes are fully isolated via dependency injection  
+- Memory routes are fully isolated via dependency injection
   → see `docs/decisions/001-dependency-injection-memory.md`
 
 ## Getting Started (Development)
@@ -104,10 +105,10 @@ cd frontend
 python -m http.server 5500
 ```
 
-Open http://localhost:5500  
+Open http://localhost:5500
 Login with a registered user, then use the big Speak button (or the text input).
 
-Backend must be running on port 8000.  
+Backend must be running on port 8000.
 Piper voice models must be present (see [docs/piper-voice-setup.md](docs/piper-voice-setup.md)).
 
 ### MongoDB
@@ -126,7 +127,7 @@ MONGODB_DB_NAME=jarvis_db
 
 ### Piper TTS Voice Model
 
-Piper requires local voice models (not included in the repo).  
+Piper requires local voice models (not included in the repo).
 See **[docs/piper-voice-setup.md](docs/piper-voice-setup.md)** for download instructions (Windows + macOS/Linux).
 
 Optional per-language override in `.env`:
