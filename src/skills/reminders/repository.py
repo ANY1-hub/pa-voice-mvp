@@ -51,8 +51,17 @@ class ReminderRepository:
         self,
         limit: int = 20,
         status: str | None = "pending",
+        due_from: datetime | None = None,
+        due_to: datetime | None = None,
     ) -> list[Reminder]:
-        """Return recent reminders for the current user (newest first)."""
+        """Return reminders for the current user, optionally filtered by due range.
+
+        Args:
+            limit: Max number of results.
+            status: Filter by status (default "pending"). Pass None for any.
+            due_from: Inclusive lower bound on due_at (UTC).
+            due_to: Inclusive upper bound on due_at (UTC).
+        """
         if self.collection is None:
             return []
 
@@ -60,7 +69,46 @@ class ReminderRepository:
         if status:
             filters["status"] = status
 
-        cursor = self.collection.find(filters).sort("created_at", -1).limit(limit)
+        if due_from is not None or due_to is not None:
+            due_filter: dict = {}
+            if due_from is not None:
+                due_filter["$gte"] = due_from.isoformat()
+            if due_to is not None:
+                due_filter["$lte"] = due_to.isoformat()
+            filters["due_at"] = due_filter
+
+        cursor = self.collection.find(filters).sort("due_at", 1).limit(limit)
+
+        reminders: list[Reminder] = []
+        async for doc in cursor:
+            doc.pop("_id", None)
+            reminders.append(Reminder.model_validate(doc))
+        return reminders
+
+    async def search_by_content(
+        self,
+        query: str,
+        limit: int = 10,
+        status: str | None = "pending",
+    ) -> list[Reminder]:
+        """Return reminders whose content contains the query (case-insensitive).
+
+        Args:
+            query: Free-text keyword to search for.
+            limit: Max number of results.
+            status: Filter by status (default "pending").
+        """
+        if self.collection is None:
+            return []
+
+        filters: dict = {
+            "user_id": self.user_id,
+            "content": {"$regex": query, "$options": "i"},
+        }
+        if status:
+            filters["status"] = status
+
+        cursor = self.collection.find(filters).sort("due_at", 1).limit(limit)
 
         reminders: list[Reminder] = []
         async for doc in cursor:
