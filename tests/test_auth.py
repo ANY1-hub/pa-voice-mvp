@@ -10,6 +10,7 @@ from src.core.config import get_settings
 
 
 def test_register_success(client):
+    """Successful registration returns 201 with email and id, never the password hash."""
     email = f"reg-{uuid.uuid4().hex[:10]}@example.com"
     response = client.post(
         "/api/v1/auth/register",
@@ -23,6 +24,7 @@ def test_register_success(client):
 
 
 def test_register_duplicate_email(client):
+    """Registering the same email twice must return 409 Conflict."""
     email = f"dup-{uuid.uuid4().hex[:10]}@example.com"
     payload = {"email": email, "password": "SecurePass123!"}
     assert client.post("/api/v1/auth/register", json=payload).status_code == 201
@@ -31,6 +33,7 @@ def test_register_duplicate_email(client):
 
 
 def test_register_short_password(client):
+    """Passwords below the minimum length must be rejected with 422."""
     response = client.post(
         "/api/v1/auth/register",
         json={"email": "short@example.com", "password": "short"},
@@ -39,6 +42,7 @@ def test_register_short_password(client):
 
 
 def test_login_success(client):
+    """Valid credentials must return a bearer access token."""
     email = f"login-{uuid.uuid4().hex[:10]}@example.com"
     password = "SecurePass123!"
     client.post(
@@ -56,6 +60,7 @@ def test_login_success(client):
 
 
 def test_login_wrong_password(client):
+    """Wrong password must return 401 without leaking whether the email exists."""
     email = f"wrong-{uuid.uuid4().hex[:10]}@example.com"
     client.post(
         "/api/v1/auth/register",
@@ -69,6 +74,7 @@ def test_login_wrong_password(client):
 
 
 def test_login_unknown_email(client):
+    """Unknown email must return 401 (same shape as wrong password)."""
     response = client.post(
         "/api/v1/auth/login",
         json={"email": "nobody@example.com", "password": "SecurePass123!"},
@@ -77,6 +83,7 @@ def test_login_unknown_email(client):
 
 
 def test_me_with_valid_token(client, auth_headers):
+    """Valid JWT must return the current user profile without hashed_password."""
     response = client.get("/api/v1/auth/me", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
@@ -86,11 +93,13 @@ def test_me_with_valid_token(client, auth_headers):
 
 
 def test_me_without_token(client):
+    """Missing Authorization header must return 401."""
     response = client.get("/api/v1/auth/me")
     assert response.status_code == 401
 
 
 def test_me_with_malformed_token(client):
+    """Non-JWT bearer value must return 401."""
     response = client.get(
         "/api/v1/auth/me",
         headers={"Authorization": "Bearer not-a-jwt"},

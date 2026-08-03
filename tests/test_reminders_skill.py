@@ -14,6 +14,7 @@ from src.skills.reminders.skill import RemindersSkill
 
 
 def test_reminder_defaults():
+    """Reminder model must default to pending status and auto-generate an id."""
     r = Reminder(user_id="u1", content="Call dentist")
     assert r.user_id == "u1"
     assert r.content == "Call dentist"
@@ -24,6 +25,7 @@ def test_reminder_defaults():
 
 @pytest.mark.asyncio
 async def test_repository_create_without_collection():
+    """Create must still return a Reminder when no Mongo collection is wired."""
     repo = ReminderRepository(user_id="u1", collection=None)
     r = await repo.create(content="Buy tickets")
     assert r.content == "Buy tickets"
@@ -32,12 +34,14 @@ async def test_repository_create_without_collection():
 
 @pytest.mark.asyncio
 async def test_repository_list_empty_without_collection():
+    """List without a collection must return an empty list."""
     repo = ReminderRepository(user_id="u1", collection=None)
     assert await repo.list_reminders() == []
 
 
 @pytest.mark.asyncio
 async def test_repository_create_calls_insert():
+    """Create must persist via insert_one with user_id and pending status."""
     mock_coll = MagicMock()
     mock_coll.insert_one = AsyncMock()
     repo = ReminderRepository(user_id="u1", collection=mock_coll)
@@ -51,6 +55,7 @@ async def test_repository_create_calls_insert():
 
 
 def test_can_handle_create_intents():
+    """Skill must claim create-reminder utterances and reject unrelated chat."""
     skill = RemindersSkill(repository=ReminderRepository(user_id="u1"))
     assert skill.can_handle("remind me to call mom") is True
     assert skill.can_handle("Erinner mich an den Termin") is True
@@ -58,6 +63,7 @@ def test_can_handle_create_intents():
 
 
 def test_can_handle_list_intents():
+    """Skill must claim list-reminders utterances in EN/DE."""
     skill = RemindersSkill(repository=ReminderRepository(user_id="u1"))
     assert skill.can_handle("show reminders") is True
     assert skill.can_handle("meine Erinnerungen") is True
@@ -65,6 +71,7 @@ def test_can_handle_list_intents():
 
 @pytest.mark.asyncio
 async def test_execute_create_reminder():
+    """Create path must confirm the reminder and echo its content."""
     repo = ReminderRepository(user_id="u1", collection=None)
     skill = RemindersSkill(repository=repo, semantic_memory=None)
 
@@ -80,6 +87,7 @@ async def test_execute_create_reminder():
 
 @pytest.mark.asyncio
 async def test_execute_list_empty():
+    """List with no pending reminders must say so clearly."""
     repo = ReminderRepository(user_id="u1", collection=None)
     skill = RemindersSkill(repository=repo)
 
@@ -90,6 +98,7 @@ async def test_execute_list_empty():
 
 @pytest.mark.asyncio
 async def test_execute_create_writes_semantic_summary():
+    """Creating a reminder must write a short summary fact into Semantic Memory."""
     repo = ReminderRepository(user_id="u1", collection=None)
     mock_sem = MagicMock()
     mock_sem.add_fact = AsyncMock()
@@ -109,6 +118,7 @@ async def test_execute_create_writes_semantic_summary():
 
 
 def test_registry_finds_reminders():
+    """Registry must find the skill by name and by matching intent."""
     registry = SkillRegistry()
     skill = RemindersSkill(repository=ReminderRepository(user_id="u1"))
     registry.register(skill)
