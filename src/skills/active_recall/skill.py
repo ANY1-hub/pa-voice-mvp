@@ -78,7 +78,9 @@ class ActiveRecallSkill(Skill):
             )
 
         try:
-            facts = await self.semantic_memory.search(query=query or "preferences", limit=6)
+            facts = await self.semantic_memory.search(
+                query=query or "preferences", limit=6
+            )
         except Exception:
             logger.exception("Active recall search failed")
             return SkillResult(

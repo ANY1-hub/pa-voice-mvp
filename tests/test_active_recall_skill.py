@@ -88,7 +88,10 @@ async def test_execute_no_facts_gives_clear_empty_reply():
         user_id="u1",
     )
     assert result.handled is True
-    assert "don't have anything" in result.response_text.lower() or "nothing" in result.response_text.lower()
+    assert (
+        "don't have anything" in result.response_text.lower()
+        or "nothing" in result.response_text.lower()
+    )
 
 
 @pytest.mark.asyncio
