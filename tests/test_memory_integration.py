@@ -10,6 +10,7 @@ from src.services.embeddings.base import EmbeddingsAdapter
 
 @pytest.mark.asyncio
 async def test_semantic_memory_rejects_unsafe_write():
+    """Low-importance write must raise MemoryWritePolicyViolation end-to-end."""
     # Attempt to write a fact that violates policy (e.g., extremely low importance < 0.2)
     mem = SemanticMemory(user_id="550e8400-e29b-41d4-a716-446655440000")
 
@@ -19,6 +20,7 @@ async def test_semantic_memory_rejects_unsafe_write():
 
 @pytest.mark.asyncio
 async def test_semantic_memory_valid_write():
+    """Valid fact must be accepted and returned with entities."""
     mem = SemanticMemory(user_id="550e8400-e29b-41d4-a716-446655440000")
     # Will not raise, should create and return model
     fact = await mem.add_fact(
@@ -51,6 +53,7 @@ async def test_semantic_memory_with_embeddings_adapter():
 
 @pytest.mark.asyncio
 async def test_working_memory_rejects_injection():
+    """Empty/injection content must raise InputValidationError on Working Memory add."""
     mem = WorkingMemory(user_id="550e8400-e29b-41d4-a716-446655440000")
 
     # Empty content should be blocked by validate_memory_fact

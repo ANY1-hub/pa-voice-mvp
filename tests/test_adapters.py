@@ -10,6 +10,7 @@ from src.services.llm.openai import OpenAILLMAdapter
 
 @pytest.mark.asyncio
 async def test_openai_embeddings_adapter():
+    """OpenAI embeddings adapter must return single and batch vectors from the API mock."""
     with patch("src.services.embeddings.openai.AsyncOpenAI") as mock_openai:
         mock_client = AsyncMock()
         mock_openai.return_value = mock_client
@@ -35,6 +36,7 @@ async def test_openai_embeddings_adapter():
 
 @pytest.mark.asyncio
 async def test_openai_llm_adapter_generate_response():
+    """OpenAI LLM adapter must return the assistant message content."""
     with patch("src.services.llm.openai.AsyncOpenAI") as mock_openai:
         mock_client = AsyncMock()
         mock_openai.return_value = mock_client
@@ -54,6 +56,7 @@ async def test_openai_llm_adapter_generate_response():
 
 @pytest.mark.asyncio
 async def test_openai_llm_adapter_extract_entities():
+    """Entity extraction must parse JSON entities and fall back to [] on bad JSON."""
     with patch("src.services.llm.openai.AsyncOpenAI") as mock_openai:
         mock_client = AsyncMock()
         mock_openai.return_value = mock_client
@@ -78,6 +81,7 @@ async def test_openai_llm_adapter_extract_entities():
 
 @pytest.mark.asyncio
 async def test_grok_llm_adapter_generate_response():
+    """Grok adapter must call the xAI base URL and return the message content."""
     with patch("src.services.llm.grok.AsyncOpenAI") as mock_grok:
         mock_client = AsyncMock()
         mock_grok.return_value = mock_client
@@ -100,6 +104,7 @@ async def test_grok_llm_adapter_generate_response():
 
 @pytest.mark.asyncio
 async def test_grok_llm_adapter_extract_entities():
+    """Grok entity extraction must parse the JSON entities list."""
     with patch("src.services.llm.grok.AsyncOpenAI") as mock_grok:
         mock_client = AsyncMock()
         mock_grok.return_value = mock_client
@@ -119,6 +124,7 @@ async def test_grok_llm_adapter_extract_entities():
 
 @pytest.mark.asyncio
 async def test_gemini_llm_adapter_not_implemented():
+    """Gemini stub must raise NotImplementedError until wired."""
     adapter = GeminiLLMAdapter(api_key="test_key")
 
     with pytest.raises(NotImplementedError):
