@@ -192,7 +192,9 @@ def test_can_handle_agenda_intents():
 def test_can_handle_lookup_intents():
     """Skill must claim specific-event lookup questions."""
     skill = RemindersSkill(repository=ReminderRepository(user_id="u1"))
-    assert skill.can_handle("wann habe ich meinen Termin bei der Arbeitsagentur?") is True
+    assert (
+        skill.can_handle("wann habe ich meinen Termin bei der Arbeitsagentur?") is True
+    )
     assert skill.can_handle("when is the dentist appointment?") is True
     assert skill.can_handle("Wann muss ich X.Y. anrufen?") is True
 
@@ -244,7 +246,9 @@ async def test_execute_create_sets_due_at_with_time():
         )
 
     assert result.handled is True
-    assert "Zahnarzt" in result.response_text or "zahnarzt" in result.response_text.lower()
+    assert (
+        "Zahnarzt" in result.response_text or "zahnarzt" in result.response_text.lower()
+    )
 
 
 @pytest.mark.asyncio
@@ -296,7 +300,11 @@ async def test_execute_lookup_by_content():
     assert result.handled is True
     text = result.response_text.lower()
     assert "arbeitsagentur" in text
-    assert "9" in result.response_text or "09" in result.response_text or "12" in result.response_text
+    assert (
+        "9" in result.response_text
+        or "09" in result.response_text
+        or "12" in result.response_text
+    )
 
 
 @pytest.mark.asyncio
