@@ -7,8 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- ActiveRecallSkill – explicit recall of personal facts from Semantic Memory
+  - Trigger phrases in EN/DE ("what do you know about…", "was weißt du über…")
+  - Ranked facts returned without going through the full LLM path
+  - Registered first in SkillRegistry so knowledge questions are not stolen by other skills
+  - Unit tests with purpose docstrings
+
 ### Notes
-- Next: Active Recall skill + Phase 5 (Polish & Demo)
+- Next: Phase 5 (Polish & Demo)
 
 ## [0.3.0] - 2026-08-03 — Phase 4 closed
 
