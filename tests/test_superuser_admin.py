@@ -183,7 +183,10 @@ def test_admin_create_duplicate_email(client):
     headers = _make_superuser_headers(client)
     email = f"dup-admin-{uuid.uuid4().hex[:8]}@example.com"
     payload = {"email": email, "password": "SecurePass123!"}
-    assert client.post("/api/v1/admin/users", headers=headers, json=payload).status_code == 201
+    assert (
+        client.post("/api/v1/admin/users", headers=headers, json=payload).status_code
+        == 201
+    )
     response = client.post("/api/v1/admin/users", headers=headers, json=payload)
     assert response.status_code == 409
 
