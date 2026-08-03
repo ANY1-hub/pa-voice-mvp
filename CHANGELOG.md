@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Notes
+- Next: Active Recall skill + Phase 5 (Polish & Demo)
+
+## [0.3.0] - 2026-08-03 — Phase 4 closed
+
+Skills layer complete (Notes, Reminders, memory-augmented Web Search).
+
 ### Added
 - Phase 4 Skills foundation (Option A):
   - Thin `Skill` protocol + `SkillResult`
@@ -26,9 +33,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Orchestrator stays thin: skill routing happens after Guardrails, before memory/LLM path
 - `_build_messages` made staticmethod; more precise exception handling in orchestrator paths
-
-### Notes
-- Phase 4 Skills (Notes, Reminders, memory-augmented Web Search) complete.
 
 ## [0.2.0] - 2026-07-28 — Phase 3 closed
 
@@ -60,3 +64,4 @@ Full voice pipeline with multi-language TTS, hardened tests/CI, and MVP prompt-i
 - Project initialization
 - Basic README and project structure
 - Security & Quality standards defined (ISO alignment)
+- Phase 0–2 foundation (Memory Core, Auth + Multi-User, DI)
