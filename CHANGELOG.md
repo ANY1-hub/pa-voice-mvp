@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Scheduler/consolidation hardening (Phase 5):
   - Consolidation job uses stable id, replace_existing, max_instances=1, coalesce
   - Per-user error isolation so one failed user does not abort the whole job
+  - Resilience tests for WebSearchSkill (backend failure, semantic/add_fact errors) and DuckDuckGoClient mapping/exception paths
 
 ### Fixed
 - Error handling polish (Phase 5):

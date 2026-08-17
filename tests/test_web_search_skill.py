@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -181,3 +181,146 @@ def test_registry_finds_web_search():
     assert registry.get("web_search") is skill
     found = registry.find_handler("search for the latest news")
     assert found is skill
+
+
+# ---------------------------------------------------------------------------
+# Error / resilience paths
+# ---------------------------------------------------------------------------
+
+
+class RaisingSearchClient:
+    """Search client that always fails – used to test skill error handling."""
+
+    async def search(self, query: str, max_results: int = 5) -> list[dict[str, str]]:
+        raise RuntimeError("network down")
+
+
+@pytest.mark.asyncio
+async def test_execute_backend_failure_returns_friendly_message():
+    """If the search backend crashes, the user must get a clear apology – not a stack trace."""
+    skill = WebSearchSkill(client=RaisingSearchClient(), semantic_memory=None)
+
+    result = await skill.execute(
+        user_text="search for the capital of France",
+        user_id="u1",
+    )
+
+    assert result.handled is True
+    assert (
+        "failed" in result.response_text.lower()
+        or "sorry" in result.response_text.lower()
+    )
+
+
+@pytest.mark.asyncio
+async def test_execute_continues_when_semantic_search_fails():
+    """A broken Semantic Memory must not kill the web search – results still come back."""
+    client = FakeSearchClient()
+    mock_sem = MagicMock()
+    mock_sem.search = AsyncMock(side_effect=RuntimeError("db timeout"))
+    mock_sem.add_fact = AsyncMock()
+
+    skill = WebSearchSkill(client=client, semantic_memory=mock_sem)
+    result = await skill.execute(
+        user_text="search for good restaurants in Berlin",
+        user_id="u1",
+    )
+
+    assert result.handled is True
+    assert (
+        "Example Result" in result.response_text
+        or "example.com" in result.response_text
+    )
+
+
+@pytest.mark.asyncio
+async def test_execute_continues_when_add_fact_fails():
+    """If writing the search summary to memory fails, the user must still see the web results."""
+    client = FakeSearchClient()
+    mock_sem = MagicMock()
+    mock_sem.search = AsyncMock(return_value=[])
+    mock_sem.add_fact = AsyncMock(side_effect=RuntimeError("write denied"))
+
+    skill = WebSearchSkill(client=client, semantic_memory=mock_sem)
+    result = await skill.execute(
+        user_text="search for Python asyncio",
+        user_id="u1",
+    )
+
+    assert result.handled is True
+    assert (
+        "Example Result" in result.response_text
+        or "example.com" in result.response_text
+    )
+    mock_sem.add_fact.assert_awaited_once()
+
+
+# ---------------------------------------------------------------------------
+# DuckDuckGoClient (production client, fully mocked – no network)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_ddg_client_maps_results():
+    """DuckDuckGoClient must map raw DDGS dicts into title/href/body and ignore extra keys."""
+    from src.skills.web_search.client import DuckDuckGoClient
+
+    raw = [
+        {
+            "title": "Python Docs",
+            "href": "https://docs.python.org",
+            "body": "Official documentation",
+            "extra": "ignored",
+        }
+    ]
+
+    with patch("src.skills.web_search.client.asyncio.to_thread") as mock_thread:
+        # to_thread runs the sync function; we call it ourselves and return its result
+        async def run_sync(fn):
+            return fn()
+
+        mock_thread.side_effect = run_sync
+
+        with patch.dict("sys.modules", {"ddgs": MagicMock()}):
+            import sys
+
+            mock_ddgs_mod = sys.modules["ddgs"]
+            mock_ddgs_inst = MagicMock()
+            mock_ddgs_inst.text.return_value = raw
+            mock_ddgs_mod.DDGS.return_value = mock_ddgs_inst
+
+            client = DuckDuckGoClient()
+            results = await client.search("python", max_results=3)
+
+    assert len(results) == 1
+    assert results[0] == {
+        "title": "Python Docs",
+        "href": "https://docs.python.org",
+        "body": "Official documentation",
+    }
+
+
+@pytest.mark.asyncio
+async def test_ddg_client_exception_returns_empty_list():
+    """If the DDGS library raises, the client must return [] instead of crashing the skill."""
+    from src.skills.web_search.client import DuckDuckGoClient
+
+    with patch("src.skills.web_search.client.asyncio.to_thread") as mock_thread:
+
+        async def run_sync(fn):
+            return fn()
+
+        mock_thread.side_effect = run_sync
+
+        with patch.dict("sys.modules", {"ddgs": MagicMock()}):
+            import sys
+
+            mock_ddgs_mod = sys.modules["ddgs"]
+            mock_ddgs_inst = MagicMock()
+            mock_ddgs_inst.text.side_effect = RuntimeError("ddgs boom")
+            mock_ddgs_mod.DDGS.return_value = mock_ddgs_inst
+
+            client = DuckDuckGoClient()
+            results = await client.search("anything")
+
+    assert results == []
