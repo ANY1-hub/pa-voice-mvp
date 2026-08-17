@@ -8,8 +8,17 @@ from src.core.config import get_settings
 
 
 def _wipe_users() -> None:
-    """Remove all users so bootstrap can be tested deterministically."""
+    """Remove all users so bootstrap can be tested deterministically.
+
+    Safety: refuses to run against a non-test database name.
+    """
     settings = get_settings()
+    if "test" not in settings.mongodb_db_name.lower():
+        raise RuntimeError(
+            f"Refusing to wipe users collection: "
+            f"DB name '{settings.mongodb_db_name}' does not look like a test DB. "
+            "Set MONGODB_DB_NAME=jarvis_test (conftest does this automatically)."
+        )
     sync = MongoClient(settings.mongodb_uri)
     try:
         sync[settings.mongodb_db_name]["users"].delete_many({})
