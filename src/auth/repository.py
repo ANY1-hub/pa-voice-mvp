@@ -133,3 +133,27 @@ class UserRepository:
             return None
         result.pop("_id", None)
         return User.model_validate(result)
+
+    async def update_password(
+        self,
+        user_id: str,
+        *,
+        hashed_password: str,
+        must_change_password: bool = False,
+    ) -> User | None:
+        if self.collection is None:
+            return None
+        result = await self.collection.find_one_and_update(
+            {"id": user_id},
+            {
+                "$set": {
+                    "hashed_password": hashed_password,
+                    "must_change_password": must_change_password,
+                }
+            },
+            return_document=True,
+        )
+        if result is None:
+            return None
+        result.pop("_id", None)
+        return User.model_validate(result)
