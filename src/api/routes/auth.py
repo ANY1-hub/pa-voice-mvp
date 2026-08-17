@@ -6,9 +6,36 @@ from src.api.deps import get_current_user, get_user_repository
 from src.auth.jwt import create_access_token
 from src.auth.password import hash_password, verify_password
 from src.auth.repository import UserRepository
-from src.models.user import User, UserCreate, UserLogin, UserPublic
+from src.models.user import (
+    ChangePasswordRequest,
+    User,
+    UserCreate,
+    UserLogin,
+    UserPublic,
+)
 
 router = APIRouter()
+
+
+def _to_public(user: User) -> UserPublic:
+    """Map a User document to the public response model."""
+    return UserPublic(
+        id=user.id,
+        email=user.email,
+        created_at=user.created_at,
+        is_active=user.is_active,
+        is_superuser=user.is_superuser,
+        must_change_password=user.must_change_password,
+    )
+
+
+@router.get("/bootstrap-status")
+async def bootstrap_status(
+    repo: UserRepository = Depends(get_user_repository),  # noqa: B008
+) -> dict:
+    """Report whether the first SuperUser account still needs to be created."""
+    count = await repo.count()
+    return {"needs_bootstrap": count == 0}
 
 
 @router.post(
@@ -30,6 +57,11 @@ async def register(
     Returns:
         Public user representation of the newly created account.
     """
+    if (await repo.count()) > 0:
+        raise HTTPException(
+            403,
+            detail="Public registration is closed. Ask an administrator to create your account.",
+        )
     existing = await repo.get_by_email(payload.email)
     if existing is not None:
         raise HTTPException(
@@ -37,13 +69,13 @@ async def register(
             detail="Email already registered",
         )
 
-    # Bootstrap: first user becomes SuperUser
-    is_first = (await repo.count()) == 0
+    # first user only:
 
     user = User(
         email=payload.email.lower(),
         hashed_password=hash_password(payload.password),
-        is_superuser=is_first,
+        is_superuser=True,
+        must_change_password=False,
     )
     await repo.create(user)
 
@@ -100,10 +132,21 @@ async def me(
     Returns:
         Public user representation.
     """
-    return UserPublic(
-        id=current_user.id,
-        email=current_user.email,
-        created_at=current_user.created_at,
-        is_active=current_user.is_active,
-        is_superuser=current_user.is_superuser,
-    )
+    return _to_public(current_user)
+
+
+@router.post("/change-password", response_model=UserPublic)
+async def change_password(
+    payload: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    repo: UserRepository = Depends(get_user_repository),  # noqa: B008
+) -> UserPublic:
+    """Return the currently authenticated user.
+
+    Args:
+        current_user: User resolved from the JWT (via dependency).
+
+    Returns:
+        Public user representation.
+    """
+    return _to_public(current_user)

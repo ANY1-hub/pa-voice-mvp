@@ -64,6 +64,8 @@ async def create_user(
         email=payload.email.lower(),
         hashed_password=hash_password(payload.password),
         is_superuser=payload.is_superuser,
+        is_active=payload.is_active,
+        must_change_password=True,  # force change on first login
     )
     await repo.create(user)
 
