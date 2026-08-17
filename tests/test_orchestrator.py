@@ -326,3 +326,42 @@ async def test_skill_handled_false_falls_through_to_llm(
     skill.execute.assert_awaited_once()
     mock_llm.generate_response.assert_awaited_once()
     assert result.response == "Hello from Jarvis."
+
+
+@pytest.mark.asyncio
+async def test_llm_failure_returns_friendly_fallback(orchestrator, mock_llm):
+    """LLM exceptions must not 500 the turn – return a safe user-facing message."""
+    mock_llm.generate_response.side_effect = RuntimeError("api down")
+
+    result = await orchestrator.process(text="Hello")
+
+    assert result.transcript == "Hello"
+    assert "trouble generating a response" in result.response.lower()
+
+
+@pytest.mark.asyncio
+async def test_skill_exception_falls_through_to_llm(
+    mock_llm, mock_tts, mock_working_memory, mock_semantic_memory
+):
+    """Unexpected skill crash must fall through to the normal LLM path."""
+    skill = AsyncMock()
+    skill.name = "notes"
+    skill.can_handle.return_value = True
+    skill.execute.side_effect = RuntimeError("skill exploded")
+    registry = MagicMock()
+    registry.find_handler.return_value = skill
+    mock_working_memory.user_id = "u-test"
+
+    orch = ChatOrchestrator(
+        llm=mock_llm,
+        tts=mock_tts,
+        working_memory=mock_working_memory,
+        semantic_memory=mock_semantic_memory,
+        skill_registry=registry,
+    )
+
+    result = await orch.process(text="note: buy milk")
+
+    skill.execute.assert_awaited_once()
+    mock_llm.generate_response.assert_awaited_once()
+    assert result.response == "Hello from Jarvis."
