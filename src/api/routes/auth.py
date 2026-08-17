@@ -79,13 +79,7 @@ async def register(
     )
     await repo.create(user)
 
-    return UserPublic(
-        id=user.id,
-        email=user.email,
-        created_at=user.created_at,
-        is_active=user.is_active,
-        is_superuser=user.is_superuser,
-    )
+    return _to_public(user)
 
 
 @router.post("/login")
@@ -141,12 +135,27 @@ async def change_password(
     current_user: User = Depends(get_current_user),  # noqa: B008
     repo: UserRepository = Depends(get_user_repository),  # noqa: B008
 ) -> UserPublic:
-    """Return the currently authenticated user.
+    """Change the current user's password and clear must_change_password."""
+    if not verify_password(payload.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect",
+        )
 
-    Args:
-        current_user: User resolved from the JWT (via dependency).
+    if payload.current_password == payload.new_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must differ from the current password",
+        )
 
-    Returns:
-        Public user representation.
-    """
-    return _to_public(current_user)
+    updated = await repo.update_password(
+        current_user.id,
+        hashed_password=hash_password(payload.new_password),
+        must_change_password=False,
+    )
+    if updated is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+    return _to_public(updated)
