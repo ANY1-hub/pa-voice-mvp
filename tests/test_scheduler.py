@@ -166,7 +166,7 @@ def test_start_scheduler_idempotent():
 
 
 def test_stop_scheduler_idempotent():
-    """stop_scheduler must not shutdown twice when already stopped."""
+    """stop_scheduler must not shut down twice when already stopped."""
     fake = MagicMock()
     fake.running = True
 
@@ -177,3 +177,53 @@ def test_stop_scheduler_idempotent():
         fake.running = False
         stop_scheduler()
         assert fake.shutdown.call_count == 1
+
+
+def test_start_scheduler_registers_stable_job():
+    """Consolidation job must use a stable id, replace_existing, max_instances=1, coalesce."""
+    fake = MagicMock()
+    fake.running = False
+
+    with patch.object(sched_mod, "scheduler", fake):
+        start_scheduler()
+
+    kwargs = fake.add_job.call_args.kwargs
+    assert kwargs.get("id") == "memory_consolidation"
+    assert kwargs.get("replace_existing") is True
+    assert kwargs.get("max_instances") == 1
+    assert kwargs.get("coalesce") is True
+
+
+@pytest.mark.asyncio
+async def test_consolidation_continues_on_user_error():
+    """A failing user must not prevent consolidation for subsequent users."""
+    working_coll = MagicMock()
+    semantic_coll = MagicMock()
+
+    working_coll.distinct = AsyncMock(return_value=["user-bad", "user-good"])
+    working_coll.find = MagicMock(return_value=AsyncCursor([]))
+
+    db = MagicMock()
+    db.__getitem__ = MagicMock(
+        side_effect=lambda name: {
+            "working_memory": working_coll,
+            "semantic_memory": semantic_coll,
+        }[name]
+    )
+
+    bad_sm = MagicMock()
+    bad_sm.consolidate = AsyncMock(side_effect=RuntimeError("boom"))
+    good_sm = MagicMock()
+    good_sm.consolidate = AsyncMock()
+
+    def sm_factory(*, user_id, collection):
+        return bad_sm if user_id == "user-bad" else good_sm
+
+    with (
+        patch.object(sched_mod.db_client, "db", db),
+        patch.object(sched_mod, "SemanticMemory", side_effect=sm_factory),
+    ):
+        await consolidation_job()  # must not raise
+
+    bad_sm.consolidate.assert_awaited_once()
+    good_sm.consolidate.assert_awaited_once()
