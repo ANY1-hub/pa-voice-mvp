@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Specific event lookup (“wann habe ich meinen Termin bei …?”) with date + time
   - Repository: `due_from`/`due_to` filter + `search_by_content`
   - Vocabulary + tests updated
+  - Semantic Memory search now touches `last_accessed` and applies a small importance boost (+0.05, capped at 1.0) on every successful hit. Makes the existing cleanup path actually useful.
 
 ### Notes
 - Phase 5 (Polish & Demo) in progress
