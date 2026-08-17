@@ -138,6 +138,7 @@ async def test_search_text_fallback():
     ]
     collection = MagicMock()
     collection.find.return_value = _chainable_find(docs)
+    collection.update_one = AsyncMock()
     mem = SemanticMemory(
         user_id=USER_ID, collection=collection, embeddings_adapter=None
     )
@@ -179,6 +180,7 @@ async def test_search_vector_ranks_by_similarity():
     collection = MagicMock()
     # vector path uses find() directly as async iterator (no sort/limit chain)
     collection.find.return_value = AsyncCursor(docs)
+    collection.update_one = AsyncMock()
 
     embeddings = AsyncMock()
     embeddings.get_embedding.return_value = [1.0, 0.0, 0.0]
