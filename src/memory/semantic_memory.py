@@ -113,6 +113,10 @@ class SemanticMemory:
            stored facts by cosine similarity (in-memory, fine for MVP scale).
         2. Otherwise → case-insensitive text substring match on content.
 
+        On every successful hit the fact is "touched":
+        - last_accessed is set to now
+        - importance_score is increased by 0.05 (capped at 1.0)
+
         Args:
             query: Free-text search query.
             limit: Maximum number of facts to return (default ``10``).
@@ -133,16 +137,18 @@ class SemanticMemory:
                     "embedding": {"$ne": None},
                 }
             )
-            scored: list[tuple[float, SemanticMemoryFact]] = []
+            scored: list[tuple[float, SemanticMemoryFact, object]] = []
             async for doc in cursor:
-                doc.pop("_id", None)
+                doc_id = doc.pop("_id", None)
                 fact = SemanticMemoryFact.model_validate(doc)
                 if fact.embedding:
                     score = _cosine_similarity(query_embedding, fact.embedding)
-                    scored.append((score, fact))
+                    scored.append((score, fact, doc_id))
 
             scored.sort(key=lambda pair: pair[0], reverse=True)
-            return [fact for _, fact in scored[:limit]]
+            selected = scored[:limit]
+            await self._touch_facts([(fact, doc_id) for _, fact, doc_id in selected])
+            return [fact for _, fact, _ in selected]
 
         # --- Text fallback ---
         cursor = (
@@ -155,11 +161,36 @@ class SemanticMemory:
             .sort("importance_score", -1)
             .limit(limit)
         )
-        results: list[SemanticMemoryFact] = []
+        results: list[tuple[SemanticMemoryFact, object]] = []
         async for doc in cursor:
-            doc.pop("_id", None)
-            results.append(SemanticMemoryFact.model_validate(doc))
-        return results
+            doc_id = doc.pop("_id", None)
+            fact = SemanticMemoryFact.model_validate(doc)
+            results.append((fact, doc_id))
+
+        await self._touch_facts(results)
+        return [fact for fact, _ in results]
+
+    async def _touch_facts(
+        self, items: list[tuple[SemanticMemoryFact, object]]
+    ) -> None:
+        """Update last_accessed and apply a small importance boost for accessed facts."""
+        if self.collection is None or not items:
+            return
+
+        now_iso = datetime.now(UTC).isoformat()
+        for fact, doc_id in items:
+            if doc_id is None:
+                continue
+            new_importance = min(1.0, fact.importance_score + 0.05)
+            await self.collection.update_one(
+                {"_id": doc_id, "user_id": self.user_id},
+                {
+                    "$set": {
+                        "last_accessed": now_iso,
+                        "importance_score": new_importance,
+                    }
+                },
+            )
 
     async def consolidate(self) -> None:
         """Run background consolidation for this user's semantic facts.
