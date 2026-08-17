@@ -34,28 +34,29 @@ async def consolidation_job() -> None:
         users = await working_coll.distinct("user_id")
 
         for user_id in users:
-            logger.info("Consolidating memory for user %s", user_id)
-            sm = SemanticMemory(user_id=user_id, collection=semantic_coll)
+            try:
+                logger.info("Consolidating memory for user %s", user_id)
+                sm = SemanticMemory(user_id=user_id, collection=semantic_coll)
 
-            # 2. Promote Working -> Semantic (Minimal Scope)
-            # Find working memory items with importance >= 0.7
-            high_importance_cursor = working_coll.find(
-                {"user_id": user_id, "importance_score": {"$gte": 0.7}}
-            )
+                high_importance_cursor = working_coll.find(
+                    {"user_id": user_id, "importance_score": {"$gte": 0.7}}
+                )
 
-            async for item in high_importance_cursor:
-                try:
-                    await sm.add_fact(
-                        fact=item["content"], importance=item["importance_score"]
-                    )
-                    # Remove from Working Memory once promoted
-                    await working_coll.delete_one({"_id": item["_id"]})
-                    logger.debug("Promoted WM item %s to Semantic Memory.", item["_id"])
-                except Exception as e:
-                    logger.error("Failed to promote WM item %s: %s", item["_id"], e)
+                async for item in high_importance_cursor:
+                    try:
+                        await sm.add_fact(
+                            fact=item["content"], importance=item["importance_score"]
+                        )
+                        await working_coll.delete_one({"_id": item["_id"]})
+                        logger.debug(
+                            "Promoted WM item %s to Semantic Memory.", item["_id"]
+                        )
+                    except Exception as e:
+                        logger.error("Failed to promote WM item %s: %s", item["_id"], e)
 
-            # 3. Trigger Semantic Memory's internal consolidation
-            await sm.consolidate()
+                await sm.consolidate()
+            except Exception as e:
+                logger.error("Consolidation failed for user %s: %s", user_id, e)
 
     except Exception as e:
         logger.error("Error during memory consolidation: %s", e)
@@ -69,7 +70,15 @@ def start_scheduler() -> None:
     """
     if scheduler.running:
         return
-    scheduler.add_job(consolidation_job, "interval", minutes=60)
+    scheduler.add_job(
+        consolidation_job,
+        "interval",
+        minutes=60,
+        id="memory_consolidation",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
     scheduler.start()
     logger.info("APScheduler started (consolidation runs every 60m).")
 

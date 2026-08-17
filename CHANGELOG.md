@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Repository: `due_from`/`due_to` filter + `search_by_content`
   - Vocabulary + tests updated
   - Semantic Memory search now touches `last_accessed` and applies a small importance boost (+0.05, capped at 1.0) on every successful hit. Makes the existing cleanup path actually useful.
+- Scheduler/consolidation hardening (Phase 5):
+  - Consolidation job uses stable id, replace_existing, max_instances=1, coalesce
+  - Per-user error isolation so one failed user does not abort the whole job
 
 ### Fixed
 - Error handling polish (Phase 5):
