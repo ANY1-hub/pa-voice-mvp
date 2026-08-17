@@ -194,3 +194,80 @@ async def test_search_vector_ranks_by_similarity():
     assert len(results) == 2
     assert results[0].content == "Match"
     assert results[1].content == "Unrelated"
+
+
+@pytest.mark.asyncio
+async def test_search_touches_last_accessed_and_boosts_importance():
+    """Successful search must update last_accessed and slightly raise importance."""
+    docs = [
+        {
+            "_id": "fact-1",
+            "user_id": USER_ID,
+            "content": "Favourite drink is coffee",
+            "importance_score": 0.6,
+            "entities_involved": [],
+            "created_at": "2026-07-01T12:00:00+00:00",
+            "last_accessed": "2026-07-01T12:00:00+00:00",
+            "embedding": None,
+        }
+    ]
+    collection = MagicMock()
+    collection.find.return_value = _chainable_find(docs)
+    collection.update_one = AsyncMock()
+
+    mem = SemanticMemory(
+        user_id=USER_ID, collection=collection, embeddings_adapter=None
+    )
+
+    results = await mem.search("coffee", limit=5)
+
+    assert len(results) == 1
+    collection.update_one.assert_awaited_once()
+    filter_arg, update_arg = collection.update_one.call_args[0]
+    assert filter_arg == {"_id": "fact-1", "user_id": USER_ID}
+    assert "$set" in update_arg
+    assert "last_accessed" in update_arg["$set"]
+    assert update_arg["$set"]["importance_score"] == pytest.approx(0.65)
+
+
+@pytest.mark.asyncio
+async def test_search_caps_importance_at_one():
+    """Importance boost must not exceed 1.0."""
+    docs = [
+        {
+            "_id": "fact-high",
+            "user_id": USER_ID,
+            "content": "Already important",
+            "importance_score": 0.98,
+            "entities_involved": [],
+            "created_at": "2026-07-01T12:00:00+00:00",
+            "last_accessed": "2026-07-01T12:00:00+00:00",
+            "embedding": None,
+        }
+    ]
+    collection = MagicMock()
+    collection.find.return_value = _chainable_find(docs)
+    collection.update_one = AsyncMock()
+
+    mem = SemanticMemory(
+        user_id=USER_ID, collection=collection, embeddings_adapter=None
+    )
+    await mem.search("important")
+
+    update_arg = collection.update_one.call_args[0][1]
+    assert update_arg["$set"]["importance_score"] == 1.0
+
+
+@pytest.mark.asyncio
+async def test_search_does_not_touch_when_no_results():
+    """No updates when search returns nothing."""
+    collection = MagicMock()
+    collection.find.return_value = _chainable_find([])
+    collection.update_one = AsyncMock()
+
+    mem = SemanticMemory(
+        user_id=USER_ID, collection=collection, embeddings_adapter=None
+    )
+    await mem.search("nothing-here")
+
+    collection.update_one.assert_not_awaited()
