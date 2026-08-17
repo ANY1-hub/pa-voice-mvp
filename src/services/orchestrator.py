@@ -170,30 +170,49 @@ class ChatOrchestrator:
                         else "unknown"
                     )
                 )
-                skill_result: SkillResult = await skill.execute(
-                    user_text=sanitized,
-                    user_id=user_id,
-                )
-                if skill_result.handled:
-                    response_text = skill_result.response_text.strip()
-                    tts_lang = detect_response_language(response_text, hint=language)
-                    await self._store_turn(sanitized, response_text)
-                    audio_b64 = await self._maybe_synthesize(response_text, tts_lang)
-                    return ChatResult(
-                        transcript=sanitized,
-                        response=response_text,
-                        audio_base64=audio_b64,
+                try:
+                    skill_result: SkillResult = await skill.execute(
+                        user_text=sanitized,
+                        user_id=user_id,
                     )
+                except Exception:
+                    logger.exception(
+                        "Skill '%s' failed – falling through to LLM path",
+                        getattr(skill, "name", "unknown"),
+                    )
+                else:
+                    if skill_result.handled:
+                        response_text = skill_result.response_text.strip()
+                        tts_lang = detect_response_language(
+                            response_text, hint=language
+                        )
+                        await self._store_turn(sanitized, response_text)
+                        audio_b64 = await self._maybe_synthesize(
+                            response_text, tts_lang
+                        )
+                        return ChatResult(
+                            transcript=sanitized,
+                            response=response_text,
+                            audio_base64=audio_b64,
+                        )
 
         # 3. Memory context
         memory_context = await self._build_memory_context(sanitized)
 
         # 4. LLM
+        # 4. LLM
         messages = self._build_messages(sanitized, memory_context)
-        response_text = await self.llm.generate_response(messages)
-        response_text = (response_text or "").strip()
-        if not response_text:
-            response_text = "I am sorry, I could not generate a response."
+        try:
+            response_text = await self.llm.generate_response(messages)
+            response_text = (response_text or "").strip()
+            if not response_text:
+                response_text = "I am sorry, I could not generate a response."
+        except Exception:
+            logger.exception("LLM generation failed")
+            response_text = (
+                "I'm having trouble generating a response right now. "
+                "Please try again in a moment."
+            )
 
         # Prefer language of the *reply* if clearly different (e.g. mixed turns)
         tts_lang = detect_response_language(response_text, hint=tts_lang)

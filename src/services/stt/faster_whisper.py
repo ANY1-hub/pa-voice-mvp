@@ -82,6 +82,12 @@ class FasterWhisperSTTAdapter(STTAdapter):
                 check=True,
                 capture_output=True,
             )
+        except subprocess.CalledProcessError as e:
+            src_path.unlink(missing_ok=True)
+            raise ValueError("Could not process audio (conversion failed)") from e
+        except OSError as e:
+            src_path.unlink(missing_ok=True)
+            raise ValueError("Could not process audio") from e
         finally:
             src_path.unlink(missing_ok=True)
 
@@ -97,7 +103,13 @@ class FasterWhisperSTTAdapter(STTAdapter):
         Returns:
             Transcribed text.
         """
-        wav_path = self._to_wav_16k_mono(audio_bytes)
+        try:
+            wav_path = self._to_wav_16k_mono(audio_bytes)
+        except ValueError:
+            raise
+        except Exception as e:
+            raise ValueError("Could not process audio") from e
+
         try:
             segments, _ = self.model.transcribe(
                 str(wav_path),
@@ -106,6 +118,10 @@ class FasterWhisperSTTAdapter(STTAdapter):
                 vad_filter=True,
             )
             return " ".join(segment.text.strip() for segment in segments).strip()
+        except ValueError:
+            raise
+        except Exception as e:
+            raise ValueError("Could not transcribe audio") from e
         finally:
             wav_path.unlink(missing_ok=True)
 

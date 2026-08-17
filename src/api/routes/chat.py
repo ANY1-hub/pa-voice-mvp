@@ -81,11 +81,11 @@ async def chat_text(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
         ) from e
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Chat failed: {e.__class__.__name__}",
-        ) from e
+            detail="Something went wrong on my side. Please try again.",
+        ) from None  # prevents original exception to land in the Response-chain
 
 
 @router.post("/voice", response_model=ChatResponse)
@@ -145,8 +145,8 @@ async def chat_voice(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
         ) from e
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Voice chat failed: {e.__class__.__name__}",
-        ) from e
+            detail="Something went wrong on my side. Please try again.",
+        ) from None  # prevents original exception to land in the Response-chain
