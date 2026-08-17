@@ -25,6 +25,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Vocabulary + tests updated
   - Semantic Memory search now touches `last_accessed` and applies a small importance boost (+0.05, capped at 1.0) on every successful hit. Makes the existing cleanup path actually useful.
 
+### Fixed
+- Error handling polish (Phase 5):
+  - LLM failures return a friendly fallback instead of HTTP 500
+  - Unexpected skill exceptions fall through to the LLM path
+  - STT conversion/transcription errors map to clear ValueError (HTTP 400)
+  - Chat 500 responses use a user-friendly message (no internal class names)
+
 ### Notes
 - Phase 5 (Polish & Demo) in progress
 - Public registration remains open for now
