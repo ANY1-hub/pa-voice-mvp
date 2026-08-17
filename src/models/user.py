@@ -34,6 +34,7 @@ class User(BaseModel):
     created_at: datetime = Field(default_factory=now_utc)
     is_active: bool = True
     is_superuser: bool = False
+    must_change_password: bool = False
 
 
 class UserCreate(BaseModel):
@@ -76,6 +77,7 @@ class UserPublic(BaseModel):
     created_at: datetime
     is_active: bool
     is_superuser: bool = False
+    must_change_password: bool = False
 
 
 class UserAdminCreate(BaseModel):
@@ -90,6 +92,7 @@ class UserAdminCreate(BaseModel):
     email: EmailStr
     password: str = Field(min_length=12)
     is_superuser: bool = False
+    is_active: bool = True
 
 
 class UserAdminUpdate(BaseModel):
@@ -102,3 +105,15 @@ class UserAdminUpdate(BaseModel):
 
     is_active: bool | None = None
     is_superuser: bool | None = None
+
+
+class ChangePasswordRequest(BaseModel):
+    """Payload for authenticated password change.
+
+    Attributes:
+        current_password: Existing password (must match).
+        new_password: New password (min. 12 characters).
+    """
+
+    current_password: str
+    new_password: str = Field(min_length=12)
