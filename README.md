@@ -4,7 +4,7 @@
 
 A local-first, privacy-centric voice assistant that actively learns and maintains personal insights.
 
-## Status (2026-08-03)
+## Status (2026-08-17)
 
 | Phase | Status |
 |-------|--------|
@@ -12,8 +12,8 @@ A local-first, privacy-centric voice assistant that actively learns and maintain
 | 1 Memory Core | ✅ |
 | 2 Auth + Multi-User | ✅ |
 | 3 Voice Pipeline MVP | ✅ |
-| **4 Skills** | **✅ closed** |
-| 5 Polish & Demo | ← current |
+| 4 Skills | ✅ closed |
+| **5 Polish & Demo** | **← current** |
 
 ## Features (MVP scope)
 - Voice interaction (STT + TTS) with visible transcript and reply
@@ -21,8 +21,9 @@ A local-first, privacy-centric voice assistant that actively learns and maintain
 - Multi-user isolation (JWT)
 - Multi-language TTS voices (en / de / hu)
 - Browser UI with one big "Speak" button + text fallback
-- Skills: Notes, Reminders, memory-augmented Web Search (DuckDuckGo), Active Recall
-- Minimal SuperUser bootstrap + admin endpoints (Phase 5)
+- Skills: Notes, Reminders (date-aware + agenda), memory-augmented Web Search (DuckDuckGo), Active Recall
+- Minimal SuperUser bootstrap + admin endpoints
+- Robust error handling (LLM / skill / STT fallbacks, no internal error leakage)
 
 **Not in MVP (post-MVP):** streaming, local LLM, GDPR data-rights UI, 4-level memory, Home Assistant, complex roles matrix.
 
