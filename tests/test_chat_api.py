@@ -93,7 +93,7 @@ def test_chat_text_orchestrator_unexpected_error(
         json={"text": "trigger 500"},
     )
     assert res.status_code == 500
-    assert "Chat failed" in res.json()["detail"]
+    assert "Something went wrong on my side" in res.json()["detail"]
 
 
 # ---------------------------------------------------------------------------
@@ -171,4 +171,4 @@ def test_chat_voice_orchestrator_unexpected_error(
         files=files,
     )
     assert res.status_code == 500
-    assert "Voice chat failed" in res.json()["detail"]
+    assert "Something went wrong on my side" in res.json()["detail"]
