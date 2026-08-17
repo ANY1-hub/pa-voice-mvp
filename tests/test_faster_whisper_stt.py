@@ -161,17 +161,16 @@ def test_transcribe_sync_empty_segments_returns_empty_string(stt_adapter):
 def test_transcribe_sync_model_failure_raises_value_error(stt_adapter):
     """If Whisper crashes during transcription, callers get ValueError instead of a raw library error."""
     adapter, model = stt_adapter
+    model.transcribe.side_effect = RuntimeError("cuda OOM")
+
     with (
-        patch.object(
-            adapter,
-            "_to_wav_16k_mono",
-            side_effect=ValueError("Could not process audio (conversion failed)"),
-        ),
-        pytest.raises(ValueError, match="conversion failed"),
+        patch.object(adapter, "_to_wav_16k_mono", return_value=Path("/tmp/fake.wav")),
+        patch.object(Path, "unlink"),
+        pytest.raises(ValueError, match="Could not transcribe audio"),
     ):
         adapter._transcribe_sync(b"audio", language=None)
 
-    model.transcribe.assert_not_called()
+    model.transcribe.assert_called_once()
 
 
 def test_transcribe_sync_conversion_failure_propagates(stt_adapter):
