@@ -10,6 +10,17 @@ from src.models.user import User, UserAdminCreate, UserAdminUpdate, UserPublic
 router = APIRouter()
 
 
+def _to_public(user: User) -> UserPublic:
+    return UserPublic(
+        id=user.id,
+        email=user.email,
+        created_at=user.created_at,
+        is_active=user.is_active,
+        is_superuser=user.is_superuser,
+        must_change_password=user.must_change_password,
+    )
+
+
 @router.get("/users", response_model=list[UserPublic])
 async def list_users(
     _super: User = Depends(get_current_superuser),  # noqa: B008
@@ -25,16 +36,7 @@ async def list_users(
         List of public user representations.
     """
     users = await repo.list_users(limit=200)
-    return [
-        UserPublic(
-            id=u.id,
-            email=u.email,
-            created_at=u.created_at,
-            is_active=u.is_active,
-            is_superuser=u.is_superuser,
-        )
-        for u in users
-    ]
+    return [_to_public(u) for u in users]
 
 
 @router.post("/users", response_model=UserPublic, status_code=status.HTTP_201_CREATED)
@@ -69,13 +71,7 @@ async def create_user(
     )
     await repo.create(user)
 
-    return UserPublic(
-        id=user.id,
-        email=user.email,
-        created_at=user.created_at,
-        is_active=user.is_active,
-        is_superuser=user.is_superuser,
-    )
+    return _to_public(user)
 
 
 @router.patch("/users/{user_id}", response_model=UserPublic)
@@ -107,10 +103,4 @@ async def update_user(
             detail="User not found",
         )
 
-    return UserPublic(
-        id=updated.id,
-        email=updated.email,
-        created_at=updated.created_at,
-        is_active=updated.is_active,
-        is_superuser=updated.is_superuser,
-    )
+    return _to_public(updated)
