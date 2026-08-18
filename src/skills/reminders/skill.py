@@ -36,7 +36,9 @@ _AGENDA_PATTERNS = re.compile(
     re.IGNORECASE,
 )
 _LOOKUP_PATTERNS = re.compile(
-    r"\b(wann|when|wann habe ich|when is|wann muss ich|when do i)\b",
+    r"\b(wann habe ich|when is|wann muss ich|when do i|when was|"
+    r"wann ist|when did|wann war|when should|wann soll|"
+    r"when do i have)\b",
     re.IGNORECASE,
 )
 

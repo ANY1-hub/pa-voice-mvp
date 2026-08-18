@@ -86,6 +86,7 @@
                     </svg>
                     <span class="speaking-label">Speaking</span>
                 </span>
+                <button id="helpBtn" class="btn-ghost" title="Skills & triggers">?</button>
                 <button id="adminBtn" class="btn-ghost hidden">Admin</button>
                 <span id="userLabel" class="user-label"></span>
                 <button id="logoutBtn" class="btn-ghost">Logout</button>
@@ -115,6 +116,57 @@
                 <button id="sendBtn" class="btn-send">Send</button>
             </div>
         </footer>
+    </div>
+
+    <!-- Skills help panel -->
+    <div id="helpPanel" class="admin-overlay hidden">
+        <div class="admin-card help-card">
+            <div class="admin-header">
+                <h2>Skills &amp; Triggers</h2>
+                <button id="helpCloseBtn" class="btn-ghost">Close</button>
+            </div>
+            <p class="help-intro">Speak or type these phrases (EN / DE / HU). First match wins; otherwise the general assistant answers.</p>
+
+            <section class="admin-section">
+                <h3>Notes</h3>
+                <ul class="help-list">
+                    <li><span class="help-lang">EN</span> note · remember this · save note · list notes · show my notes</li>
+                    <li><span class="help-lang">DE</span> notiz · merk dir · schreib auf · notiere · meine notizen · notizen zeigen</li>
+                    <li><span class="help-lang">HU</span> jegyzet · jegyzeteld · listázd a jegyzeteket</li>
+                </ul>
+                <p class="help-example">“Note: buy milk” · “Merk dir: Meeting um 14 Uhr”</p>
+            </section>
+
+            <section class="admin-section">
+                <h3>Reminders</h3>
+                <ul class="help-list">
+                    <li><span class="help-lang">EN</span> remind me · set a reminder · show reminders · what's on today / this week · when is …</li>
+                    <li><span class="help-lang">DE</span> erinner mich · erinnerung · meine erinnerungen · was steht heute / diese Woche an · wann habe ich …</li>
+                    <li><span class="help-lang">HU</span> emlékeztess · listázd az emlékeztetőket</li>
+                </ul>
+                <p class="help-example">“Remind me tomorrow at 10 to call the dentist” · “Was steht heute an?”</p>
+            </section>
+
+            <section class="admin-section">
+                <h3>Web Search</h3>
+                <ul class="help-list">
+                    <li><span class="help-lang">EN</span> search · look up · find out · what is · who is</li>
+                    <li><span class="help-lang">DE</span> suche · finde · nachschlagen · was ist · wer ist</li>
+                    <li><span class="help-lang">HU</span> keress · keresés · mi az · ki az</li>
+                </ul>
+                <p class="help-example">“Search for the weather in Berlin” · “Was ist die Hauptstadt von Japan?”</p>
+            </section>
+
+            <section class="admin-section">
+                <h3>Active Recall</h3>
+                <ul class="help-list">
+                    <li><span class="help-lang">EN</span> what do you know about… · what do you remember about… · recall … · my preferences</li>
+                    <li><span class="help-lang">DE</span> was weißt du über… · was erinnerst du dich an… · erinnere mich an… · meine vorlieben</li>
+                    <li><span class="help-lang">HU</span> (use EN/DE phrases for now)</li>
+                </ul>
+                <p class="help-example">“What do you know about me?” · “Was weißt du über meine Vorlieben?”</p>
+            </section>
+        </div>
     </div>
 
     <!-- Admin Panel (overlay) -->

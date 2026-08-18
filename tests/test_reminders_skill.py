@@ -338,3 +338,27 @@ def test_registry_finds_reminders():
     found = registry.find_handler("remind me to water the plants")
     assert found is skill
     assert registry.find_handler("hello world") is None
+
+
+def test_can_handle_rejects_incidental_when():
+    """Bare 'when' mid-sentence must not trigger reminder lookup."""
+    skill = RemindersSkill(repository=ReminderRepository(user_id="u1"))
+    assert (
+        skill.can_handle(
+            "I just want to see if you can record a very important memory of mine. "
+            "This is the moment when you are supposed to start functioning."
+        )
+        is False
+    )
+    assert skill.can_handle("Tell me when you are ready.") is False
+    assert skill.can_handle("Call me when the package arrives.") is False
+
+
+def test_can_handle_lookup_still_matches_explicit_questions():
+    """Explicit lookup questions must still be claimed after tightening patterns."""
+    skill = RemindersSkill(repository=ReminderRepository(user_id="u1"))
+    assert skill.can_handle("when is the dentist appointment?") is True
+    assert (
+        skill.can_handle("wann habe ich meinen Termin bei der Arbeitsagentur?") is True
+    )
+    assert skill.can_handle("when do i need to call the bank?") is True

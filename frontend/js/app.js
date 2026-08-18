@@ -42,6 +42,9 @@ const adminCreateForm       = document.getElementById("adminCreateForm");
 const adminCreateError      = document.getElementById("adminCreateError");
 const adminCreateSuccess    = document.getElementById("adminCreateSuccess");
 const adminUserList         = document.getElementById("adminUserList");
+const helpBtn       = document.getElementById("helpBtn");
+const helpPanel     = document.getElementById("helpPanel");
+const helpCloseBtn  = document.getElementById("helpCloseBtn");
 
 let isRecording = false;
 let isProcessing = false;
@@ -60,6 +63,7 @@ function hideAllScreens() {
     changePasswordScreen.classList.add("hidden");
     appScreen.classList.add("hidden");
     adminPanel.classList.add("hidden");
+    helpPanel.classList.add("hidden");
 }
 
 function showAuth({ bootstrap = false } = {}) {
@@ -292,6 +296,18 @@ function escapeHtml(str) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;");
 }
+
+// ------------------------------------------------------------------
+// Help Button
+// ------------------------------------------------------------------
+helpBtn.addEventListener("click", () => {
+    helpPanel.classList.remove("hidden");
+});
+
+helpCloseBtn.addEventListener("click", () => {
+    helpPanel.classList.add("hidden");
+});
+
 
 // ------------------------------------------------------------------
 // Voice / Text

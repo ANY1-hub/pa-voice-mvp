@@ -383,6 +383,7 @@ body {
     .speak-btn { width: 72px; height: 72px; }
     .chat-area { padding: 1rem; }
 }
+
 /* ---------- Success message ---------- */
 .success-msg {
     margin-top: 1rem;
@@ -527,4 +528,47 @@ body {
 .text-muted {
     color: var(--text-muted);
     font-size: 0.85rem;
+}
+
+/* ---------- Skills help panel ---------- */
+.help-card {
+    max-width: 560px;
+}
+
+.help-intro {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 1.25rem;
+    line-height: 1.45;
+}
+
+.help-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin-bottom: 0.5rem;
+}
+
+.help-list li {
+    font-size: 0.82rem;
+    line-height: 1.4;
+    color: var(--text);
+}
+
+.help-lang {
+    display: inline-block;
+    min-width: 1.6rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--cyan);
+    margin-right: 0.35rem;
+}
+
+.help-example {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-top: 0.35rem;
 }
