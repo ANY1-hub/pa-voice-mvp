@@ -55,6 +55,7 @@ body {
     padding: 2.5rem 2rem;
     backdrop-filter: blur(12px);
     box-shadow: 0 0 40px rgba(0, 100, 150, 0.15);
+    margin: auto;
 }
 
 .logo {
