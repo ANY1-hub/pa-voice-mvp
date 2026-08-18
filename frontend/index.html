@@ -7,12 +7,13 @@
     <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
-    <!-- Login -->
-    <div id="loginScreen" class="screen">
+    <!-- Auth (Login / Bootstrap Register) -->
+    <div id="authScreen" class="screen">
         <div class="login-card">
             <div class="logo">2b J.A.R.V.I.S.</div>
             <p class="tagline">to be Just A Rather Will Very Intelligent System</p>
 
+            <!-- Login form (default) -->
             <form id="loginForm">
                 <div class="field">
                     <label for="loginEmail">Email</label>
@@ -24,7 +25,51 @@
                 </div>
                 <button type="submit" class="btn-primary">Initialize</button>
             </form>
-            <p id="loginError" class="error-msg hidden"></p>
+
+            <!-- Bootstrap register (only when needs_bootstrap) -->
+            <form id="registerForm" class="hidden">
+                <p class="auth-hint">First setup – create the SuperUser account</p>
+                <div class="field">
+                    <label for="regEmail">Email</label>
+                    <input type="email" id="regEmail" required autocomplete="username" placeholder="tony@stark.com">
+                </div>
+                <div class="field">
+                    <label for="regPassword">Password (min 12)</label>
+                    <input type="password" id="regPassword" required minlength="12" autocomplete="new-password" placeholder="••••••••••••">
+                </div>
+                <div class="field">
+                    <label for="regPassword2">Confirm password</label>
+                    <input type="password" id="regPassword2" required minlength="12" autocomplete="new-password" placeholder="••••••••••••">
+                </div>
+                <button type="submit" class="btn-primary">Create SuperUser</button>
+            </form>
+
+            <p id="authError" class="error-msg hidden"></p>
+            <p id="authSuccess" class="success-msg hidden"></p>
+        </div>
+    </div>
+
+    <!-- Forced password change -->
+    <div id="changePasswordScreen" class="screen hidden">
+        <div class="login-card">
+            <div class="logo">Password Change</div>
+            <p class="tagline">You must set a new password before continuing</p>
+            <form id="changePasswordForm">
+                <div class="field">
+                    <label for="currentPassword">Current password</label>
+                    <input type="password" id="currentPassword" required autocomplete="current-password">
+                </div>
+                <div class="field">
+                    <label for="newPassword">New password (min 12)</label>
+                    <input type="password" id="newPassword" required minlength="12" autocomplete="new-password">
+                </div>
+                <div class="field">
+                    <label for="newPassword2">Confirm new password</label>
+                    <input type="password" id="newPassword2" required minlength="12" autocomplete="new-password">
+                </div>
+                <button type="submit" class="btn-primary">Update Password</button>
+            </form>
+            <p id="changePasswordError" class="error-msg hidden"></p>
         </div>
     </div>
 
@@ -41,6 +86,7 @@
                     </svg>
                     <span class="speaking-label">Speaking</span>
                 </span>
+                <button id="adminBtn" class="btn-ghost hidden">Admin</button>
                 <span id="userLabel" class="user-label"></span>
                 <button id="logoutBtn" class="btn-ghost">Logout</button>
             </div>
@@ -69,6 +115,48 @@
                 <button id="sendBtn" class="btn-send">Send</button>
             </div>
         </footer>
+    </div>
+
+    <!-- Admin Panel (overlay) -->
+    <div id="adminPanel" class="admin-overlay hidden">
+        <div class="admin-card">
+            <div class="admin-header">
+                <h2>User Management</h2>
+                <button id="adminCloseBtn" class="btn-ghost">Close</button>
+            </div>
+
+            <section class="admin-section">
+                <h3>Create user</h3>
+                <form id="adminCreateForm" class="admin-form">
+                    <div class="field">
+                        <label for="adminEmail">Email</label>
+                        <input type="email" id="adminEmail" required placeholder="user@example.com">
+                    </div>
+                    <div class="field">
+                        <label for="adminPassword">Initial password (min 12)</label>
+                        <input type="password" id="adminPassword" required minlength="12" placeholder="••••••••••••">
+                    </div>
+                    <div class="admin-flags">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="adminIsSuperuser"> SuperUser
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="adminIsActive" checked> Active
+                        </label>
+                    </div>
+                    <button type="submit" class="btn-primary">Create</button>
+                </form>
+                <p id="adminCreateError" class="error-msg hidden"></p>
+                <p id="adminCreateSuccess" class="success-msg hidden"></p>
+            </section>
+
+            <section class="admin-section">
+                <h3>Users</h3>
+                <div id="adminUserList" class="admin-user-list">
+                    <p class="text-muted">Loading…</p>
+                </div>
+            </section>
+        </div>
     </div>
 
     <script type="module" src="js/app.js"></script>

@@ -22,6 +22,27 @@ export function getStoredUser() {
     }
 }
 
+/** Public: whether the first SuperUser still needs to be created. */
+export async function getBootstrapStatus() {
+    const res = await fetch(`${API_BASE}/api/v1/auth/bootstrap-status`);
+    if (!res.ok) throw new Error("Could not check bootstrap status");
+    return res.json(); // { needs_bootstrap: bool }
+}
+
+/** Bootstrap only – first user becomes SuperUser. */
+export async function register(email, password) {
+    const res = await fetch(`${API_BASE}/api/v1/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "Registration failed");
+    }
+    return res.json(); // UserPublic
+}
+
 export async function login(email, password) {
     const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
         method: "POST",
@@ -38,18 +59,80 @@ export async function login(email, password) {
     const token = data.access_token || data.token;
     if (!token) throw new Error("No token received");
 
-    let user = { email };
-    try {
-        const meRes = await fetch(`${API_BASE}/api/v1/auth/me`, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
-        if (meRes.ok) user = await meRes.json();
-    } catch (_) {}
-
+    const user = await fetchMe(token);
     setAuth(token, user);
     return user;
 }
 
+export async function fetchMe(token) {
+    const res = await fetch(`${API_BASE}/api/v1/auth/me`, {
+        headers: { Authorization: `Bearer ${token || getToken()}` },
+    });
+    if (!res.ok) throw new Error("Could not load user profile");
+    return res.json();
+}
+
+/** Authenticated password change – clears must_change_password. */
+export async function changePassword(currentPassword, newPassword) {
+    const res = await api("/api/v1/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            current_password: currentPassword,
+            new_password: newPassword,
+        }),
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "Password change failed");
+    }
+    const user = await res.json();
+    setAuth(getToken(), user);
+    return user;
+}
+
+// ── Admin (SuperUser) ──────────────────────────────────────────────
+
+export async function adminListUsers() {
+    const res = await api("/api/v1/admin/users");
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "Failed to list users");
+    }
+    return res.json();
+}
+
+export async function adminCreateUser({ email, password, is_superuser = false, is_active = true }) {
+    const res = await api("/api/v1/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, is_superuser, is_active }),
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "Failed to create user");
+    }
+    return res.json();
+}
+
+export async function adminUpdateUser(userId, { is_active, is_superuser }) {
+    const body = {};
+    if (typeof is_active === "boolean") body.is_active = is_active;
+    if (typeof is_superuser === "boolean") body.is_superuser = is_superuser;
+
+    const res = await api(`/api/v1/admin/users/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "Failed to update user");
+    }
+    return res.json();
+}
+
+/** Authenticated fetch helper – clears auth on 401. */
 export async function api(path, options = {}) {
     const token = getToken();
     const headers = { ...(options.headers || {}) };
