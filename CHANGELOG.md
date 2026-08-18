@@ -5,9 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [Unreleased] 2026-08-18
 
 ### Added
+- Auth bootstrap hardening (Phase 5):
+  - `must_change_password` on User / UserPublic
+  - `GET /api/v1/auth/bootstrap-status` → `{ needs_bootstrap: bool }`
+  - `POST /api/v1/auth/register` only allowed when user count is 0; otherwise 403
+  - First register creates SuperUser with `must_change_password=false`
+  - `POST /api/v1/auth/change-password` (current + new, min 12 chars) clears the flag
+  - Admin `POST /users` always sets `must_change_password=true`
+  - Tests updated (`wipe_users`, second-register forbidden, force-change flow)
+- Frontend Auth-UI (Phase 5):
+  - Bootstrap screen when `needs_bootstrap` (Create SuperUser)
+  - Normal login otherwise
+  - Forced password-change screen after login when `must_change_password`
+  - Admin panel (SuperUser): list users, create user, toggle active / superuser
 - SuperUser bootstrap: first successful registration on an empty users collection becomes SuperUser
 - `is_superuser` flag on User / UserPublic
 - Admin routes (SuperUser only) under `/api/v1/admin/`:
@@ -38,7 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Notes
 - Phase 5 (Polish & Demo) in progress
-- Public registration remains open for now
+- Public registration is closed after the first SuperUser; further accounts only via Admin API
 
 ## [0.3.0] - 2026-08-03 — Phase 4 closed
 

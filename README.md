@@ -6,14 +6,15 @@ A local-first, privacy-centric voice assistant that actively learns and maintain
 
 ## Status (2026-08-17)
 
-| Phase | Status |
-|-------|--------|
-| 0 Setup & Foundation | ✅ |
-| 1 Memory Core | ✅ |
-| 2 Auth + Multi-User | ✅ |
-| 3 Voice Pipeline MVP | ✅ |
-| 4 Skills | ✅ closed |
-| **5 Polish & Demo** | **← current** |
+### Auth Endpoints
+
+| Method | Path                              | Description                                              |
+|--------|-----------------------------------|----------------------------------------------------------|
+| GET    | `/api/v1/auth/bootstrap-status`   | Public – `{ needs_bootstrap: bool }`                     |
+| POST   | `/api/v1/auth/register`           | Only when 0 users; first user = SuperUser                |
+| POST   | `/api/v1/auth/login`              | Returns access token                                     |
+| GET    | `/api/v1/auth/me`                 | Current user (+ `must_change_password`)                  |
+| POST   | `/api/v1/auth/change-password`    | Change password; clears `must_change_password`           |
 
 ## Features (MVP scope)
 - Voice interaction (STT + TTS) with visible transcript and reply
