@@ -4,31 +4,32 @@
 
 A local-first, privacy-centric voice assistant that actively learns and maintains personal insights.
 
-## Status (2026-08-17)
+## Status (2026-08-18)
 
-### Auth Endpoints
-
-| Method | Path                              | Description                                              |
-|--------|-----------------------------------|----------------------------------------------------------|
-| GET    | `/api/v1/auth/bootstrap-status`   | Public – `{ needs_bootstrap: bool }`                     |
-| POST   | `/api/v1/auth/register`           | Only when 0 users; first user = SuperUser                |
-| POST   | `/api/v1/auth/login`              | Returns access token                                     |
-| GET    | `/api/v1/auth/me`                 | Current user (+ `must_change_password`)                  |
-| POST   | `/api/v1/auth/change-password`    | Change password; clears `must_change_password`           |
+| Phase | Status |
+|-------|--------|
+| 0 Setup & Foundation | ✅ |
+| 1 Memory Core | ✅ |
+| 2 Auth + Multi-User | ✅ |
+| 3 Voice Pipeline MVP | ✅ |
+| 4 Skills | ✅ closed |
+| **5 Polish & Demo** | **← current** |
 
 ## Features (MVP scope)
+
 - Voice interaction (STT + TTS) with visible transcript and reply
 - Working Memory + Semantic Memory with active consolidation
 - Multi-user isolation (JWT)
 - Multi-language TTS voices (en / de / hu)
 - Browser UI with one big "Speak" button + text fallback
 - Skills: Notes, Reminders (date-aware + agenda), memory-augmented Web Search (DuckDuckGo), Active Recall
-- Minimal SuperUser bootstrap + admin endpoints
+- SuperUser bootstrap + Frontend Auth-UI (Bootstrap / Force-Change / Admin panel)
 - Robust error handling (LLM / skill / STT fallbacks, no internal error leakage)
 
 **Not in MVP (post-MVP):** streaming, local LLM, GDPR data-rights UI, 4-level memory, Home Assistant, complex roles matrix.
 
 ## Tech Stack
+
 - Backend: FastAPI
 - Database: MongoDB Community (Docker) on Synology NAS — embeddings in documents; in-app ranking for Phase 1
 - STT: faster-whisper
@@ -42,11 +43,13 @@ JWT + bcrypt. Multi-user isolation enforced on every memory and chat route.
 
 ### Auth Endpoints
 
-| Method | Path                      | Description                  |
-|--------|---------------------------|------------------------------|
-| POST   | `/api/v1/auth/register`   | Register (email + password). First user becomes SuperUser |
-| POST   | `/api/v1/auth/login`      | Returns access token         |
-| GET    | `/api/v1/auth/me`         | Current user (requires token)|
+| Method | Path                              | Description                                              |
+|--------|-----------------------------------|----------------------------------------------------------|
+| GET    | `/api/v1/auth/bootstrap-status`   | Public – `{ needs_bootstrap: bool }`                     |
+| POST   | `/api/v1/auth/register`           | Only when 0 users; first user = SuperUser                |
+| POST   | `/api/v1/auth/login`              | Returns access token                                     |
+| GET    | `/api/v1/auth/me`                 | Current user (+ `must_change_password`)                  |
+| POST   | `/api/v1/auth/change-password`    | Change password; clears `must_change_password`           |
 
 ### Admin Endpoints (SuperUser only)
 
@@ -86,6 +89,8 @@ Authorization: Bearer <access_token>
 - Email uniqueness is enforced by a MongoDB unique index created at startup
 - Memory routes are fully isolated via dependency injection
   → see `docs/decisions/001-dependency-injection-memory.md`
+- Public registration is closed after the first SuperUser; further accounts only via Admin API
+- Admin-created users must change their password on first login (`must_change_password`)
 
 ### Skill Vocabulary
 
@@ -100,7 +105,7 @@ cd pa-voice-mvp
 
 # Create virtual environment (recommended: uv or venv)
 uv venv .venv
-source .venv/bin/activate   # or .venv\\Scripts\\activate on Windows
+source .venv/bin/activate   # or .venv\Scripts\activate on Windows
 
 # Install dependencies
 uv pip install -e ".[dev]"
@@ -121,7 +126,10 @@ python -m http.server 5500
 ```
 
 Open http://localhost:5500
-Login with a registered user, then use the big Speak button (or the text input).
+
+- Empty DB → Bootstrap screen (Create SuperUser)
+- Otherwise → Login; if `must_change_password` → forced password change
+- SuperUser sees Admin button (user list / create / toggle active & super)
 
 Backend must be running on port 8000.
 Piper voice models must be present (see [docs/piper-voice-setup.md](docs/piper-voice-setup.md)).
@@ -154,6 +162,7 @@ PIPER_VOICE_HU=voice_models/piper/hu_HU-anna-medium.onnx
 ```
 
 ## Development Standards
+
 - Clean Code + Best Practices
 - Tests with edge cases for every relevant function (pytest)
 - Security by Design (aligned with ISO/IEC 27001 principles)
@@ -161,7 +170,9 @@ PIPER_VOICE_HU=voice_models/piper/hu_HU-anna-medium.onnx
 - Automated checks via Ruff, Black, pytest (CI coverage ≥ 80%)
 
 ## Project Memory
+
 All major decisions are documented in the Project Memory (see internal docs or ask the maintainer).
 
 ## License
+
 To be defined.
