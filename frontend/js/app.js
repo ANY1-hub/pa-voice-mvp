@@ -1,4 +1,17 @@
-import { getToken, login, clearAuth, getStoredUser } from "./auth.js";
+import {
+    getToken,
+    setAuth,
+    login,
+    register,
+    changePassword,
+    clearAuth,
+    getStoredUser,
+    getBootstrapStatus,
+    fetchMe,
+    adminListUsers,
+    adminCreateUser,
+    adminUpdateUser,
+} from "./auth.js";
 import { sendText, sendVoice, setStatus } from "./chat.js";
 import { startRecordingSession, setSpeakingHandlers, stopTts } from "./audio.js";
 
@@ -150,3 +163,36 @@ if (getToken()) {
 } else {
     showLogin();
 }
+async function boot() {
+    try {
+        const { needs_bootstrap } = await getBootstrapStatus();
+        if (needs_bootstrap) {
+            showAuth({ bootstrap: true });
+            return;
+        }
+    } catch (_) {
+        // Backend unreachable – still show login
+    }
+
+    const token = getToken();
+    if (!token) {
+        showAuth({ bootstrap: false });
+        return;
+    }
+
+    try {
+        const user = await fetchMe(token);
+        setAuth(token, user);
+
+        if (user.must_change_password) {
+            showChangePassword();
+        } else {
+            showApp();
+        }
+    } catch (_) {
+        clearAuth();
+        showAuth({ bootstrap: false });
+    }
+}
+
+boot();
