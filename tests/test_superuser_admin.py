@@ -74,23 +74,20 @@ def test_first_register_becomes_superuser(client):
     assert "hashed_password" not in data
 
 
-def test_second_register_is_not_superuser(client):
-    """Any registration after the first must yield is_superuser=False."""
+def test_register_success(client):
+    """Successful registration returns 201 with email and id, never the password hash."""
     wipe_users()
-    client.post(
-        "/api/v1/auth/register",
-        json={
-            "email": f"first-{uuid.uuid4().hex[:8]}@example.com",
-            "password": "SecurePass123!",
-        },
-    )
-    email = f"second-{uuid.uuid4().hex[:10]}@example.com"
+    email = f"reg-{uuid.uuid4().hex[:10]}@example.com"
     response = client.post(
         "/api/v1/auth/register",
         json={"email": email, "password": "SecurePass123!"},
     )
     assert response.status_code == 201
-    assert response.json()["is_superuser"] is False
+    data = response.json()
+    assert data["email"] == email.lower()
+    assert "id" in data
+    assert "hashed_password" not in data
+    assert data["must_change_password"] is False
 
 
 def test_second_register_is_forbidden(client):
@@ -119,10 +116,8 @@ def test_second_register_is_forbidden(client):
 
 def test_admin_list_users_requires_superuser(client):
     """Non-superuser must receive 403 on admin routes."""
-    wipe_users()
-    # First user = super, second = normal
-    _make_superuser_headers(client)
-    normal = _make_normal_headers(client)
+    super_headers = _make_superuser_headers(client)
+    normal = _make_normal_headers(client, super_headers)
     response = client.get("/api/v1/admin/users", headers=normal)
     assert response.status_code == 403
 

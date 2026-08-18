@@ -12,6 +12,7 @@ from tests.conftest import wipe_users
 
 def test_register_success(client):
     """Successful registration returns 201 with email and id, never the password hash."""
+    wipe_users()
     email = f"reg-{uuid.uuid4().hex[:10]}@example.com"
     response = client.post(
         "/api/v1/auth/register",
