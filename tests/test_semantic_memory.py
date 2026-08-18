@@ -273,3 +273,55 @@ async def test_search_does_not_touch_when_no_results():
     await mem.search("nothing-here")
 
     collection.update_one.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_add_fact_survives_embedding_failure():
+    """If the embeddings adapter raises, the fact must still be stored without vector."""
+    collection = AsyncMock()
+    embeddings = AsyncMock()
+    embeddings.get_embedding.side_effect = RuntimeError("OpenAI down")
+
+    mem = SemanticMemory(
+        user_id=USER_ID,
+        collection=collection,
+        embeddings_adapter=embeddings,
+    )
+    fact = await mem.add_fact("Likes espresso", importance=0.7)
+
+    assert fact.content == "Likes espresso"
+    assert fact.embedding is None
+    collection.insert_one.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_search_falls_back_to_text_when_embedding_fails():
+    """If query embedding fails, search must use the text path instead of raising."""
+    docs = [
+        {
+            "_id": "1",
+            "user_id": USER_ID,
+            "content": "Favourite drink is coffee",
+            "importance_score": 0.8,
+            "entities_involved": [],
+            "created_at": "2026-07-01T12:00:00+00:00",
+            "last_accessed": "2026-07-01T12:00:00+00:00",
+            "embedding": None,
+        }
+    ]
+    collection = MagicMock()
+    collection.find.return_value = _chainable_find(docs)
+    collection.update_one = AsyncMock()
+
+    embeddings = AsyncMock()
+    embeddings.get_embedding.side_effect = RuntimeError("OpenAI down")
+
+    mem = SemanticMemory(
+        user_id=USER_ID,
+        collection=collection,
+        embeddings_adapter=embeddings,
+    )
+    results = await mem.search("coffee", limit=5)
+
+    assert len(results) == 1
+    assert "coffee" in results[0].content.lower()

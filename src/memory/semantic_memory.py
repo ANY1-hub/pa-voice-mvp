@@ -81,10 +81,14 @@ class SemanticMemory:
         fact_dict = {"content": fact}
         validate_memory_write(fact_dict, importance_score=importance, source="user")
 
-        # 2. Embedding creation
+        # 2. Embedding creation (optional – never block the write)
         embedding = None
         if self.embeddings is not None:
-            embedding = await self.embeddings.get_embedding(fact)
+            try:
+                embedding = await self.embeddings.get_embedding(fact)
+            except Exception:
+                logger.exception("Embedding failed for fact – storing without vector")
+                embedding = None
 
         # 3. Model validation
         memory_fact = SemanticMemoryFact(
@@ -111,6 +115,7 @@ class SemanticMemory:
         Strategy:
         1. If an embeddings adapter is available → embed the query and rank
            stored facts by cosine similarity (in-memory, fine for MVP scale).
+           On embedding failure → fall back to text search.
         2. Otherwise → case-insensitive text substring match on content.
 
         On every successful hit the fact is "touched":
@@ -130,25 +135,31 @@ class SemanticMemory:
 
         # --- Vector path (in-memory cosine) ---
         if self.embeddings is not None:
-            query_embedding = await self.embeddings.get_embedding(query)
-            cursor = self.collection.find(
-                {
-                    "user_id": self.user_id,
-                    "embedding": {"$ne": None},
-                }
-            )
-            scored: list[tuple[float, SemanticMemoryFact, object]] = []
-            async for doc in cursor:
-                doc_id = doc.pop("_id", None)
-                fact = SemanticMemoryFact.model_validate(doc)
-                if fact.embedding:
-                    score = _cosine_similarity(query_embedding, fact.embedding)
-                    scored.append((score, fact, doc_id))
+            try:
+                query_embedding = await self.embeddings.get_embedding(query)
+            except Exception:
+                logger.exception("Query embedding failed – falling back to text search")
+            else:
+                cursor = self.collection.find(
+                    {
+                        "user_id": self.user_id,
+                        "embedding": {"$ne": None},
+                    }
+                )
+                scored: list[tuple[float, SemanticMemoryFact, object]] = []
+                async for doc in cursor:
+                    doc_id = doc.pop("_id", None)
+                    fact = SemanticMemoryFact.model_validate(doc)
+                    if fact.embedding:
+                        score = _cosine_similarity(query_embedding, fact.embedding)
+                        scored.append((score, fact, doc_id))
 
-            scored.sort(key=lambda pair: pair[0], reverse=True)
-            selected = scored[:limit]
-            await self._touch_facts([(fact, doc_id) for _, fact, doc_id in selected])
-            return [fact for _, fact, _ in selected]
+                scored.sort(key=lambda pair: pair[0], reverse=True)
+                selected = scored[:limit]
+                await self._touch_facts(
+                    [(fact, doc_id) for _, fact, doc_id in selected]
+                )
+                return [fact for _, fact, _ in selected]
 
         # --- Text fallback ---
         cursor = (
