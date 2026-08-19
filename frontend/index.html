@@ -78,18 +78,18 @@
         <header class="top-bar">
             <div class="brand">2b J.A.R.V.I.S.</div>
             <div class="user-area">
-                <span id="speakingIndicator" class="speaking-indicator hidden" title="Speaking…" aria-live="polite">
+                <span id="speakingIndicator" class="speaking-indicator hidden" data-i18n-title="speaking" title="Speaking…" aria-live="polite">
                     <svg class="speaker-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                         <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
                         <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
                         <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
                     </svg>
-                    <span class="speaking-label">Speaking</span>
+                    <span class="speaking-label" data-i18n="speaking">Speaking</span>
                 </span>
-                <button id="helpBtn" class="btn-ghost" title="Skills & triggers">?</button>
-                <button id="adminBtn" class="btn-ghost hidden">Admin</button>
+                <button id="helpBtn" class="btn-ghost" data-i18n-title="help" title="Skills & triggers">?</button>
+                <button id="adminBtn" class="btn-ghost hidden" data-i18n="admin">Admin</button>
                 <span id="userLabel" class="user-label"></span>
-                <button id="logoutBtn" class="btn-ghost">Logout</button>
+                <button id="logoutBtn" class="btn-ghost" data-i18n="logout">Logout</button>
             </div>
         </header>
 
@@ -108,12 +108,12 @@
                     </svg>
                     <span id="recIndicator" class="rec-dot hidden"></span>
                 </button>
-                <span id="speakHint" class="speak-hint">Click to speak</span>
+                <span id="speakHint" class="speak-hint" data-i18n="speakHint">Click to speak</span>
             </div>
 
             <div class="text-row">
-                <input type="text" id="textInput" placeholder="Or type a command…" autocomplete="off">
-                <button id="sendBtn" class="btn-send">Send</button>
+                <input type="text" id="textInput" data-i18n-placeholder="typePlaceholder" placeholder="Or type a command…" autocomplete="off">
+                <button id="sendBtn" class="btn-send" data-i18n="send">Send</button>
             </div>
         </footer>
     </div>
@@ -122,49 +122,46 @@
     <div id="helpPanel" class="admin-overlay hidden">
         <div class="admin-card help-card">
             <div class="admin-header">
-                <h2>Skills &amp; Triggers</h2>
-                <button id="helpCloseBtn" class="btn-ghost">Close</button>
+                <h2 data-i18n="helpTitle">Skills &amp; Triggers</h2>
+                <div class="help-lang-switch" role="group" aria-label="Language">
+                    <button type="button" class="lang-flag" data-lang="en" title="English">🇬🇧</button>
+                    <button type="button" class="lang-flag" data-lang="de" title="Deutsch">🇩🇪</button>
+                    <button type="button" class="lang-flag" data-lang="hu" title="Magyar">🇭🇺</button>
+                </div>
+                <button id="helpCloseBtn" class="btn-ghost" data-i18n="helpClose">Close</button>
             </div>
-            <p class="help-intro">Speak or type these phrases (EN / DE / HU). First match wins; otherwise the general assistant answers.</p>
+            <p class="help-intro" data-i18n="helpIntro">Phrases in the selected language. First match wins; otherwise the general assistant answers.</p>
 
             <section class="admin-section">
-                <h3>Notes</h3>
+                <h3 data-i18n="notes">Notes</h3>
                 <ul class="help-list">
-                    <li><span class="help-lang">EN</span> note · remember this · save note · list notes · show my notes</li>
-                    <li><span class="help-lang">DE</span> notiz · merk dir · schreib auf · notiere · meine notizen · notizen zeigen</li>
-                    <li><span class="help-lang">HU</span> jegyzet · jegyzeteld · listázd a jegyzeteket</li>
+                    <li id="helpNotesTriggers"></li>
                 </ul>
-                <p class="help-example">“Note: buy milk” · “Merk dir: Meeting um 14 Uhr”</p>
+                <p class="help-example" id="helpNotesExample"></p>
             </section>
 
             <section class="admin-section">
-                <h3>Reminders</h3>
+                <h3 data-i18n="reminders">Reminders</h3>
                 <ul class="help-list">
-                    <li><span class="help-lang">EN</span> remind me · set a reminder · show reminders · what's on today / this week · when is …</li>
-                    <li><span class="help-lang">DE</span> erinner mich · erinnerung · meine erinnerungen · was steht heute / diese Woche an · wann habe ich …</li>
-                    <li><span class="help-lang">HU</span> emlékeztess · listázd az emlékeztetőket</li>
+                    <li id="helpRemindersTriggers"></li>
                 </ul>
-                <p class="help-example">“Remind me tomorrow at 10 to call the dentist” · “Was steht heute an?”</p>
+                <p class="help-example" id="helpRemindersExample"></p>
             </section>
 
             <section class="admin-section">
-                <h3>Web Search</h3>
+                <h3 data-i18n="webSearch">Web Search</h3>
                 <ul class="help-list">
-                    <li><span class="help-lang">EN</span> search · look up · find out · what is · who is</li>
-                    <li><span class="help-lang">DE</span> suche · finde · nachschlagen · was ist · wer ist</li>
-                    <li><span class="help-lang">HU</span> keress · keresés · mi az · ki az</li>
+                    <li id="helpSearchTriggers"></li>
                 </ul>
-                <p class="help-example">“Search for the weather in Berlin” · “Was ist die Hauptstadt von Japan?”</p>
+                <p class="help-example" id="helpSearchExample"></p>
             </section>
 
             <section class="admin-section">
-                <h3>Active Recall</h3>
+                <h3 data-i18n="activeRecall">Active Recall</h3>
                 <ul class="help-list">
-                    <li><span class="help-lang">EN</span> what do you know about… · what do you remember about… · recall … · my preferences</li>
-                    <li><span class="help-lang">DE</span> was weißt du über… · was erinnerst du dich an… · erinnere mich an… · meine vorlieben</li>
-                    <li><span class="help-lang">HU</span> (use EN/DE phrases for now)</li>
+                    <li id="helpRecallTriggers"></li>
                 </ul>
-                <p class="help-example">“What do you know about me?” · “Was weißt du über meine Vorlieben?”</p>
+                <p class="help-example" id="helpRecallExample"></p>
             </section>
         </div>
     </div>

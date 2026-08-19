@@ -12,8 +12,9 @@ import {
     adminCreateUser,
     adminUpdateUser,
 } from "./auth.js";
-import { sendText, sendVoice, setStatus } from "./chat.js";
+import { sendText, sendVoice, setStatus, resetChatTimestamps } from "./chat.js";
 import { startRecordingSession, setSpeakingHandlers, stopTts } from "./audio.js";
+import { applyI18n, getLang, setLang, t } from "./i18n.js";
 
 // ------------------------------------------------------------------
 // DOM
@@ -197,6 +198,7 @@ logoutBtn.addEventListener("click", () => {
     stopTts();
     clearAuth();
     document.getElementById("chatContainer").innerHTML = "";
+    resetChatTimestamps();
     boot();
 });
 
@@ -301,7 +303,40 @@ function escapeHtml(str) {
 // ------------------------------------------------------------------
 // Help Button
 // ------------------------------------------------------------------
+function renderHelpContent() {
+    const map = [
+        ["helpNotesTriggers", "notesTriggers"],
+        ["helpNotesExample", "notesExample"],
+        ["helpRemindersTriggers", "remindersTriggers"],
+        ["helpRemindersExample", "remindersExample"],
+        ["helpSearchTriggers", "searchTriggers"],
+        ["helpSearchExample", "searchExample"],
+        ["helpRecallTriggers", "recallTriggers"],
+        ["helpRecallExample", "recallExample"],
+    ];
+    map.forEach(([id, key]) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = t(key);
+    });
+}
+
+function refreshI18n() {
+    applyI18n();
+    renderHelpContent();
+    if (!isRecording) {
+        speakHint.textContent = t("speakHint");
+    }
+}
+
+document.querySelectorAll(".lang-flag").forEach((btn) => {
+    btn.addEventListener("click", () => {
+        setLang(btn.dataset.lang);
+        refreshI18n();
+    });
+});
+
 helpBtn.addEventListener("click", () => {
+    refreshI18n();
     helpPanel.classList.remove("hidden");
 });
 
@@ -320,7 +355,7 @@ speakBtn.addEventListener("click", async () => {
         isRecording = false;
         speakBtn.classList.remove("recording");
         recIndicator.classList.add("hidden");
-        speakHint.textContent = "Click to speak";
+        speakHint.textContent = t("speakHint");
 
         setProcessing(true);
         setStatus("Converting & thinking…");
@@ -344,8 +379,8 @@ speakBtn.addEventListener("click", async () => {
         isRecording = true;
         speakBtn.classList.add("recording");
         recIndicator.classList.remove("hidden");
-        speakHint.textContent = "Recording… click to stop";
-        setStatus("Listening…");
+        speakHint.textContent = t("speakRecording");
+        setStatus(t("listening"));
     } catch (err) {
         setStatus("Microphone access denied or unavailable", true);
     } finally {
@@ -379,6 +414,8 @@ textInput.addEventListener("keydown", (e) => {
 // Boot
 // ------------------------------------------------------------------
 async function boot() {
+    setLang(getLang());
+    refreshI18n();
     try {
         const { needs_bootstrap } = await getBootstrapStatus();
         if (needs_bootstrap) {
