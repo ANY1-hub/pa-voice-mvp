@@ -52,11 +52,14 @@ def sanitize_user_input(text: str) -> str:
     return text.strip()
 
 
-def validate_memory_fact(fact: dict[str, Any]) -> None:
+def validate_memory_fact(fact: dict[str, Any], *, sanitize: bool = True) -> None:
     """Validate that a fact about to be written to memory is structurally safe.
 
     Args:
         fact: Dict that must contain a non-empty ``content`` key.
+        sanitize: When True (default), also run the user-input injection
+            blocklist. Assistant / system writes skip this so a reply that
+            happens to contain ``system:`` cannot fail the turn.
 
     Raises:
         InputValidationError: If structure or content fails validation.
@@ -66,4 +69,5 @@ def validate_memory_fact(fact: dict[str, Any]) -> None:
 
     if "content" not in fact or not fact["content"]:
         raise InputValidationError("Memory fact must contain .content.")
-    sanitize_user_input(fact["content"])
+    if sanitize:
+        sanitize_user_input(fact["content"])

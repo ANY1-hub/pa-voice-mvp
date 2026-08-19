@@ -2,6 +2,7 @@
 
 from motor.motor_asyncio import AsyncIOMotorCollection
 
+from src.db.mongodb import contains_regex
 from src.models.memory import WorkingMemoryItem
 from src.security.guardrails import validate_memory_write
 
@@ -24,7 +25,13 @@ class WorkingMemory:
         self.user_id = user_id
         self.collection = collection
 
-    async def add(self, content: str, importance: float = 0.5) -> WorkingMemoryItem:
+    async def add(
+        self,
+        content: str,
+        importance: float = 0.5,
+        *,
+        source: str = "user",
+    ) -> WorkingMemoryItem:
         """Add a new item to Working Memory.
 
         Performs security validation before persisting.
@@ -32,6 +39,8 @@ class WorkingMemory:
         Args:
             content: Text content of the memory item.
             importance: Importance score in ``[0.0, 1.0]`` (default ``0.5``).
+            source: Write origin. ``"system"`` skips the user injection
+                blocklist so assistant replies can be stored.
 
         Returns:
             The created ``WorkingMemoryItem`` (also persisted when a collection
@@ -43,7 +52,7 @@ class WorkingMemory:
         """
         # 1. Security Check
         fact_dict = {"content": content}
-        validate_memory_write(fact_dict, importance_score=importance, source="user")
+        validate_memory_write(fact_dict, importance_score=importance, source=source)
 
         # 2. Model Validation
         item = WorkingMemoryItem(
@@ -78,7 +87,7 @@ class WorkingMemory:
 
         filters: dict = {"user_id": self.user_id}
         if query:
-            filters["content"] = {"$regex": query, "$options": "i"}
+            filters["content"] = contains_regex(query)
 
         cursor = self.collection.find(filters).sort("last_accessed", -1).limit(limit)
 

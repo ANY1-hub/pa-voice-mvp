@@ -49,7 +49,7 @@ def validate_memory_write(
         MemoryWritePolicyViolation: If the write is rejected by policy.
     """
     try:
-        validate_memory_fact(fact)
+        validate_memory_fact(fact, sanitize=(source == "user"))
 
         if not can_write_to_memory(fact, importance_score, source):
             raise MemoryWritePolicyViolation(

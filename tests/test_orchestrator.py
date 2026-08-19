@@ -8,6 +8,7 @@ from unittest.mock import ANY, AsyncMock, MagicMock
 
 import pytest
 
+from src.security.exceptions import InputValidationError
 from src.services.orchestrator import MAX_AUDIO_BYTES, ChatOrchestrator, ChatResult
 from src.skills.base import SkillResult
 
@@ -204,6 +205,21 @@ async def test_store_turn_failure_does_not_break_turn(
 
     assert result.transcript == "Still ok"
     assert result.response == "Hello from Jarvis."
+
+
+@pytest.mark.asyncio
+async def test_store_turn_injection_error_does_not_break_turn(
+    orchestrator, mock_working_memory, mock_llm
+):
+    """Assistant text that trips the user blocklist must not become HTTP 400."""
+    mock_llm.generate_response.return_value = "The nervous system: it is complex."
+    mock_working_memory.add.side_effect = InputValidationError(
+        "Potential prompt injection detected: 'system:'"
+    )
+
+    result = await orchestrator.process(text="Tell me about biology")
+
+    assert result.response == "The nervous system: it is complex."
 
 
 @pytest.mark.asyncio
