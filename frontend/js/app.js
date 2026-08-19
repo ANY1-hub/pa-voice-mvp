@@ -48,6 +48,7 @@ const helpCloseBtn  = document.getElementById("helpCloseBtn");
 
 let isRecording = false;
 let isProcessing = false;
+let isStarting = false;
 let currentStop = null;
 
 setSpeakingHandlers({
@@ -313,7 +314,7 @@ helpCloseBtn.addEventListener("click", () => {
 // Voice / Text
 // ------------------------------------------------------------------
 speakBtn.addEventListener("click", async () => {
-    if (isProcessing) return;
+    if (isProcessing || isStarting) return;
 
     if (isRecording) {
         isRecording = false;
@@ -336,6 +337,7 @@ speakBtn.addEventListener("click", async () => {
     }
 
     stopTts();
+    isStarting = true;
     try {
         const session = await startRecordingSession();
         currentStop = session.stop;
@@ -346,6 +348,8 @@ speakBtn.addEventListener("click", async () => {
         setStatus("Listening…");
     } catch (err) {
         setStatus("Microphone access denied or unavailable", true);
+    } finally {
+        isStarting = false;
     }
 });
 

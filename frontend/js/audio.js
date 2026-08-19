@@ -89,15 +89,30 @@ export function playBase64Audio(b64) {
  * @returns {Promise<{ stop: () => Promise<Blob> }>}
  *   stop() ends the recording, converts to 16 kHz mono WAV, and resolves with the Blob.
  */
+function pickRecorderMimeType() {
+    const candidates = [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/mp4",
+        "audio/ogg;codecs=opus",
+        "audio/ogg",
+    ];
+    for (const type of candidates) {
+        if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(type)) {
+            return type;
+        }
+    }
+    return "";
+}
+
 export async function startRecordingSession() {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-    // Most browsers produce webm/opus; we convert afterwards.
-    const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-        ? "audio/webm;codecs=opus"
-        : "audio/webm";
-
-    const recorder = new MediaRecorder(stream, { mimeType });
+    // Most browsers produce webm/opus; Safari typically only supports mp4.
+    const mimeType = pickRecorderMimeType();
+    const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
     const chunks = [];
 
     recorder.ondataavailable = (e) => {

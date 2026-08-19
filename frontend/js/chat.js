@@ -33,6 +33,17 @@ export function setStatus(msg, isError = false) {
     el.classList.remove("hidden");
 }
 
+function formatApiDetail(detail) {
+    if (!detail) return "";
+    if (typeof detail === "string") return detail;
+    if (Array.isArray(detail)) {
+        return detail
+            .map((item) => (item && item.msg) || JSON.stringify(item))
+            .join("; ");
+    }
+    return String(detail);
+}
+
 export async function sendText(text) {
     setStatus("Processing…");
     const res = await api("/api/v1/chat/text", {
@@ -43,7 +54,7 @@ export async function sendText(text) {
 
     if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || `Error ${res.status}`);
+        throw new Error(formatApiDetail(err.detail) || `Error ${res.status}`);
     }
 
     const data = await res.json();
@@ -65,7 +76,7 @@ export async function sendVoice(blob) {
 
     if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || `Error ${res.status}`);
+        throw new Error(formatApiDetail(err.detail) || `Error ${res.status}`);
     }
 
     const data = await res.json();
