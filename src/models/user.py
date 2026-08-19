@@ -15,7 +15,6 @@ def now_utc() -> datetime:
     return datetime.now(UTC)
 
 
-# TODO user email-string validation with pydantic
 class User(BaseModel):
     """User document stored in MongoDB.
 
@@ -118,3 +117,10 @@ class ChangePasswordRequest(BaseModel):
 
     current_password: str
     new_password: str = Field(min_length=12)
+
+
+class ChangePasswordResponse(UserPublic):
+    """Password-change result: public user plus a JWT for the new token_version."""
+
+    access_token: str
+    token_type: str = "bearer"

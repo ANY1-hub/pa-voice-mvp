@@ -80,6 +80,14 @@ def test_help_catalog_unknown_language_falls_back_to_english():
     assert catalog["notes"][0].lower() == help_catalog("en")["notes"][0].lower()
 
 
+def test_german_reminder_create_is_not_stolen_by_recall():
+    """'Erinnere mich an …' must create a reminder, not run Active Recall."""
+    registry = _registry()
+    found = registry.find_handler("Erinnere mich an den Zahnarzt morgen")
+    assert found is not None
+    assert found.name == "reminders"
+
+
 def test_personal_fact_phrases_are_not_stolen_by_skills():
     """Memory phrases must reach the LLM path, not Notes/Reminders/Search/Recall."""
     registry = _registry()

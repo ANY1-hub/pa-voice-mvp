@@ -86,8 +86,17 @@ export async function changePassword(currentPassword, newPassword) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.detail || "Password change failed");
     }
-    const user = await res.json();
-    setAuth(getToken(), user);
+    const data = await res.json();
+    if (!data.access_token) throw new Error("No token received");
+    const user = {
+        id: data.id,
+        email: data.email,
+        created_at: data.created_at,
+        is_active: data.is_active,
+        is_superuser: data.is_superuser,
+        must_change_password: data.must_change_password,
+    };
+    setAuth(data.access_token, user);
     return user;
 }
 

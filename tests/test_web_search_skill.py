@@ -144,6 +144,24 @@ async def test_execute_uses_semantic_memory_context():
 
 
 @pytest.mark.asyncio
+async def test_execute_german_search_replies_in_german():
+    """German search utterances must use German framing around the results."""
+    client = FakeSearchClient()
+    skill = WebSearchSkill(client=client, semantic_memory=None)
+
+    result = await skill.execute(
+        user_text="suche nach dem Wetter in Berlin",
+        user_id="u1",
+        language="de",
+    )
+    assert result.handled is True
+    assert (
+        "Web-Ergebnisse" in result.response_text or "Ergebnisse" in result.response_text
+    )
+    assert "Web results for" not in result.response_text
+
+
+@pytest.mark.asyncio
 async def test_execute_writes_summary_to_semantic_memory():
     """After a successful search a short summary fact must be written to Semantic Memory."""
     client = FakeSearchClient()

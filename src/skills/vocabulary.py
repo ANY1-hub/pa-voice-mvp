@@ -156,6 +156,9 @@ REMINDERS_AGENDA_EXTRA = [
     "was steht diesen monat",
     "was steht nächste woche",
     "agenda",
+    "jövő héten",
+    "ebben a hónapban",
+    "ezen a héten",
 ]
 REMINDERS_LOOKUP_EXTRA = [
     "when is",
@@ -260,7 +263,6 @@ ACTIVE_RECALL: dict[str, list[str]] = {
 
 ACTIVE_RECALL_EXTRA = [
     "what do you know",
-    "erinnere mich an",
     "was weißt du noch über",
     "was weißt du noch von",
 ]

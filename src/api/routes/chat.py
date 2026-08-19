@@ -30,9 +30,11 @@ class TextChatRequest(BaseModel):
 
     Attributes:
         text: User message (1–4000 characters).
+        language: Optional UI language hint (``en`` / ``de`` / ``hu``).
     """
 
     text: str = Field(..., min_length=1, max_length=4000)
+    language: str | None = Field(default=None, max_length=8)
 
 
 class ChatResponse(BaseModel):
@@ -67,7 +69,7 @@ async def chat_text(
         ChatResponse with transcript, reply and optional audio.
     """
     try:
-        result = await orchestrator.process(text=body.text)
+        result = await orchestrator.process(text=body.text, language=body.language)
         return ChatResponse(
             transcript=result.transcript,
             response=result.response,

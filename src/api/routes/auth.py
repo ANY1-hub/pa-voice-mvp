@@ -9,6 +9,7 @@ from src.auth.password import hash_password, verify_password
 from src.auth.repository import UserRepository
 from src.models.user import (
     ChangePasswordRequest,
+    ChangePasswordResponse,
     User,
     UserCreate,
     UserLogin,
@@ -138,13 +139,13 @@ async def me(
     return _to_public(current_user)
 
 
-@router.post("/change-password", response_model=UserPublic)
+@router.post("/change-password", response_model=ChangePasswordResponse)
 async def change_password(
     payload: ChangePasswordRequest,
     current_user: User = Depends(get_current_user),  # noqa: B008
     repo: UserRepository = Depends(get_user_repository),  # noqa: B008
-) -> UserPublic:
-    """Change the current user's password and clear must_change_password."""
+) -> ChangePasswordResponse:
+    """Change the current user's password and return a JWT for the new version."""
     if not verify_password(payload.current_password, current_user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -167,4 +168,11 @@ async def change_password(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
         )
-    return _to_public(updated)
+    public = _to_public(updated)
+    return ChangePasswordResponse(
+        **public.model_dump(),
+        access_token=create_access_token(
+            subject=updated.id, token_version=updated.token_version
+        ),
+        token_type="bearer",
+    )

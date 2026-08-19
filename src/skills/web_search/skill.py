@@ -8,6 +8,7 @@ from typing import Any
 
 from src.memory.semantic_memory import SemanticMemory
 from src.skills.base import Skill, SkillResult
+from src.skills.replies import reply_language, t
 from src.skills.vocabulary import WEB_SEARCH, WEB_SEARCH_EXTRA, compile_phrase_regex
 from src.skills.web_search.client import DuckDuckGoClient, SearchClient
 
@@ -21,6 +22,30 @@ _STRIP_PHRASES = sorted(
     reverse=True,
 )
 _TRIGGER_PHRASES = [r"^" + re.escape(p) + r"\s*" for p in _STRIP_PHRASES]
+
+_REPLIES: dict[str, dict[str, str]] = {
+    "en": {
+        "need_query": "I need a clearer search query.",
+        "fail": "Sorry, the web search failed. Please try again later.",
+        "no_results": "I could not find any results for “{query}”.",
+        "personal": "Based on what I know about you:",
+        "results": "Web results for “{query}”:",
+    },
+    "de": {
+        "need_query": "Ich brauche eine klarere Suchanfrage.",
+        "fail": "Sorry, die Websuche ist fehlgeschlagen. Bitte versuche es später.",
+        "no_results": "Ich konnte keine Ergebnisse für „{query}“ finden.",
+        "personal": "Basierend auf dem, was ich über dich weiß:",
+        "results": "Web-Ergebnisse für „{query}“:",
+    },
+    "hu": {
+        "need_query": "Kell egy egyértelműbb keresőkifejezés.",
+        "fail": "Sajnos a webes keresés nem sikerült. Próbáld később.",
+        "no_results": "Nem találtam találatot erre: „{query}”.",
+        "personal": "A rólad tudottak alapján:",
+        "results": "Webes találatok erre: „{query}”:",
+    },
+}
 
 
 class WebSearchSkill(Skill):
@@ -49,12 +74,13 @@ class WebSearchSkill(Skill):
         **deps: Any,
     ) -> SkillResult:
         query = self._extract_query(user_text)
+        lang = reply_language(user_text, deps)
         if len(query) < 2:
             return SkillResult(
-                response_text="I need a clearer search query.",
+                response_text=t(_REPLIES, lang, "need_query"),
                 handled=True,
             )
-        return await self._run_search(query)
+        return await self._run_search(query, lang)
 
     def _extract_query(self, user_text: str) -> str:
         """Remove the first matching trigger prefix, return the remaining substance."""
@@ -65,23 +91,23 @@ class WebSearchSkill(Skill):
                 return stripped.strip(" :,-?")
         return text.strip(" :,-?")
 
-    async def _run_search(self, query: str) -> SkillResult:
+    async def _run_search(self, query: str, lang: str) -> SkillResult:
         """Fetch personal context + web results and build the reply."""
         personal_bits = await self._fetch_personal_context(query)
         results = await self._fetch_web_results(query)
 
         if results is None:
             return SkillResult(
-                response_text="Sorry, the web search failed. Please try again later.",
+                response_text=t(_REPLIES, lang, "fail"),
                 handled=True,
             )
         if not results:
             return SkillResult(
-                response_text=f"I could not find any results for “{query}”.",
+                response_text=t(_REPLIES, lang, "no_results", query=query),
                 handled=True,
             )
 
-        response_text = self._format_response(query, personal_bits, results)
+        response_text = self._format_response(query, personal_bits, results, lang)
         summary = await self._maybe_write_summary(query, results)
 
         return SkillResult(
@@ -112,15 +138,16 @@ class WebSearchSkill(Skill):
         query: str,
         personal_bits: list[str],
         results: list[dict[str, str]],
+        lang: str,
     ) -> str:
         lines: list[str] = []
         if personal_bits:
-            lines.append("Based on what I know about you:")
+            lines.append(t(_REPLIES, lang, "personal"))
             for bit in personal_bits[:2]:
                 lines.append(f"• {bit[:120]}")
             lines.append("")
 
-        lines.append(f"Web results for “{query}”:")
+        lines.append(t(_REPLIES, lang, "results", query=query))
         for i, r in enumerate(results[:4], 1):
             title = r.get("title") or "Result"
             body = (r.get("body") or "")[:100]

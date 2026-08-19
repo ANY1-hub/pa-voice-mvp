@@ -8,6 +8,7 @@ from typing import Any
 from src.memory.semantic_memory import SemanticMemory
 from src.skills.base import Skill, SkillResult
 from src.skills.notes.repository import NoteRepository
+from src.skills.replies import reply_language, t
 from src.skills.vocabulary import (
     NOTES_CREATE,
     NOTES_CREATE_EXTRA,
@@ -20,6 +21,33 @@ logger = logging.getLogger(__name__)
 
 _CREATE_PATTERNS = compile_phrase_regex(NOTES_CREATE, extra=NOTES_CREATE_EXTRA)
 _LIST_PATTERNS = compile_phrase_regex(NOTES_LIST, extra=NOTES_LIST_EXTRA)
+
+_REPLIES: dict[str, dict[str, str]] = {
+    "en": {
+        "need_content": "I need a bit more content for the note.",
+        "save_fail": "Sorry, I could not save the note.",
+        "created": "Got it. I saved the note: {content}",
+        "list_fail": "Sorry, I could not retrieve your notes.",
+        "list_empty": "You have no notes yet.",
+        "list_header": "Here are your recent notes:\n{body}",
+    },
+    "de": {
+        "need_content": "Ich brauche etwas mehr Inhalt für die Notiz.",
+        "save_fail": "Sorry, ich konnte die Notiz nicht speichern.",
+        "created": "Alles klar. Ich habe die Notiz gespeichert: {content}",
+        "list_fail": "Sorry, ich konnte deine Notizen nicht laden.",
+        "list_empty": "Du hast noch keine Notizen.",
+        "list_header": "Hier sind deine letzten Notizen:\n{body}",
+    },
+    "hu": {
+        "need_content": "Kicsit több tartalom kell a jegyzethez.",
+        "save_fail": "Sajnos nem tudtam menteni a jegyzetet.",
+        "created": "Rendben. Elmentettem a jegyzetet: {content}",
+        "list_fail": "Sajnos nem tudtam lekérni a jegyzeteidet.",
+        "list_empty": "Még nincs jegyzeted.",
+        "list_header": "Ezek a jegyzeteid:\n{body}",
+    },
+}
 
 
 class NotesSkill(Skill):
@@ -60,14 +88,14 @@ class NotesSkill(Skill):
     ) -> SkillResult:
         """Dispatch to create or list based on the utterance."""
         text = user_text.strip()
+        lang = reply_language(text, deps)
 
         if _LIST_PATTERNS.search(text):
-            return await self._list_notes(text)
+            return await self._list_notes(text, lang)
 
-        # Default to create when create-pattern matched (or ambiguous)
-        return await self._create_note(text)
+        return await self._create_note(text, lang)
 
-    async def _create_note(self, user_text: str) -> SkillResult:
+    async def _create_note(self, user_text: str, lang: str) -> SkillResult:
         """Extract content and persist a note + semantic summary."""
         # Very light extraction: strip the trigger phrase if present
         content = _CREATE_PATTERNS.sub("", user_text).strip(" :,-").strip()
@@ -76,7 +104,7 @@ class NotesSkill(Skill):
 
         if len(content) < 2:
             return SkillResult(
-                response_text="I need a bit more content for the note.",
+                response_text=t(_REPLIES, lang, "need_content"),
                 handled=True,
             )
 
@@ -85,7 +113,7 @@ class NotesSkill(Skill):
         except Exception:
             logger.exception("Failed to create note")
             return SkillResult(
-                response_text="Sorry, I could not save the note.",
+                response_text=t(_REPLIES, lang, "save_fail"),
                 handled=True,
             )
 
@@ -105,25 +133,25 @@ class NotesSkill(Skill):
                 logger.exception("Failed to write note summary to semantic memory")
 
         return SkillResult(
-            response_text=f"Got it. I saved the note: {note.content[:120]}",
+            response_text=t(_REPLIES, lang, "created", content=note.content[:120]),
             handled=True,
             memory_writes=[{"content": summary, "importance": 0.55}],
         )
 
-    async def _list_notes(self, user_text: str) -> SkillResult:
+    async def _list_notes(self, user_text: str, lang: str) -> SkillResult:
         """Return a short summary of recent notes."""
         try:
             notes = await self.repository.list_notes(limit=10)
         except Exception:
             logger.exception("Failed to list notes")
             return SkillResult(
-                response_text="Sorry, I could not retrieve your notes.",
+                response_text=t(_REPLIES, lang, "list_fail"),
                 handled=True,
             )
 
         if not notes:
             return SkillResult(
-                response_text="You have no notes yet.",
+                response_text=t(_REPLIES, lang, "list_empty"),
                 handled=True,
             )
 
@@ -137,6 +165,6 @@ class NotesSkill(Skill):
 
         body = "\n".join(lines)
         return SkillResult(
-            response_text=f"Here are your recent notes:\n{body}",
+            response_text=t(_REPLIES, lang, "list_header", body=body),
             handled=True,
         )

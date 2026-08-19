@@ -1,6 +1,6 @@
 import { api } from "./auth.js";
 import { playBase64Audio } from "./audio.js";
-import { t } from "./i18n.js";
+import { getLang, t } from "./i18n.js";
 
 const chatContainer = () => document.getElementById("chatContainer");
 const statusLine = () => document.getElementById("statusLine");
@@ -97,7 +97,7 @@ export async function sendText(text) {
     const res = await api("/api/v1/chat/text", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, language: getLang() }),
     });
 
     if (!res.ok) {
@@ -117,6 +117,7 @@ export async function sendVoice(blob) {
     setStatus(t("transcribing"));
     const form = new FormData();
     form.append("audio", blob, "recording.wav");
+    form.append("language", getLang());
 
     const res = await api("/api/v1/chat/voice", {
         method: "POST",

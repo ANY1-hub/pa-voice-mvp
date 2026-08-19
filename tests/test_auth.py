@@ -417,3 +417,33 @@ def test_password_change_invalidates_old_token(client):
 
     stale = client.get("/api/v1/auth/me", headers=headers)
     assert stale.status_code == 401
+
+
+def test_password_change_returns_token_that_authenticates(client):
+    """Change-password must mint a JWT that still authenticates after rotation."""
+    wipe_users()
+    email = f"fresh-{uuid.uuid4().hex[:8]}@example.com"
+    password = "SecurePass123!"
+    client.post("/api/v1/auth/register", json={"email": email, "password": password})
+    old_token = client.post(
+        "/api/v1/auth/login",
+        json={"email": email, "password": password},
+    ).json()["access_token"]
+
+    changed = client.post(
+        "/api/v1/auth/change-password",
+        headers={"Authorization": f"Bearer {old_token}"},
+        json={"current_password": password, "new_password": "NewSecurePass99!"},
+    )
+    assert changed.status_code == 200
+    new_token = changed.json()["access_token"]
+    assert new_token
+    assert new_token != old_token
+
+    me = client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {new_token}"},
+    )
+    assert me.status_code == 200
+    assert me.json()["must_change_password"] is False
+    assert me.json()["email"] == email

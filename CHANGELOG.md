@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] 2026-08-19
 
 ### Added
+- Change-password returns a fresh JWT so the session stays valid after `token_version` rotation
+- Notes, Active Recall and Web Search reply in EN / DE / HU (same pattern as Reminders)
+- Chat text and voice send the Help-panel language flag as an STT/TTS hint
 - Chat turns that state a personal fact (name, preference, …) are extracted into Semantic Memory (importance 0.75, original language). Active Recall can find them on the next turn.
 - Ten spoken “tell Jarvis about yourself” phrases in EN/DE/HU on the Help panel (`personal_facts`)
 - Working Memory TTL of 48 hours (`expires_at` + Mongo TTL index)
@@ -17,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RemindersSkill replies in the user's language; optional LLM slot fill for create content/due date
 
 ### Fixed
+- Forced password change no longer keeps a dead JWT (admin-created users were dumped back to login)
+- German “Erinnere mich an …” creates a reminder instead of being stolen by Active Recall
+- Language heuristic: German `mit` / English `van` no longer select the Hungarian TTS voice
+- Hungarian agenda phrases (“mi van a héten”, “mi van ma”) use the matching date window instead of always today
 - Reminders: "remind me today …" creates a reminder instead of listing the agenda; agenda no longer claims bare "today"/"this week" chat
 - Reminders: time-of-day without a date token now sets due_at (today, or tomorrow if already past); `erinner(e)? mich` matches German create
 - Semantic search is hybrid: facts without embeddings stay findable; weak cosine hits are dropped; consolidation job now embeds promoted facts

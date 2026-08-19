@@ -183,3 +183,20 @@ def test_registry_duplicate_raises():
     registry.register(skill)
     with pytest.raises(ValueError, match="already registered"):
         registry.register(skill)
+
+
+@pytest.mark.asyncio
+async def test_execute_create_note_replies_in_german():
+    """German create utterances must get a German confirmation, not English."""
+    repo = NoteRepository(user_id="u1", collection=None)
+    skill = NotesSkill(repository=repo, semantic_memory=None)
+
+    result = await skill.execute(
+        user_text="merk dir das: Milch kaufen",
+        user_id="u1",
+    )
+    assert result.handled is True
+    assert (
+        "Notiz" in result.response_text or "gespeichert" in result.response_text.lower()
+    )
+    assert "Got it" not in result.response_text

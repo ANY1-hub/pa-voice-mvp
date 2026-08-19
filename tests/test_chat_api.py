@@ -58,6 +58,21 @@ def test_chat_text_happy_path(client_with_mock_orch, auth_headers, mock_orchestr
     assert call_kwargs.get("audio_bytes") is None
 
 
+def test_chat_text_forwards_language(
+    client_with_mock_orch, auth_headers, mock_orchestrator
+):
+    """Optional language on text chat must be passed through to process()."""
+    res = client_with_mock_orch.post(
+        "/api/v1/chat/text",
+        headers=auth_headers,
+        json={"text": "Hallo", "language": "de"},
+    )
+    assert res.status_code == 200
+    call_kwargs = mock_orchestrator.process.await_args.kwargs
+    assert call_kwargs["text"] == "Hallo"
+    assert call_kwargs["language"] == "de"
+
+
 def test_chat_text_empty_body(client_with_mock_orch, auth_headers):
     """Pydantic rejects empty text → 422 Unprocessable Entity."""
     res = client_with_mock_orch.post(

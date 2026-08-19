@@ -194,21 +194,18 @@ def _agenda_range(text: str) -> tuple[datetime, datetime] | None:
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     lower = text.lower()
 
-    if re.search(r"\b(heute|today)\b", lower):
-        return today_start, today_start + timedelta(days=1) - timedelta(microseconds=1)
-
-    if re.search(r"\b(diese woche|this week)\b", lower):
-        # Monday of current week → Sunday end
-        start = today_start - timedelta(days=today_start.weekday())
-        end = start + timedelta(days=7) - timedelta(microseconds=1)
-        return start, end
-
-    if re.search(r"\b(nächste woche|next week)\b", lower):
+    # Next-week before this-week: "jövő héten" also contains "héten".
+    if re.search(r"\b(nächste woche|next week|jövő héten|jövő hét)\b", lower):
         start = today_start - timedelta(days=today_start.weekday()) + timedelta(days=7)
         end = start + timedelta(days=7) - timedelta(microseconds=1)
         return start, end
 
-    if re.search(r"\b(diesen monat|dieser monat|this month)\b", lower):
+    if re.search(r"\b(diese woche|this week|a héten|ezen a héten)\b", lower):
+        start = today_start - timedelta(days=today_start.weekday())
+        end = start + timedelta(days=7) - timedelta(microseconds=1)
+        return start, end
+
+    if re.search(r"\b(diesen monat|dieser monat|this month|ebben a hónapban)\b", lower):
         start = today_start.replace(day=1)
         if start.month == 12:
             end = start.replace(year=start.year + 1, month=1)
@@ -216,6 +213,9 @@ def _agenda_range(text: str) -> tuple[datetime, datetime] | None:
             end = start.replace(month=start.month + 1)
         end = end - timedelta(microseconds=1)
         return start, end
+
+    if re.search(r"\b(heute|today|ma)\b", lower):
+        return today_start, today_start + timedelta(days=1) - timedelta(microseconds=1)
 
     return None
 

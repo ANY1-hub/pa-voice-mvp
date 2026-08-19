@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -514,3 +514,37 @@ async def test_execute_create_time_without_date_defaults_today_or_tomorrow():
     spy.assert_awaited_once()
     due = spy.await_args.kwargs["due_at"]
     assert due == datetime(2026, 8, 3, 14, 0, tzinfo=UTC)
+
+
+@pytest.mark.asyncio
+async def test_execute_hungarian_this_week_uses_week_window():
+    """'Mi van a héten' must list Monday–Sunday, not only today."""
+    mock_repo = MagicMock(spec=ReminderRepository)
+    mock_repo.list_reminders = AsyncMock(return_value=[])
+    skill = RemindersSkill(repository=mock_repo)
+
+    with patch("src.skills.reminders.skill._now_utc") as mock_now:
+        mock_now.return_value = datetime(2026, 8, 19, 12, 0, tzinfo=UTC)
+        result = await skill.execute(user_text="mi van a héten", user_id="u1")
+
+    assert result.handled is True
+    kwargs = mock_repo.list_reminders.await_args.kwargs
+    assert kwargs["due_from"].date() == date(2026, 8, 17)
+    assert kwargs["due_to"].date() == date(2026, 8, 23)
+
+
+@pytest.mark.asyncio
+async def test_execute_hungarian_today_agenda_uses_today_window():
+    """'Mi van ma a naptáramban' must bound due_at to the current calendar day."""
+    mock_repo = MagicMock(spec=ReminderRepository)
+    mock_repo.list_reminders = AsyncMock(return_value=[])
+    skill = RemindersSkill(repository=mock_repo)
+
+    with patch("src.skills.reminders.skill._now_utc") as mock_now:
+        mock_now.return_value = datetime(2026, 8, 19, 12, 0, tzinfo=UTC)
+        result = await skill.execute(user_text="mi van ma a naptáramban", user_id="u1")
+
+    assert result.handled is True
+    kwargs = mock_repo.list_reminders.await_args.kwargs
+    assert kwargs["due_from"].date() == date(2026, 8, 19)
+    assert kwargs["due_to"].date() == date(2026, 8, 19)

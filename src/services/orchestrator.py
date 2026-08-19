@@ -143,6 +143,7 @@ class ChatOrchestrator:
                     skill_result: SkillResult = await skill.execute(
                         user_text=sanitized,
                         user_id=user_id,
+                        language=language or detected_lang,
                     )
                 except Exception:
                     logger.exception(
@@ -153,7 +154,7 @@ class ChatOrchestrator:
                     if skill_result.handled:
                         response_text = skill_result.response_text.strip()
                         tts_lang = detect_response_language(
-                            response_text, hint=language
+                            response_text, hint=language or detected_lang
                         )
                         await self._store_turn(sanitized, response_text)
                         audio_b64 = await self._maybe_synthesize(

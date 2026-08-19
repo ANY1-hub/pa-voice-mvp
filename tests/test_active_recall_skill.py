@@ -44,9 +44,10 @@ def test_can_handle_german_recall_intents():
     """Skill must claim German recall phrasings used in the MVP languages."""
     skill = ActiveRecallSkill()
     assert skill.can_handle("Was weißt du über meine Allergien?") is True
-    assert skill.can_handle("Erinnere mich an meine Vorlieben") is True
+    assert skill.can_handle("Was erinnerst du dich an meine Vorlieben") is True
     assert skill.can_handle("Was weißt du über mich?") is True
     assert skill.can_handle("Hallo, wie geht's?") is False
+    assert skill.can_handle("Erinnere mich an den Zahnarzt") is False
 
 
 # ---------------------------------------------------------------------------
@@ -136,3 +137,19 @@ def test_registry_finds_active_recall_before_notes():
     found = registry.find_handler("What do you know about my notes?")
     assert found is not None
     assert found.name == "active_recall"
+
+
+@pytest.mark.asyncio
+async def test_execute_german_recall_replies_in_german():
+    """German recall questions must be answered in German."""
+    mock_sem = MagicMock()
+    mock_sem.search = AsyncMock(return_value=[_fact("User likes oat milk")])
+    skill = ActiveRecallSkill(semantic_memory=mock_sem)
+
+    result = await skill.execute(
+        user_text="Was weißt du über mich?",
+        user_id="u1",
+    )
+    assert result.handled is True
+    assert "weiß" in result.response_text.lower() or "Das weiß" in result.response_text
+    assert "Here's what I know" not in result.response_text

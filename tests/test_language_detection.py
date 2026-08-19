@@ -61,3 +61,21 @@ def test_unknown_hint_falls_through_to_heuristics():
     """Unknown hint must be ignored so character heuristics can decide."""
     # Unknown hint ignored → German umlauts decide
     assert detect_response_language("Schöne Grüße", hint="fr") == "de"
+
+
+def test_german_mit_does_not_select_hungarian():
+    """German 'mit' must not be classified as Hungarian, even without a hint."""
+    assert detect_response_language("Meeting mit Anna") == "de"
+    assert detect_response_language("Meeting mit Anna", hint="de") == "de"
+
+
+def test_english_van_does_not_select_hungarian():
+    """English 'van' must stay English, not Hungarian."""
+    assert detect_response_language("I parked the van") == "en"
+    assert detect_response_language("I parked the van", hint="en") == "en"
+
+
+def test_hint_wins_over_a_single_function_word():
+    """A UI/STT hint must beat one ambiguous function word without unique letters."""
+    assert detect_response_language("ok mit", hint="de") == "de"
+    assert detect_response_language("ok", hint="hu") == "hu"

@@ -24,12 +24,12 @@ The Help panel (`?`) lists **ten everyday phrases per skill** for the language y
 |--------|---------|--------|-----------|
 | Create | remind me, reminder, set a reminder | erinner mich, erinnerung, stell eine erinnerung | emlékeztess |
 | List   | list reminders, show reminders, what reminders | meine erinnerungen, erinnerungen zeigen, zeig mir die erinnerungen | listázd az emlékeztetőket |
-| Agenda | what's on today, this week, next week, this month | was steht heute an, diese Woche, nächste Woche, diesen Monat | – |
-| Lookup | when is …, when do I … | wann habe ich …, wann muss ich … | – |
+| Agenda | what's on today, this week, next week, this month | was steht heute an, diese Woche, nächste Woche, diesen Monat | mi van ma, mi van a héten, jövő héten, ebben a hónapban |
+| Lookup | when is …, when do I … | wann habe ich …, wann muss ich … | mikor van a … |
 
 **Date tokens on create** (optional): today/heute/ma, tomorrow/morgen/holnap, weekdays, numeric dates (`18.8.` / `18.8.2026`), “um 14 Uhr” / “at 14:00”.
 
-Skill replies match the user's language (EN / DE / HU) so TTS is not English-on-German.
+Skill replies (Reminders, Notes, Active Recall, Web Search) match the user's language (EN / DE / HU) so TTS is not English-on-German. The Help-panel flag is sent with voice and text turns as the STT/TTS hint.
 
 **Example**  
 - “Remind me tomorrow at 10 to call the dentist”  
@@ -74,9 +74,9 @@ These are **not** a routed skill. Say them in a normal sentence; Jarvis extracts
 
 ## Active Recall (personal knowledge)
 
-| Intent | English | German |
-|--------|---------|--------|
-| Recall | what do you know about…, what do you remember about…, recall what you know about…, my preferences | was weißt du über…, was erinnerst du dich an…, erinnere mich an…, meine vorlieben |
+| Intent | English | German | Hungarian |
+|--------|---------|--------|-----------|
+| Recall | what do you know about…, what do you remember about…, recall what you know about…, my preferences | was weißt du über…, was erinnerst du dich an…, meine vorlieben | mit tudsz rólam, mire emlékszel |
 
 **Example**  
 - “What do you know about me?”  
