@@ -20,9 +20,9 @@ services:
     volumes:
       - .:/app
     environment:
-      - MONGODB_URI=${LOCAL_MONGODB_URI}
+      - MONGODB_URI=${MONGODB_URI}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - JWT_SECRET=change_this_to_a_secure_secret_in_production
+      - SECRET_KEY=${SECRET_KEY}
     depends_on:
       - mongo
 

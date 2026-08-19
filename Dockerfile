@@ -12,9 +12,10 @@ RUN apt-get update && apt-get install -y \
 RUN pip install uv
 
 COPY pyproject.toml requirements.txt ./
-# Merge both file instructions or just install via requirements for MVP
+COPY src ./src
+# requirements.txt starts with `-e .`; src must be present for the editable install.
 RUN uv pip install --system -r requirements.txt
 
 COPY . .
 
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
