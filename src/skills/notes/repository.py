@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 
 from motor.motor_asyncio import AsyncIOMotorCollection
 
+from src.db.mongodb import contains_regex
 from src.models.note import Note
 from src.security.guardrails import validate_memory_write
 
@@ -88,8 +89,8 @@ class NoteRepository:
         if query:
             # Simple OR on title or content
             filters["$or"] = [
-                {"content": {"$regex": query, "$options": "i"}},
-                {"title": {"$regex": query, "$options": "i"}},
+                {"content": contains_regex(query)},
+                {"title": contains_regex(query)},
             ]
 
         cursor = self.collection.find(filters).sort("created_at", -1).limit(limit)

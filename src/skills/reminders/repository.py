@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 
 from motor.motor_asyncio import AsyncIOMotorCollection
 
+from src.db.mongodb import contains_regex
 from src.models.reminder import Reminder
 from src.security.guardrails import validate_memory_write
 
@@ -103,7 +104,7 @@ class ReminderRepository:
 
         filters: dict = {
             "user_id": self.user_id,
-            "content": {"$regex": query, "$options": "i"},
+            "content": contains_regex(query),
         }
         if status:
             filters["status"] = status

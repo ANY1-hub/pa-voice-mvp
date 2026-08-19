@@ -1,8 +1,19 @@
 """MongoDB connection management using Motor (async)."""
 
+import re
+
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
 from src.core.config import get_settings
+
+
+def contains_regex(query: str) -> dict[str, str]:
+    """Case-insensitive substring filter safe for user-supplied text.
+
+    Metacharacters in ``query`` are escaped so they cannot become a Mongo
+    regular expression (ReDoS / over-matching).
+    """
+    return {"$regex": re.escape(query), "$options": "i"}
 
 
 class MongoDB:
@@ -31,6 +42,12 @@ async def connect_to_mongo() -> None:
 
     # Ensure unique index on users.email (idempotent)
     await db_client.db["users"].create_index("email", unique=True)
+    # At most one bootstrap SuperUser, even under a concurrent first-register race.
+    await db_client.db["users"].create_index(
+        "bootstrap_slot",
+        unique=True,
+        partialFilterExpression={"bootstrap_slot": {"$exists": True}},
+    )
 
     # Vector search indexes will be initialized here in later phases
 
