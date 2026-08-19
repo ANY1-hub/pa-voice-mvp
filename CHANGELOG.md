@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] 2026-08-19
+
+### Fixed
+- Reminders: "remind me today …" creates a reminder instead of listing the agenda; agenda no longer claims bare "today"/"this week" chat
+- Reminders: time-of-day without a date token now sets due_at (today, or tomorrow if already past); `erinner(e)? mich` matches German create
+- Semantic search is hybrid: facts without embeddings stay findable; weak cosine hits are dropped; consolidation job now embeds promoted facts
+- Chat no longer returns HTTP 400 when persisting an assistant reply that contains blocklist substrings such as `system:`
+- `must_change_password` is enforced on chat/memory/admin (not only the UI); password change invalidates existing JWTs
+- Bootstrap: unique `bootstrap_slot` so two concurrent first-registers cannot both become SuperUser
+- Docker Compose passes `SECRET_KEY` / `MONGODB_URI` (not the unused `JWT_SECRET`); Dockerfile copies `src/` before `-e .` and drops `--reload`
+- Mongo substring search escapes user regex; DuckDuckGo errors propagate instead of looking like "no results"
+- STT detected language is passed to TTS; a clearly German/Hungarian reply overrides a stale English hint
+- Safari MediaRecorder fallback (mp4); speak-button click race while the mic permission prompt is open
+- Default English Piper voice is the documented Alan GB model
+
 ## [Unreleased] 2026-08-18
 
 ### Added
