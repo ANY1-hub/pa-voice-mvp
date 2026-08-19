@@ -430,3 +430,26 @@ async def test_fact_extraction_failure_does_not_break_turn(
 
     assert result.response == "Nice to meet you, Tony."
     mock_semantic_memory.add_fact.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_semantic_add_fact_failure_does_not_break_turn(
+    mock_llm, mock_tts, mock_working_memory, mock_semantic_memory
+):
+    """A Semantic Memory write error after extraction must not hide the reply."""
+    mock_llm.generate_response.side_effect = [
+        "Got it.",
+        '{"facts":[{"content":"User likes tea","entities":["tea"]}]}',
+    ]
+    mock_semantic_memory.add_fact = AsyncMock(side_effect=RuntimeError("write down"))
+
+    orch = ChatOrchestrator(
+        llm=mock_llm,
+        tts=mock_tts,
+        working_memory=mock_working_memory,
+        semantic_memory=mock_semantic_memory,
+    )
+    result = await orch.process(text="I like tea")
+
+    assert result.response == "Got it."
+    mock_semantic_memory.add_fact.assert_awaited()

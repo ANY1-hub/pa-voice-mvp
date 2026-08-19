@@ -62,6 +62,50 @@ def test_verify_tampered_token_returns_none():
     assert verify_access_token(tampered) is None
 
 
+def test_decode_token_missing_sub_returns_none():
+    """A JWT without a usable sub claim must be rejected."""
+    from datetime import UTC, datetime, timedelta
+
+    from jose import jwt
+
+    from src.auth.jwt import decode_access_token
+    from src.core.config import get_settings
+
+    settings = get_settings()
+    token = jwt.encode(
+        {
+            "sub": "",
+            "exp": datetime.now(UTC) + timedelta(minutes=5),
+            "ver": 0,
+        },
+        settings.secret_key,
+        algorithm="HS256",
+    )
+    assert decode_access_token(token) is None
+
+
+def test_decode_token_invalid_ver_defaults_to_zero():
+    """A non-integer ver claim must decode as version 0, not raise."""
+    from datetime import UTC, datetime, timedelta
+
+    from jose import jwt
+
+    from src.auth.jwt import decode_access_token
+    from src.core.config import get_settings
+
+    settings = get_settings()
+    token = jwt.encode(
+        {
+            "sub": "user-1",
+            "exp": datetime.now(UTC) + timedelta(minutes=5),
+            "ver": "nope",
+        },
+        settings.secret_key,
+        algorithm="HS256",
+    )
+    assert decode_access_token(token) == ("user-1", 0)
+
+
 # ---------------------------------------------------------------------------
 # UserRepository
 # ---------------------------------------------------------------------------

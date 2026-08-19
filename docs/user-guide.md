@@ -53,6 +53,25 @@ Longer prefixes that are stripped automatically:
 - “Was ist die Hauptstadt von Japan?”  
 - “Keress rá OpenAI”
 
+## Personal memory (Conversation → Semantic Memory)
+
+These are **not** a routed skill. Say them in a normal sentence; Jarvis extracts a durable fact (original language, no translation). Then Active Recall can find it.
+
+| English | German | Hungarian |
+|---------|--------|-----------|
+| my name is | ich heiße | a nevem |
+| I live in | ich wohne in | lakom |
+| I work as | ich arbeite als | dolgozom |
+| I like | ich mag | szeretek |
+| I prefer | ich bevorzuge | a kedvencem |
+| I'm allergic to | ich bin allergisch | allergiás vagyok |
+| my favourite | mein lieblings | származom |
+| remember that I | ich komme aus | hívj |
+| I am from | nenn mich | a születésnapom |
+| my birthday is | mein geburtstag ist | imádom |
+
+**Example:** “My name is Tony and I like espresso.” → later “What do you know about me?”
+
 ## Active Recall (personal knowledge)
 
 | Intent | English | German |

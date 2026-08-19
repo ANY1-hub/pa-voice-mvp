@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Chat turns that state a personal fact (name, preference, …) are extracted into Semantic Memory (importance 0.75, original language). Active Recall can find them on the next turn.
+- Ten spoken “tell Jarvis about yourself” phrases in EN/DE/HU on the Help panel (`personal_facts`)
 - Working Memory TTL of 48 hours (`expires_at` + Mongo TTL index)
 - Ten canonical spoken trigger phrases per skill in EN/DE/HU (`src/skills/vocabulary.py`); Help panel lists only the selected language; `GET /api/v1/skills/phrases`
 - Chat bubbles store UTC ISO timestamps and show local time next to You / J.A.R.V.I.S.; a date separator is inserted for each local calendar day

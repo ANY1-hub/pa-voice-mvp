@@ -265,6 +265,51 @@ ACTIVE_RECALL_EXTRA = [
     "was weißt du noch von",
 ]
 
+# ---------------------------------------------------------------------------
+# Personal facts (Conversation → Semantic Memory, not a routed skill)
+# How people tell Siri / Google / Alexa something to remember about them.
+# Must not collide with Notes / Reminders trigger phrases.
+# ---------------------------------------------------------------------------
+
+PERSONAL_FACTS: dict[str, list[str]] = {
+    "en": [
+        "my name is",
+        "I live in",
+        "I work as",
+        "I like",
+        "I prefer",
+        "I'm allergic to",
+        "my favourite",
+        "remember that I",
+        "I am from",
+        "my birthday is",
+    ],
+    "de": [
+        "ich heiße",
+        "ich wohne in",
+        "ich arbeite als",
+        "ich mag",
+        "ich bevorzuge",
+        "ich bin allergisch",
+        "mein lieblings",
+        "ich komme aus",
+        "nenn mich",
+        "mein geburtstag ist",
+    ],
+    "hu": [
+        "a nevem",
+        "lakom",
+        "dolgozom",
+        "szeretek",
+        "a kedvencem",
+        "allergiás vagyok",
+        "származom",
+        "hívj",
+        "a születésnapom",
+        "imádom",
+    ],
+}
+
 
 def _flatten(
     *groups: dict[str, list[str]], extra: list[str] | None = None
@@ -303,4 +348,5 @@ def help_catalog(lang: str) -> dict[str, list[str]]:
         ),
         "web_search": WEB_SEARCH[lang],
         "active_recall": ACTIVE_RECALL[lang],
+        "personal_facts": PERSONAL_FACTS[lang],
     }

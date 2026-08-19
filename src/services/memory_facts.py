@@ -9,6 +9,7 @@ from dataclasses import dataclass
 
 from src.core.language import detect_response_language
 from src.services.llm.base import LLMAdapter
+from src.skills.vocabulary import PERSONAL_FACTS, compile_phrase_regex
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,7 @@ _PERSONAL_CUE = re.compile(
     r")\b",
     re.IGNORECASE,
 )
+_PERSONAL_PHRASE = compile_phrase_regex(PERSONAL_FACTS)
 
 _EXTRACT_SYSTEM = """You extract durable personal facts the USER stated about themselves.
 Return JSON only: {"facts":[{"content":"...","entities":["..."]}]}
@@ -47,7 +49,8 @@ class ExtractedFact:
 
 def looks_personal(text: str) -> bool:
     """True when the utterance likely contains a first-person personal fact."""
-    return bool(_PERSONAL_CUE.search(text or ""))
+    text = text or ""
+    return bool(_PERSONAL_CUE.search(text) or _PERSONAL_PHRASE.search(text))
 
 
 async def extract_personal_facts(

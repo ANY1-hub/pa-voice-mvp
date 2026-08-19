@@ -50,3 +50,17 @@ async def test_extract_returns_empty_on_llm_failure():
     llm.generate_response.side_effect = RuntimeError("boom")
     facts = await extract_personal_facts(llm, "My name is Tony")
     assert facts == []
+
+
+@pytest.mark.asyncio
+async def test_extract_ignores_malformed_payloads():
+    """Non-list facts, non-dict items, tiny content, and bad entities are skipped."""
+    llm = AsyncMock()
+    llm.generate_response.return_value = '{"facts": "nope"}'
+    assert await extract_personal_facts(llm, "I like tea") == []
+
+    llm.generate_response.return_value = '{"facts":[1, {"content": "ab"}, {"content": "User likes tea", "entities": "x"}]}'
+    facts = await extract_personal_facts(llm, "I like tea")
+    assert len(facts) == 1
+    assert facts[0].content == "User likes tea"
+    assert facts[0].entities == []

@@ -419,6 +419,48 @@ async def test_execute_create_uses_llm_slots_when_available():
     llm.generate_response.assert_awaited()
 
 
+@pytest.mark.asyncio
+async def test_llm_slots_invalid_due_keeps_regex_due():
+    """Unparseable due_iso must not wipe a date already parsed from the utterance."""
+    repo = ReminderRepository(user_id="u1", collection=None)
+    llm = AsyncMock()
+    llm.generate_response.return_value = (
+        '{"content": "Zahnarzt", "due_iso": "not-a-date"}'
+    )
+    skill = RemindersSkill(repository=repo, semantic_memory=None, llm=llm)
+
+    with (
+        patch.object(repo, "create", wraps=repo.create) as spy,
+        patch("src.skills.reminders.skill._now_utc") as mock_now,
+    ):
+        mock_now.return_value = datetime(2026, 8, 19, 12, 0, tzinfo=UTC)
+        await skill.execute(
+            user_text="Erinnerung für den 18.8. Zahnarzt",
+            user_id="u1",
+        )
+
+    due = spy.await_args.kwargs["due_at"]
+    assert due is not None
+    assert due.date() == datetime(2026, 8, 18).date()
+    assert spy.await_args.kwargs["content"] == "Zahnarzt"
+
+
+@pytest.mark.asyncio
+async def test_llm_slots_failure_falls_back_to_regex():
+    """If slot extraction raises, create must still succeed via regex."""
+    repo = ReminderRepository(user_id="u1", collection=None)
+    llm = AsyncMock()
+    llm.generate_response.side_effect = RuntimeError("llm down")
+    skill = RemindersSkill(repository=repo, semantic_memory=None, llm=llm)
+
+    result = await skill.execute(
+        user_text="remind me tomorrow: call the dentist",
+        user_id="u1",
+    )
+    assert result.handled is True
+    assert "dentist" in result.response_text.lower()
+
+
 def test_can_handle_rejects_incidental_today():
     """Bare date words must not claim ordinary chat or search."""
     skill = RemindersSkill(repository=ReminderRepository(user_id="u1"))
