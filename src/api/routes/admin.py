@@ -113,7 +113,9 @@ async def update_user(
             u for u in users if u.id != user_id and u.is_superuser and u.is_active
         ]
         target_still_super = (
-            target.is_superuser if payload.is_superuser is None else payload.is_superuser
+            target.is_superuser
+            if payload.is_superuser is None
+            else payload.is_superuser
         )
         target_still_active = (
             target.is_active if payload.is_active is None else payload.is_active

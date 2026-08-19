@@ -221,9 +221,7 @@ class SemanticMemory:
         await self._touch_facts(results)
         return [fact for fact, _ in results]
 
-    async def _text_search(
-        self, query: str, limit: int
-    ) -> list[SemanticMemoryFact]:
+    async def _text_search(self, query: str, limit: int) -> list[SemanticMemoryFact]:
         """Case-insensitive substring search (escaped) ranked by importance."""
         if self.collection is None:
             return []
