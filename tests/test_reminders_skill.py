@@ -169,6 +169,7 @@ def test_can_handle_create_intents():
     skill = RemindersSkill(repository=ReminderRepository(user_id="u1"))
     assert skill.can_handle("remind me to call mom") is True
     assert skill.can_handle("Erinner mich an den Termin") is True
+    assert skill.can_handle("Erinnere mich morgen um 14 Uhr an den Zahnarzt") is True
     assert skill.can_handle("just chatting") is False
 
 
@@ -362,3 +363,58 @@ def test_can_handle_lookup_still_matches_explicit_questions():
         skill.can_handle("wann habe ich meinen Termin bei der Arbeitsagentur?") is True
     )
     assert skill.can_handle("when do i need to call the bank?") is True
+
+
+def test_can_handle_rejects_incidental_today():
+    """Bare date words must not claim ordinary chat or search."""
+    skill = RemindersSkill(repository=ReminderRepository(user_id="u1"))
+    assert skill.can_handle("how are you today?") is False
+    assert skill.can_handle("search for weather today") is False
+    assert skill.can_handle("I have a lot this week") is False
+
+
+@pytest.mark.asyncio
+async def test_execute_create_with_today_does_not_run_agenda():
+    """'Remind me today …' must create a reminder, not list today's agenda."""
+    repo = ReminderRepository(user_id="u1", collection=None)
+    skill = RemindersSkill(repository=repo, semantic_memory=None)
+
+    with (
+        patch.object(repo, "create", wraps=repo.create) as spy,
+        patch("src.skills.reminders.skill._now_utc") as mock_now,
+    ):
+        mock_now.return_value = datetime(2026, 8, 3, 12, 0, tzinfo=UTC)
+        result = await skill.execute(
+            user_text="remind me today to call mom",
+            user_id="u1",
+        )
+
+    assert result.handled is True
+    assert "mom" in result.response_text.lower()
+    assert "nothing scheduled" not in result.response_text.lower()
+    spy.assert_awaited_once()
+    due = spy.await_args.kwargs["due_at"]
+    assert due is not None
+    assert due.date() == datetime(2026, 8, 3).date()
+
+
+@pytest.mark.asyncio
+async def test_execute_create_time_without_date_defaults_today_or_tomorrow():
+    """'Remind me at 14:00 …' with no date token must still set due_at."""
+    repo = ReminderRepository(user_id="u1", collection=None)
+    skill = RemindersSkill(repository=repo, semantic_memory=None)
+
+    with (
+        patch.object(repo, "create", wraps=repo.create) as spy,
+        patch("src.skills.reminders.skill._now_utc") as mock_now,
+    ):
+        mock_now.return_value = datetime(2026, 8, 3, 9, 0, tzinfo=UTC)
+        result = await skill.execute(
+            user_text="remind me at 14:00 to call the bank",
+            user_id="u1",
+        )
+
+    assert result.handled is True
+    spy.assert_awaited_once()
+    due = spy.await_args.kwargs["due_at"]
+    assert due == datetime(2026, 8, 3, 14, 0, tzinfo=UTC)

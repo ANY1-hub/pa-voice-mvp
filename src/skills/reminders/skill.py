@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 _CREATE_PATTERNS = re.compile(
-    r"\b(remind me|reminder|erinner mich|erinnerung|emlékeztess|"
+    r"\b(remind me|reminder|erinner(?:e)? mich|erinnerung|emlékeztess|"
     r"set a reminder|stell eine erinnerung|merk dir das)\b",
     re.IGNORECASE,
 )
@@ -29,10 +29,15 @@ _LIST_PATTERNS = re.compile(
     r"listázd az emlékeztetőket)\b",
     re.IGNORECASE,
 )
+# Agenda must be an explicit schedule question, not a bare date word.
+# Bare "today" / "this week" used to steal creates and ordinary chat.
 _AGENDA_PATTERNS = re.compile(
-    r"\b(was steht|what's on|what is on|what'?s on|agenda|"
-    r"heute|today|diese woche|this week|nächste woche|next week|"
-    r"diesen monat|this month|dieser monat)\b",
+    r"\b("
+    r"was steht|"
+    r"what'?s on|what is on|"
+    r"agenda|"
+    r"what(?:'s| is) (?:on )?(?:today|this week|next week|this month)"
+    r")\b",
     re.IGNORECASE,
 )
 _LOOKUP_PATTERNS = re.compile(
@@ -93,7 +98,7 @@ def _parse_time(text: str) -> tuple[int, int] | None:
     return None
 
 
-def _parse_due(text: str) -> datetime | None:
+def _parse_due(text: str) -> datetime | None:  # noqa: C901
     """Parse a simple relative date (+ optional time) from free text.
 
     Supports: today/heute, tomorrow/morgen, day-after, weekdays.
@@ -117,16 +122,30 @@ def _parse_due(text: str) -> datetime | None:
         if wd:
             target = _WEEKDAYS[wd.group(1).lower()]
             days_ahead = (target - now.weekday()) % 7
-            if days_ahead == 0:
+            t_preview = _parse_time(text)
+            if days_ahead == 0 and t_preview:
+                hour, minute = t_preview
+                same_day = now.replace(
+                    hour=hour, minute=minute, second=0, microsecond=0
+                )
+                days_ahead = 0 if same_day > now else 7
+            elif days_ahead == 0:
                 days_ahead = 7  # next occurrence, not today
             base = (now + timedelta(days=days_ahead)).replace(
                 hour=0, minute=0, second=0, microsecond=0
             )
 
-    if base is None:
-        return None
-
     t = _parse_time(text)
+    if base is None:
+        # Time of day without a date token → today, or tomorrow if already past.
+        if t is None:
+            return None
+        hour, minute = t
+        candidate = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+        if candidate <= now:
+            candidate += timedelta(days=1)
+        return candidate
+
     if t:
         hour, minute = t
         base = base.replace(hour=hour, minute=minute)
@@ -241,15 +260,27 @@ class RemindersSkill(Skill):
     ) -> SkillResult:
         text = user_text.strip()
 
-        if _LOOKUP_PATTERNS.search(text) and not _CREATE_PATTERNS.search(text):
-            return await self._lookup(text)
+        # Create wins over agenda: "remind me today to call mom" must not
+        # be handled as "what's on today".
+        if _CREATE_PATTERNS.search(text):
+            return await self._create_reminder(text)
 
-        agenda = _agenda_range(text)
-        if agenda is not None:
-            return await self._agenda(text, agenda[0], agenda[1])
+        if _LOOKUP_PATTERNS.search(text):
+            return await self._lookup(text)
 
         if _LIST_PATTERNS.search(text):
             return await self._list_reminders(text)
+
+        if _AGENDA_PATTERNS.search(text):
+            agenda = _agenda_range(text)
+            if agenda is None:
+                now = _now_utc()
+                today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+                agenda = (
+                    today_start,
+                    today_start + timedelta(days=1) - timedelta(microseconds=1),
+                )
+            return await self._agenda(text, agenda[0], agenda[1])
 
         return await self._create_reminder(text)
 
