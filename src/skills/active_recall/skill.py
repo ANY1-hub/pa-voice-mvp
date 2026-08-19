@@ -9,33 +9,15 @@ from typing import Any
 from src.memory.semantic_memory import SemanticMemory
 from src.models.memory import SemanticMemoryFact
 from src.skills.base import Skill, SkillResult
+from src.skills.vocabulary import (
+    ACTIVE_RECALL,
+    ACTIVE_RECALL_EXTRA,
+    compile_phrase_regex,
+)
 
 logger = logging.getLogger(__name__)
 
-# Longer phrases first so stripping leaves a clean topic.
-_TRIGGER_PHRASES: list[str] = [
-    r"what do you know about me",
-    r"what do you know about",
-    r"what do you remember about",
-    r"what did i tell you about",
-    r"remind me what i (said|told you) about",
-    r"remind me about",
-    r"recall what you know about",
-    r"was weißt du über mich",
-    r"was weißt du über",
-    r"was erinnerst du dich an",
-    r"was habe ich (dir )?(über|zu) .+ gesagt",
-    r"erinnere mich an",
-    r"was weißt du noch (über|von)",
-    r"meine vorlieben",
-    r"my preferences",
-    r"what do you know",
-]
-
-_TRIGGER_RE = re.compile(
-    r"\b(" + r"|".join(_TRIGGER_PHRASES) + r")\b",
-    re.IGNORECASE,
-)
+_TRIGGER_RE = compile_phrase_regex(ACTIVE_RECALL, extra=ACTIVE_RECALL_EXTRA)
 
 _FILLER_RE = re.compile(
     r"^(about|über|an|zu|von|regarding|concerning)\s+",

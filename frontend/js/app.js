@@ -15,6 +15,7 @@ import {
 import { sendText, sendVoice, setStatus, resetChatTimestamps } from "./chat.js";
 import { startRecordingSession, setSpeakingHandlers, stopTts } from "./audio.js";
 import { applyI18n, getLang, setLang, t } from "./i18n.js";
+import { API_BASE } from "./config.js";
 
 // ------------------------------------------------------------------
 // DOM
@@ -304,20 +305,25 @@ function escapeHtml(str) {
 // Help Button
 // ------------------------------------------------------------------
 function renderHelpContent() {
-    const map = [
-        ["helpNotesTriggers", "notesTriggers"],
-        ["helpNotesExample", "notesExample"],
-        ["helpRemindersTriggers", "remindersTriggers"],
-        ["helpRemindersExample", "remindersExample"],
-        ["helpSearchTriggers", "searchTriggers"],
-        ["helpSearchExample", "searchExample"],
-        ["helpRecallTriggers", "recallTriggers"],
-        ["helpRecallExample", "recallExample"],
-    ];
-    map.forEach(([id, key]) => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = t(key);
-    });
+    const lang = getLang();
+    fetch(`${API_BASE}/api/v1/skills/phrases?lang=${encodeURIComponent(lang)}`)
+        .then((res) => {
+            if (!res.ok) throw new Error("phrases");
+            return res.json();
+        })
+        .then((data) => {
+            const skills = data.skills || {};
+            Object.entries(skills).forEach(([skill, phrases]) => {
+                const ul = document.getElementById(`help-${skill}`);
+                if (!ul) return;
+                ul.innerHTML = (phrases || [])
+                    .map((p) => `<li>${escapeHtml(p)}</li>`)
+                    .join("");
+            });
+        })
+        .catch(() => {
+            /* keep last successful list */
+        });
 }
 
 function refreshI18n() {

@@ -4,12 +4,14 @@ Jarvis reacts to natural language. The phrases below are the **trigger patterns*
 
 You can speak or type them. Matching is case-insensitive and works in English, German and Hungarian.
 
+The Help panel (`?`) lists **ten everyday phrases per skill** for the language you pick with the flag (🇬🇧 / 🇩🇪 / 🇭🇺). The same catalog is at `GET /api/v1/skills/phrases?lang=en|de|hu`.
+
 ## Notes
 
 | Intent | English | German | Hungarian |
 |--------|---------|--------|-----------|
-| Create | note, remember this, save note | notiz, merk dir, schreib auf, notiere | jegyzet, jegyzeteld |
-| List   | list notes, show notes, show my notes, what notes | meine notizen, notizen zeigen | listázd a jegyzeteket |
+| Create | remember this, save a note, make a note, take a note, jot this down, write this down, add a note | merk dir, schreib auf, notiere das, speichere eine notiz, halte fest, neue notiz | jegyzeteld, jegyezd meg, írd fel, mentsd el, új jegyzet |
+| List   | list my notes, show my notes, what notes do I have | meine notizen, notizen zeigen, welche notizen habe ich | listázd a jegyzeteket, mutasd a jegyzeteimet, milyen jegyzeteim vannak |
 
 **Example**  
 - “Note: buy milk tomorrow”  

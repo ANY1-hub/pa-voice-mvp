@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] 2026-08-19
 
 ### Added
+- Ten canonical spoken trigger phrases per skill in EN/DE/HU (`src/skills/vocabulary.py`); Help panel lists only the selected language; `GET /api/v1/skills/phrases`
 - Chat bubbles store UTC ISO timestamps and show local time next to You / J.A.R.V.I.S.; a date separator is inserted for each local calendar day
 - Frontend i18n (EN / DE / HU) with flag buttons in the Help panel; help lists show only the selected language
 - RemindersSkill replies in the user's language; optional LLM slot fill for create content/due date

@@ -3,26 +3,23 @@
 from __future__ import annotations
 
 import logging
-import re
 from typing import Any
 
 from src.memory.semantic_memory import SemanticMemory
 from src.skills.base import Skill, SkillResult
 from src.skills.notes.repository import NoteRepository
+from src.skills.vocabulary import (
+    NOTES_CREATE,
+    NOTES_CREATE_EXTRA,
+    NOTES_LIST,
+    NOTES_LIST_EXTRA,
+    compile_phrase_regex,
+)
 
 logger = logging.getLogger(__name__)
 
-# Simple intent patterns (English + German + Hungarian keywords for MVP)
-_CREATE_PATTERNS = re.compile(
-    r"\b(note|notiz|jegyzet|remember this|merk dir|jegyzeteld|save note|"
-    r"schreib auf|notiere)\b",
-    re.IGNORECASE,
-)
-_LIST_PATTERNS = re.compile(
-    r"\b(list notes|show notes|meine notizen|notizen zeigen|"
-    r"listázd a jegyzeteket|show my notes|what notes)\b",
-    re.IGNORECASE,
-)
+_CREATE_PATTERNS = compile_phrase_regex(NOTES_CREATE, extra=NOTES_CREATE_EXTRA)
+_LIST_PATTERNS = compile_phrase_regex(NOTES_LIST, extra=NOTES_LIST_EXTRA)
 
 
 class NotesSkill(Skill):

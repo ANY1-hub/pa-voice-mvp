@@ -14,6 +14,17 @@ from src.services.llm.base import LLMAdapter
 from src.skills.base import Skill, SkillResult
 from src.skills.reminders.repository import ReminderRepository
 from src.skills.reminders.slots import extract_reminder_slots
+from src.skills.vocabulary import (
+    REMINDERS_AGENDA,
+    REMINDERS_AGENDA_EXTRA,
+    REMINDERS_CREATE,
+    REMINDERS_CREATE_EXTRA,
+    REMINDERS_LIST,
+    REMINDERS_LIST_EXTRA,
+    REMINDERS_LOOKUP,
+    REMINDERS_LOOKUP_EXTRA,
+    compile_phrase_regex,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -21,34 +32,10 @@ logger = logging.getLogger(__name__)
 # Intent patterns
 # ---------------------------------------------------------------------------
 
-_CREATE_PATTERNS = re.compile(
-    r"\b(remind me|reminder|erinner(?:e)? mich|erinnerung|emlékeztess|"
-    r"set a reminder|stell eine erinnerung|merk dir das)\b",
-    re.IGNORECASE,
-)
-_LIST_PATTERNS = re.compile(
-    r"\b(list reminders|show reminders|meine erinnerungen|"
-    r"erinnerungen zeigen|what reminders|zeig mir die erinnerungen|"
-    r"listázd az emlékeztetőket)\b",
-    re.IGNORECASE,
-)
-# Agenda must be an explicit schedule question, not a bare date word.
-# Bare "today" / "this week" used to steal creates and ordinary chat.
-_AGENDA_PATTERNS = re.compile(
-    r"\b("
-    r"was steht|"
-    r"what'?s on|what is on|"
-    r"agenda|"
-    r"what(?:'s| is) (?:on )?(?:today|this week|next week|this month)"
-    r")\b",
-    re.IGNORECASE,
-)
-_LOOKUP_PATTERNS = re.compile(
-    r"\b(wann habe ich|when is|wann muss ich|when do i|when was|"
-    r"wann ist|when did|wann war|when should|wann soll|"
-    r"when do i have)\b",
-    re.IGNORECASE,
-)
+_CREATE_PATTERNS = compile_phrase_regex(REMINDERS_CREATE, extra=REMINDERS_CREATE_EXTRA)
+_LIST_PATTERNS = compile_phrase_regex(REMINDERS_LIST, extra=REMINDERS_LIST_EXTRA)
+_AGENDA_PATTERNS = compile_phrase_regex(REMINDERS_AGENDA, extra=REMINDERS_AGENDA_EXTRA)
+_LOOKUP_PATTERNS = compile_phrase_regex(REMINDERS_LOOKUP, extra=REMINDERS_LOOKUP_EXTRA)
 
 # Relative date tokens
 _TOMORROW = re.compile(r"\b(tomorrow|morgen|holnap)\b", re.IGNORECASE)

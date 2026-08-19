@@ -8,25 +8,19 @@ from typing import Any
 
 from src.memory.semantic_memory import SemanticMemory
 from src.skills.base import Skill, SkillResult
+from src.skills.vocabulary import WEB_SEARCH, WEB_SEARCH_EXTRA, compile_phrase_regex
 from src.skills.web_search.client import DuckDuckGoClient, SearchClient
 
 logger = logging.getLogger(__name__)
 
-_SEARCH_PATTERNS = re.compile(
-    r"\b("
-    r"search|google|look up|lookup|find out|what is|who is|what's|"
-    r"suche|finde|nachschlagen|was ist|wer ist|"
-    r"keress|keresés|mi az|ki az"
-    r")\b",
-    re.IGNORECASE,
-)
+_SEARCH_PATTERNS = compile_phrase_regex(WEB_SEARCH, extra=WEB_SEARCH_EXTRA)
 
-_TRIGGER_PHRASES = [
-    # longer phrases first – order matters
-    r"^(search for|look up|find out|google for|suche nach|finde heraus|keress rá|keresd meg)\s*",
-    r"^(search|google|look up|lookup|find out|suche|finde|keress|"
-    r"what is|who is|what's|was ist|wer ist|mi az|ki az)\s*",
-]
+_STRIP_PHRASES = sorted(
+    {p for items in WEB_SEARCH.values() for p in items} | set(WEB_SEARCH_EXTRA),
+    key=len,
+    reverse=True,
+)
+_TRIGGER_PHRASES = [r"^" + re.escape(p) + r"\s*" for p in _STRIP_PHRASES]
 
 
 class WebSearchSkill(Skill):
