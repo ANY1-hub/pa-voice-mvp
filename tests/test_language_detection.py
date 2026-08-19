@@ -17,9 +17,14 @@ from src.services.orchestrator import detect_response_language
     ],
 )
 def test_explicit_hint_wins(hint: str, expected: str):
-    """Explicit language hint must override text heuristics."""
-    # Text looks German, but hint must win
-    assert detect_response_language("Das ist ein Test", hint=hint) == expected
+    """Explicit language hint must win when the text is ambiguous."""
+    assert detect_response_language("ok", hint=hint) == expected
+
+
+def test_clear_reply_overrides_stale_hint():
+    """A clearly German/Hungarian reply must not keep an English STT hint."""
+    assert detect_response_language("Können wir später sprechen?", hint="en") == "de"
+    assert detect_response_language("Szia, mi újság? Szép az idő.", hint="en") == "hu"
 
 
 def test_hungarian_unique_chars():

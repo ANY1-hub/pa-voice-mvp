@@ -93,7 +93,9 @@ class FasterWhisperSTTAdapter(STTAdapter):
 
         return dst_path
 
-    def _transcribe_sync(self, audio_bytes: bytes, language: str | None) -> str:
+    def _transcribe_sync(
+        self, audio_bytes: bytes, language: str | None
+    ) -> tuple[str, str | None]:
         """Blocking transcription (runs in thread pool).
 
         Args:
@@ -101,7 +103,7 @@ class FasterWhisperSTTAdapter(STTAdapter):
             language: Optional language code; ``None`` = auto-detect.
 
         Returns:
-            Transcribed text.
+            ``(transcript, detected_language)``.
         """
         try:
             wav_path = self._to_wav_16k_mono(audio_bytes)
@@ -111,13 +113,19 @@ class FasterWhisperSTTAdapter(STTAdapter):
             raise ValueError("Could not process audio") from e
 
         try:
-            segments, _ = self.model.transcribe(
+            segments, info = self.model.transcribe(
                 str(wav_path),
                 language=language,
                 beam_size=5,
                 vad_filter=True,
             )
-            return " ".join(segment.text.strip() for segment in segments).strip()
+            text = " ".join(segment.text.strip() for segment in segments).strip()
+            detected = getattr(info, "language", None) if info is not None else None
+            if isinstance(detected, str):
+                detected = detected[:2].lower() or None
+            else:
+                detected = None
+            return text, detected
         except ValueError:
             raise
         except Exception as e:

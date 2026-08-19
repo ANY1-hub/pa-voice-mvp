@@ -136,9 +136,10 @@ def test_transcribe_sync_joins_segment_texts(stt_adapter):
         patch.object(adapter, "_to_wav_16k_mono", return_value=Path("/tmp/fake.wav")),
         patch.object(Path, "unlink"),
     ):
-        text = adapter._transcribe_sync(b"audio", language="en")
+        text, detected = adapter._transcribe_sync(b"audio", language="en")
 
     assert text == "Hello world"
+    assert detected is None
     model.transcribe.assert_called_once()
     _, kwargs = model.transcribe.call_args
     assert kwargs.get("language") == "en"
@@ -153,9 +154,10 @@ def test_transcribe_sync_empty_segments_returns_empty_string(stt_adapter):
         patch.object(adapter, "_to_wav_16k_mono", return_value=Path("/tmp/fake.wav")),
         patch.object(Path, "unlink"),
     ):
-        text = adapter._transcribe_sync(b"silence", language=None)
+        text, detected = adapter._transcribe_sync(b"silence", language=None)
 
     assert text == ""
+    assert detected is None
 
 
 def test_transcribe_sync_model_failure_raises_value_error(stt_adapter):
