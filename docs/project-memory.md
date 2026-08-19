@@ -2,7 +2,7 @@
 
 **Last updated:** 2026-08-19  
 **Branch:** `develop`  
-**Latest HEAD:** `1825c67`
+**Latest HEAD:** `40f3549`
 
 This file is the durable, human-readable source of truth for major project decisions.  
 The agent keeps the internal Project Memory in sync with this document.
@@ -19,10 +19,11 @@ Inspired by Jarvis. One big "Speak" button, out-of-the-box usable, local-first.
 ## Memory Strategy (MVP)
 
 - **2 levels only:** Working Memory + Semantic Memory
-- Working: short-term session context + recent interactions (TTL + importance)
+- Working: short-term session context + recent interactions (TTL 48 h via `expires_at` + Mongo TTL index, importance)
 - Semantic: long-term facts/preferences with timestamps, importance scores, vector embeddings, `entities_involved`
 - Active maintenance via background consolidation jobs
-- Storage: MongoDB Community (Docker on Synology NAS) with Vector Search, user isolation by namespace
+- Personal facts stated in chat are extracted into Semantic Memory (importance 0.75, original language)
+- Storage: MongoDB Community (Docker on Synology NAS), user isolation by namespace
 - Later expansion to 4 levels (Episodic + Perceptual) is **post-MVP**
 
 Detailed design: `docs/memory-design.md`
@@ -67,6 +68,7 @@ Detailed design: `docs/memory-design.md`
 - Background consolidation
 - Skills: Notes, Reminders (date-aware + agenda), memory-augmented Web Search, Active Recall
 - SuperUser bootstrap + Frontend Auth-UI
+- Automatic extraction of personal facts from chat into Semantic Memory
 
 **Explicitly out of MVP**
 - Streaming
@@ -101,6 +103,8 @@ Detailed design: `docs/memory-design.md`
 - Chat timestamps: UTC ISO stored, local time next to You / J.A.R.V.I.S. + date separators
 - Help-Panel i18n with flag buttons (🇬🇧 / 🇩🇪 / 🇭🇺) + language-filtered phrase lists
 - Canonical spoken trigger phrases (10 per skill in EN/DE/HU) in `src/skills/vocabulary.py` + `GET /api/v1/skills/phrases`
+- Personal-fact extraction from chat → Semantic Memory (importance 0.75) + Help-panel phrases
+- Working Memory TTL 48 h (`expires_at` + Mongo TTL index)
 - Semantic Memory hybrid search + embedding resilience + `last_accessed` boost
 - STT language → TTS + reply-language override
 - Many resilience fixes (Safari recording, CORS, DuckDuckGo errors, bootstrap race, etc.)
