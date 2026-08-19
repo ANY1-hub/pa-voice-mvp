@@ -4,8 +4,10 @@ import logging
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
+from src.core.config import get_settings
 from src.db.mongodb import db_client
 from src.memory.semantic_memory import SemanticMemory
+from src.services.embeddings.openai import OpenAIEmbeddingsAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -29,14 +31,26 @@ async def consolidation_job() -> None:
     working_coll = db_client.db["working_memory"]
     semantic_coll = db_client.db["semantic_memory"]
 
+    embeddings = None
+    settings = get_settings()
+    if settings.openai_api_key:
+        embeddings = OpenAIEmbeddingsAdapter()
+
     try:
-        # 1. Get all distinct users currently in Working Memory
-        users = await working_coll.distinct("user_id")
+        # Users with working-memory *or* semantic facts (the latter still
+        # need cleanup/dedup even when WM is empty).
+        wm_users = await working_coll.distinct("user_id")
+        sm_users = await semantic_coll.distinct("user_id")
+        users = list(dict.fromkeys([*wm_users, *sm_users]))
 
         for user_id in users:
             try:
                 logger.info("Consolidating memory for user %s", user_id)
-                sm = SemanticMemory(user_id=user_id, collection=semantic_coll)
+                sm = SemanticMemory(
+                    user_id=user_id,
+                    collection=semantic_coll,
+                    embeddings_adapter=embeddings,
+                )
 
                 high_importance_cursor = working_coll.find(
                     {"user_id": user_id, "importance_score": {"$gte": 0.7}}
@@ -86,10 +100,10 @@ def start_scheduler() -> None:
 def stop_scheduler() -> None:
     """Stop the background scheduler (idempotent).
 
-    No-op if the scheduler is not running. Uses ``wait=False`` for a fast
-    shutdown suitable for process exit.
+    No-op if the scheduler is not running. Waits for an in-flight
+    consolidation job so Mongo is not closed under it.
     """
     if not scheduler.running:
         return
-    scheduler.shutdown(wait=False)
+    scheduler.shutdown(wait=True)
     logger.info("APScheduler stopped.")

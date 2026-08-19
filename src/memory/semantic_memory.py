@@ -6,11 +6,16 @@ from datetime import UTC, datetime, timedelta
 
 from motor.motor_asyncio import AsyncIOMotorCollection
 
+from src.db.mongodb import contains_regex
 from src.models.memory import SemanticMemoryFact
 from src.security.guardrails import validate_memory_write
 from src.services.embeddings.base import EmbeddingsAdapter
 
 logger = logging.getLogger(__name__)
+
+# Drop weak vector hits so unrelated facts are not labelled "relevant"
+# and then importance-boosted.
+MIN_COSINE_SIMILARITY = 0.3
 
 
 def _cosine_similarity(a: list[float], b: list[float]) -> float:
@@ -115,6 +120,8 @@ class SemanticMemory:
         Strategy:
         1. If an embeddings adapter is available → embed the query and rank
            stored facts by cosine similarity (in-memory, fine for MVP scale).
+           Hits below ``MIN_COSINE_SIMILARITY`` are dropped. Facts stored
+           without a vector are filled in via text search (hybrid).
            On embedding failure → fall back to text search.
         2. Otherwise → case-insensitive text substring match on content.
 
@@ -133,40 +140,99 @@ class SemanticMemory:
         if self.collection is None:
             return []
 
-        # --- Vector path (in-memory cosine) ---
+        if not query.strip():
+            return await self._top_facts(limit)
+
+        query_embedding: list[float] | None = None
         if self.embeddings is not None:
             try:
                 query_embedding = await self.embeddings.get_embedding(query)
             except Exception:
                 logger.exception("Query embedding failed – falling back to text search")
-            else:
-                cursor = self.collection.find(
-                    {
-                        "user_id": self.user_id,
-                        "embedding": {"$ne": None},
-                    }
-                )
-                scored: list[tuple[float, SemanticMemoryFact, object]] = []
-                async for doc in cursor:
-                    doc_id = doc.pop("_id", None)
-                    fact = SemanticMemoryFact.model_validate(doc)
-                    if fact.embedding:
-                        score = _cosine_similarity(query_embedding, fact.embedding)
-                        scored.append((score, fact, doc_id))
+                query_embedding = None
 
-                scored.sort(key=lambda pair: pair[0], reverse=True)
-                selected = scored[:limit]
-                await self._touch_facts(
-                    [(fact, doc_id) for _, fact, doc_id in selected]
-                )
-                return [fact for _, fact, _ in selected]
+        if query_embedding is not None:
+            return await self._hybrid_search(query, query_embedding, limit)
+        return await self._text_search(query, limit)
 
-        # --- Text fallback ---
+    async def _hybrid_search(  # noqa: C901
+        self,
+        query: str,
+        query_embedding: list[float],
+        limit: int,
+    ) -> list[SemanticMemoryFact]:
+        """Rank vector hits and fill remaining slots from text matches.
+
+        Facts stored without embeddings (e.g. consolidation without an
+        adapter, or a failed embed at write time) stay retrievable.
+        """
+        if self.collection is None:
+            return []
+
+        needle = query.strip().lower()
+        vector_hits: list[tuple[float, SemanticMemoryFact, object]] = []
+        text_hits: list[tuple[float, SemanticMemoryFact, object]] = []
+
+        cursor = self.collection.find({"user_id": self.user_id})
+        async for doc in cursor:
+            doc_id = doc.pop("_id", None)
+            fact = SemanticMemoryFact.model_validate(doc)
+            if fact.embedding:
+                score = _cosine_similarity(query_embedding, fact.embedding)
+                if score >= MIN_COSINE_SIMILARITY:
+                    vector_hits.append((score, fact, doc_id))
+                    continue
+            if needle and needle in fact.content.lower():
+                text_hits.append((fact.importance_score, fact, doc_id))
+
+        vector_hits.sort(key=lambda pair: pair[0], reverse=True)
+        text_hits.sort(key=lambda pair: pair[0], reverse=True)
+
+        selected: list[tuple[float, SemanticMemoryFact, object]] = []
+        for item in vector_hits:
+            if len(selected) >= limit:
+                break
+            selected.append(item)
+        for item in text_hits:
+            if len(selected) >= limit:
+                break
+            if item[1].content.strip().lower() in {
+                s[1].content.strip().lower() for s in selected
+            }:
+                continue
+            selected.append(item)
+
+        await self._touch_facts([(fact, doc_id) for _, fact, doc_id in selected])
+        return [fact for _, fact, _ in selected]
+
+    async def _top_facts(self, limit: int) -> list[SemanticMemoryFact]:
+        """Return the highest-importance facts (used for 'about me' recall)."""
+        if self.collection is None:
+            return []
+        cursor = (
+            self.collection.find({"user_id": self.user_id})
+            .sort("importance_score", -1)
+            .limit(limit)
+        )
+        results: list[tuple[SemanticMemoryFact, object]] = []
+        async for doc in cursor:
+            doc_id = doc.pop("_id", None)
+            results.append((SemanticMemoryFact.model_validate(doc), doc_id))
+        await self._touch_facts(results)
+        return [fact for fact, _ in results]
+
+    async def _text_search(
+        self, query: str, limit: int
+    ) -> list[SemanticMemoryFact]:
+        """Case-insensitive substring search (escaped) ranked by importance."""
+        if self.collection is None:
+            return []
+
         cursor = (
             self.collection.find(
                 {
                     "user_id": self.user_id,
-                    "content": {"$regex": query, "$options": "i"},
+                    "content": contains_regex(query),
                 }
             )
             .sort("importance_score", -1)
@@ -268,11 +334,13 @@ class SemanticMemory:
             if len(docs) <= 1:
                 continue
 
-            # Sort: highest importance first, then most recent last_accessed
+            # Prefer a copy that still has an embedding so search can find it,
+            # then highest importance, then most recent last_accessed.
             def sort_key(d: dict) -> tuple:
+                has_emb = 1 if d.get("embedding") else 0
                 imp = d.get("importance_score", 0.0)
                 accessed = d.get("last_accessed") or ""
-                return (imp, accessed)
+                return (has_emb, imp, accessed)
 
             docs.sort(key=sort_key, reverse=True)
             # Keep first, delete the rest

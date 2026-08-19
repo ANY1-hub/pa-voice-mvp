@@ -41,6 +41,7 @@ async def test_consolidation_promotes_high_importance_items():
     semantic_coll = MagicMock()
 
     working_coll.distinct = AsyncMock(return_value=["user-1"])
+    semantic_coll.distinct = AsyncMock(return_value=[])
     working_coll.find = MagicMock(
         return_value=AsyncCursor(
             [
@@ -72,7 +73,11 @@ async def test_consolidation_promotes_high_importance_items():
     ):
         await consolidation_job()
 
-    sm_cls.assert_called_once_with(user_id="user-1", collection=semantic_coll)
+    sm_cls.assert_called_once()
+    call_kwargs = sm_cls.call_args.kwargs
+    assert call_kwargs["user_id"] == "user-1"
+    assert call_kwargs["collection"] is semantic_coll
+    assert "embeddings_adapter" in call_kwargs
     mock_sm.add_fact.assert_awaited_once_with(fact="Important fact", importance=0.9)
     working_coll.delete_one.assert_awaited_once_with({"_id": "wm-1"})
     mock_sm.consolidate.assert_awaited_once()
@@ -85,6 +90,7 @@ async def test_consolidation_continues_on_item_error():
     semantic_coll = MagicMock()
 
     working_coll.distinct = AsyncMock(return_value=["user-1"])
+    semantic_coll.distinct = AsyncMock(return_value=[])
     working_coll.find = MagicMock(
         return_value=AsyncCursor(
             [
@@ -125,6 +131,7 @@ async def test_consolidation_no_users():
     working_coll = MagicMock()
     semantic_coll = MagicMock()
     working_coll.distinct = AsyncMock(return_value=[])
+    semantic_coll.distinct = AsyncMock(return_value=[])
 
     db = MagicMock()
     db.__getitem__ = MagicMock(
@@ -172,7 +179,7 @@ def test_stop_scheduler_idempotent():
 
     with patch.object(sched_mod, "scheduler", fake):
         stop_scheduler()
-        fake.shutdown.assert_called_once_with(wait=False)
+        fake.shutdown.assert_called_once_with(wait=True)
 
         fake.running = False
         stop_scheduler()
@@ -201,6 +208,7 @@ async def test_consolidation_continues_on_user_error():
     semantic_coll = MagicMock()
 
     working_coll.distinct = AsyncMock(return_value=["user-bad", "user-good"])
+    semantic_coll.distinct = AsyncMock(return_value=[])
     working_coll.find = MagicMock(return_value=AsyncCursor([]))
 
     db = MagicMock()
@@ -216,7 +224,7 @@ async def test_consolidation_continues_on_user_error():
     good_sm = MagicMock()
     good_sm.consolidate = AsyncMock()
 
-    def sm_factory(*, user_id, collection):
+    def sm_factory(*, user_id, collection, embeddings_adapter=None):
         return bad_sm if user_id == "user-bad" else good_sm
 
     with (

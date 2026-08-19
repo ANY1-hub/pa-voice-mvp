@@ -193,9 +193,53 @@ async def test_search_vector_ranks_by_similarity():
 
     results = await mem.search("query", limit=2)
 
-    assert len(results) == 2
+    assert len(results) == 1
     assert results[0].content == "Match"
-    assert results[1].content == "Unrelated"
+
+
+@pytest.mark.asyncio
+async def test_search_hybrid_includes_facts_without_embedding():
+    """Vector path must still return text-matching facts that have no vector."""
+    docs = [
+        {
+            "_id": "vec",
+            "user_id": USER_ID,
+            "content": "Match",
+            "importance_score": 0.5,
+            "entities_involved": [],
+            "created_at": "2026-07-01T12:00:00+00:00",
+            "last_accessed": "2026-07-01T12:00:00+00:00",
+            "embedding": [1.0, 0.0, 0.0],
+        },
+        {
+            "_id": "plain",
+            "user_id": USER_ID,
+            "content": "User likes coffee",
+            "importance_score": 0.8,
+            "entities_involved": [],
+            "created_at": "2026-07-01T12:00:00+00:00",
+            "last_accessed": "2026-07-01T12:00:00+00:00",
+            "embedding": None,
+        },
+    ]
+    collection = MagicMock()
+    collection.find.return_value = AsyncCursor(docs)
+    collection.update_one = AsyncMock()
+
+    embeddings = AsyncMock()
+    embeddings.get_embedding.return_value = [1.0, 0.0, 0.0]
+
+    mem = SemanticMemory(
+        user_id=USER_ID,
+        collection=collection,
+        embeddings_adapter=embeddings,
+    )
+
+    results = await mem.search("coffee", limit=5)
+
+    contents = [r.content for r in results]
+    assert "Match" in contents
+    assert "User likes coffee" in contents
 
 
 @pytest.mark.asyncio
