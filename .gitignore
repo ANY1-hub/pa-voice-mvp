@@ -34,3 +34,6 @@ build/
 voice_models/piper/
 *.onnx
 *.onnx.json
+
+# else
+docs/research
