@@ -218,6 +218,20 @@ def test_admin_patch_user_ok(client):
     assert data["is_superuser"] is True
 
 
+def test_admin_cannot_demote_last_superuser(client):
+    """Demoting or deactivating the last active SuperUser must be rejected."""
+    headers = _make_superuser_headers(client)
+    listing = client.get("/api/v1/admin/users", headers=headers)
+    super_id = listing.json()[0]["id"]
+    response = client.patch(
+        f"/api/v1/admin/users/{super_id}",
+        headers=headers,
+        json={"is_superuser": False},
+    )
+    assert response.status_code == 400
+    assert "last" in response.json()["detail"].lower()
+
+
 def test_admin_patch_unknown_user(client):
     """Patching a non-existent user_id must return 404."""
     headers = _make_superuser_headers(client)

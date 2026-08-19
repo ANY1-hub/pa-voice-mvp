@@ -1,6 +1,7 @@
 """Admin routes – SuperUser only (user management)."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pymongo.errors import DuplicateKeyError
 
 from src.api.deps import get_current_superuser, get_user_repository
 from src.auth.password import hash_password
@@ -69,7 +70,13 @@ async def create_user(
         is_active=payload.is_active,
         must_change_password=True,  # force change on first login
     )
-    await repo.create(user)
+    try:
+        await repo.create(user)
+    except DuplicateKeyError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email already registered",
+        ) from None
 
     return _to_public(user)
 
@@ -92,6 +99,31 @@ async def update_user(
     Returns:
         Updated public user representation.
     """
+    would_demote = payload.is_superuser is False
+    would_deactivate = payload.is_active is False
+    if would_demote or would_deactivate:
+        users = await repo.list_users(limit=500)
+        target = next((u for u in users if u.id == user_id), None)
+        if target is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+        remaining_supers = [
+            u for u in users if u.id != user_id and u.is_superuser and u.is_active
+        ]
+        target_still_super = (
+            target.is_superuser if payload.is_superuser is None else payload.is_superuser
+        )
+        target_still_active = (
+            target.is_active if payload.is_active is None else payload.is_active
+        )
+        if not remaining_supers and not (target_still_super and target_still_active):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot remove the last active SuperUser",
+            )
+
     updated = await repo.update(
         user_id,
         is_active=payload.is_active,
