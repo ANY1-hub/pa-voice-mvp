@@ -359,3 +359,61 @@ def test_admin_created_user_must_change_password_then_clear(client):
     )
     assert changed.status_code == 200
     assert changed.json()["must_change_password"] is False
+
+
+def test_must_change_password_blocks_memory_but_allows_me(client):
+    """Admin-created users must change password before chat/memory, but /me stays open."""
+    wipe_users()
+    super_email = f"super-{uuid.uuid4().hex[:8]}@example.com"
+    super_pw = "SecurePass123!"
+    client.post(
+        "/api/v1/auth/register",
+        json={"email": super_email, "password": super_pw},
+    )
+    super_token = client.post(
+        "/api/v1/auth/login",
+        json={"email": super_email, "password": super_pw},
+    ).json()["access_token"]
+    super_headers = {"Authorization": f"Bearer {super_token}"}
+
+    user_email = f"forced-{uuid.uuid4().hex[:8]}@example.com"
+    initial_pw = "InitialPass123!"
+    client.post(
+        "/api/v1/admin/users",
+        headers=super_headers,
+        json={"email": user_email, "password": initial_pw},
+    )
+    user_token = client.post(
+        "/api/v1/auth/login",
+        json={"email": user_email, "password": initial_pw},
+    ).json()["access_token"]
+    user_headers = {"Authorization": f"Bearer {user_token}"}
+
+    me = client.get("/api/v1/auth/me", headers=user_headers)
+    assert me.status_code == 200
+    blocked = client.get("/api/v1/memory/working", headers=user_headers)
+    assert blocked.status_code == 403
+    assert "password" in blocked.json()["detail"].lower()
+
+
+def test_password_change_invalidates_old_token(client):
+    """After a password change the previous JWT must no longer authenticate."""
+    wipe_users()
+    email = f"rot-{uuid.uuid4().hex[:8]}@example.com"
+    password = "SecurePass123!"
+    client.post("/api/v1/auth/register", json={"email": email, "password": password})
+    old_token = client.post(
+        "/api/v1/auth/login",
+        json={"email": email, "password": password},
+    ).json()["access_token"]
+    headers = {"Authorization": f"Bearer {old_token}"}
+
+    changed = client.post(
+        "/api/v1/auth/change-password",
+        headers=headers,
+        json={"current_password": password, "new_password": "NewSecurePass99!"},
+    )
+    assert changed.status_code == 200
+
+    stale = client.get("/api/v1/auth/me", headers=headers)
+    assert stale.status_code == 401

@@ -35,6 +35,7 @@ class User(BaseModel):
     is_active: bool = True
     is_superuser: bool = False
     must_change_password: bool = False
+    token_version: int = 0
 
 
 class UserCreate(BaseModel):

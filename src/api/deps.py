@@ -6,7 +6,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from motor.motor_asyncio import AsyncIOMotorCollection
 
-from src.auth.jwt import verify_access_token
+from src.auth.jwt import decode_access_token
 from src.auth.repository import UserRepository
 from src.core.config import get_settings
 from src.db.mongodb import db_client
@@ -191,15 +191,16 @@ async def get_current_user(
             missing/inactive.
     """
     token = credentials.credentials
-    user_id = verify_access_token(token)
+    claims = decode_access_token(token)
 
-    if user_id is None:
+    if claims is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    user_id, token_version = claims
     user = await repo.get_by_id(user_id)
 
     if user is None or not user.is_active:
@@ -209,11 +210,34 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    if token_version != user.token_version:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     return user
 
 
-async def get_current_superuser(
+async def get_current_ready_user(
     current_user: Annotated[User, Depends(get_current_user)],
+) -> User:
+    """Authenticated user who is allowed to use chat / memory / admin.
+
+    ``/auth/me`` and ``/auth/change-password`` keep using ``get_current_user``
+    so a forced password change can complete.
+    """
+    if current_user.must_change_password:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Password change required",
+        )
+    return current_user
+
+
+async def get_current_superuser(
+    current_user: Annotated[User, Depends(get_current_ready_user)],
 ) -> User:
     """Require that the authenticated user is a SuperUser.
 
@@ -235,7 +259,7 @@ async def get_current_superuser(
 
 
 async def get_current_user_id(
-    current_user: Annotated[User, Depends(get_current_user)],
+    current_user: Annotated[User, Depends(get_current_ready_user)],
 ) -> str:
     """Return only the user_id string of the authenticated user.
 

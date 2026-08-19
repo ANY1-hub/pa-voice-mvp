@@ -17,11 +17,13 @@ class UserRepository:
         """
         self.collection = collection
 
-    async def create(self, user: User) -> User:
+    async def create(self, user: User, *, extra: dict | None = None) -> User:
         """Insert a new user.
 
         Args:
             user: Fully constructed ``User`` model to persist.
+            extra: Optional extra fields stored on the document (e.g.
+                ``bootstrap_slot`` for the first SuperUser).
 
         Returns:
             The same ``User`` instance after successful insert.
@@ -32,7 +34,10 @@ class UserRepository:
         """
         if self.collection is None:
             raise RuntimeError("Database not connected")
-        await self.collection.insert_one(user.model_dump(mode="json"))
+        doc = user.model_dump(mode="json")
+        if extra:
+            doc.update(extra)
+        await self.collection.insert_one(doc)
         return user
 
     async def get_by_email(self, email: str) -> User | None:
@@ -149,7 +154,8 @@ class UserRepository:
                 "$set": {
                     "hashed_password": hashed_password,
                     "must_change_password": must_change_password,
-                }
+                },
+                "$inc": {"token_version": 1},
             },
             return_document=True,
         )

@@ -1,6 +1,7 @@
 """Authentication routes: register, login, me."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pymongo.errors import DuplicateKeyError
 
 from src.api.deps import get_current_user, get_user_repository
 from src.auth.jwt import create_access_token
@@ -77,7 +78,13 @@ async def register(
         is_superuser=True,
         must_change_password=False,
     )
-    await repo.create(user)
+    try:
+        await repo.create(user, extra={"bootstrap_slot": 0})
+    except DuplicateKeyError:
+        raise HTTPException(
+            403,
+            detail="Public registration is closed. Ask an administrator to create your account.",
+        ) from None
 
     return _to_public(user)
 
@@ -110,7 +117,9 @@ async def login(
             detail="User account is inactive",
         )
 
-    access_token = create_access_token(subject=user.id)
+    access_token = create_access_token(
+        subject=user.id, token_version=user.token_version
+    )
     return {"access_token": access_token, "token_type": "bearer"}
 
 
