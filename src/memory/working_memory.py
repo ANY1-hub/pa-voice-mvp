@@ -1,5 +1,7 @@
 """Working Memory – short-term context with TTL and importance scoring."""
 
+from datetime import UTC, datetime
+
 from motor.motor_asyncio import AsyncIOMotorCollection
 
 from src.db.mongodb import contains_regex
@@ -63,7 +65,10 @@ class WorkingMemory:
 
         # 3. Persistence
         if self.collection is not None:
-            await self.collection.insert_one(item.model_dump(mode="json"))
+            doc = item.model_dump(mode="json")
+            # BSON Date so Mongo can TTL-expire the document.
+            doc["expires_at"] = item.expires_at
+            await self.collection.insert_one(doc)
 
         return item
 
@@ -85,9 +90,21 @@ class WorkingMemory:
         if self.collection is None:
             return []
 
-        filters: dict = {"user_id": self.user_id}
+        now = datetime.now(UTC)
+        filters: dict = {
+            "user_id": self.user_id,
+            "$or": [
+                {"expires_at": {"$gt": now}},
+                {"expires_at": {"$exists": False}},
+            ],
+        }
         if query:
-            filters["content"] = contains_regex(query)
+            filters = {
+                "$and": [
+                    filters,
+                    {"content": contains_regex(query)},
+                ]
+            }
 
         cursor = self.collection.find(filters).sort("last_accessed", -1).limit(limit)
 

@@ -64,6 +64,7 @@ class SemanticMemory:
         fact: str,
         importance: float = 0.7,
         entities: list[str] | None = None,
+        language: str | None = None,
     ) -> SemanticMemoryFact:
         """Store a new long-term fact.
 
@@ -73,6 +74,7 @@ class SemanticMemory:
             fact: Text content of the fact.
             importance: Importance score in ``[0.0, 1.0]`` (default ``0.7``).
             entities: Optional list of entity names involved in the fact.
+            language: Optional ISO language tag of the original text.
 
         Returns:
             The created ``SemanticMemoryFact`` (also persisted when a collection
@@ -102,6 +104,7 @@ class SemanticMemory:
             importance_score=importance,
             entities_involved=entities or [],
             embedding=embedding,
+            language=language,
         )
 
         # 4. Persistence

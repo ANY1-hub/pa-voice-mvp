@@ -1,8 +1,10 @@
 """Pydantic models for Working Memory and Semantic Memory."""
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from pydantic import BaseModel, Field
+
+WORKING_MEMORY_TTL = timedelta(hours=48)
 
 
 def now_utc() -> datetime:
@@ -30,6 +32,7 @@ class WorkingMemoryItem(BaseModel):
     importance_score: float = Field(default=0.5, ge=0.0, le=1.0)
     created_at: datetime = Field(default_factory=now_utc)
     last_accessed: datetime = Field(default_factory=now_utc)
+    expires_at: datetime = Field(default_factory=lambda: now_utc() + WORKING_MEMORY_TTL)
 
 
 class SemanticMemoryFact(BaseModel):
@@ -52,3 +55,4 @@ class SemanticMemoryFact(BaseModel):
     created_at: datetime = Field(default_factory=now_utc)
     last_accessed: datetime = Field(default_factory=now_utc)
     embedding: list[float] | None = None
+    language: str | None = None

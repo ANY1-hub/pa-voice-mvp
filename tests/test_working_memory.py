@@ -58,6 +58,7 @@ async def test_add_persists_when_collection_present():
     assert dumped["content"] == "Prefers tea"
     assert dumped["user_id"] == USER_ID
     assert item.content == "Prefers tea"
+    assert dumped["expires_at"] == item.expires_at
 
 
 @pytest.mark.asyncio
@@ -107,6 +108,7 @@ async def test_retrieve_maps_documents():
     collection.find.assert_called_once()
     filters = collection.find.call_args.args[0]
     assert filters["user_id"] == USER_ID
+    assert "$or" in filters
 
 
 @pytest.mark.asyncio
@@ -119,4 +121,4 @@ async def test_retrieve_with_query_adds_regex():
     await mem.retrieve(query="coffee", limit=10)
 
     filters = collection.find.call_args.args[0]
-    assert filters["content"] == {"$regex": "coffee", "$options": "i"}
+    assert filters["$and"][1]["content"] == {"$regex": "coffee", "$options": "i"}

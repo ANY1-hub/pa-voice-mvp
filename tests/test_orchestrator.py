@@ -381,3 +381,52 @@ async def test_skill_exception_falls_through_to_llm(
     skill.execute.assert_awaited_once()
     mock_llm.generate_response.assert_awaited_once()
     assert result.response == "Hello from Jarvis."
+
+
+@pytest.mark.asyncio
+async def test_personal_utterance_writes_semantic_facts(
+    mock_llm, mock_tts, mock_working_memory, mock_semantic_memory
+):
+    """A first-person preference must be stored in Semantic Memory after the reply."""
+    mock_llm.generate_response.side_effect = [
+        "I'll remember that you like espresso.",
+        '{"facts":[{"content":"User likes espresso","entities":["espresso"]}]}',
+    ]
+    mock_semantic_memory.add_fact = AsyncMock()
+
+    orch = ChatOrchestrator(
+        llm=mock_llm,
+        tts=mock_tts,
+        working_memory=mock_working_memory,
+        semantic_memory=mock_semantic_memory,
+    )
+    result = await orch.process(text="I like espresso")
+
+    assert "espresso" in result.response.lower()
+    mock_semantic_memory.add_fact.assert_awaited_once()
+    kwargs = mock_semantic_memory.add_fact.await_args.kwargs
+    assert kwargs["fact"] == "User likes espresso"
+    assert kwargs["importance"] >= 0.7
+    assert kwargs["language"] == "en"
+
+
+@pytest.mark.asyncio
+async def test_fact_extraction_failure_does_not_break_turn(
+    mock_llm, mock_tts, mock_working_memory, mock_semantic_memory
+):
+    """A failed fact-extract call must not hide the assistant reply."""
+    mock_llm.generate_response.side_effect = [
+        "Nice to meet you, Tony.",
+        RuntimeError("extract down"),
+    ]
+
+    orch = ChatOrchestrator(
+        llm=mock_llm,
+        tts=mock_tts,
+        working_memory=mock_working_memory,
+        semantic_memory=mock_semantic_memory,
+    )
+    result = await orch.process(text="My name is Tony")
+
+    assert result.response == "Nice to meet you, Tony."
+    mock_semantic_memory.add_fact.assert_not_awaited()

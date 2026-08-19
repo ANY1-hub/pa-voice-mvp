@@ -48,6 +48,10 @@ async def connect_to_mongo() -> None:
         unique=True,
         partialFilterExpression={"bootstrap_slot": {"$exists": True}},
     )
+    # Drop working-memory items after expires_at (set on write, 48h).
+    await db_client.db["working_memory"].create_index(
+        "expires_at", expireAfterSeconds=0
+    )
 
     # Vector search indexes will be initialized here in later phases
 

@@ -15,6 +15,7 @@ from src.memory.semantic_memory import SemanticMemory
 from src.memory.working_memory import WorkingMemory
 from src.security.guardrails import process_user_message
 from src.services.llm.base import LLMAdapter
+from src.services.memory_facts import FACT_IMPORTANCE, extract_personal_facts
 from src.services.stt.base import STTAdapter
 from src.services.tts.base import TTSAdapter
 from src.skills.base import SkillResult
@@ -168,7 +169,6 @@ class ChatOrchestrator:
         memory_context = await self._build_memory_context(sanitized)
 
         # 4. LLM
-        # 4. LLM
         messages = self._build_messages(sanitized, memory_context)
         try:
             response_text = await self.llm.generate_response(messages)
@@ -187,6 +187,7 @@ class ChatOrchestrator:
 
         # 5. Persist the turn in Working Memory (active use of memory)
         await self._store_turn(sanitized, response_text)
+        await self._maybe_learn_facts(sanitized)
 
         # 6. TTS (optional – text-only clients can ignore audio)
         audio_b64 = await self._maybe_synthesize(response_text, tts_lang)
@@ -339,3 +340,22 @@ class ChatOrchestrator:
             )
         except Exception:
             logger.exception("Failed to store turn in working memory")
+
+    async def _maybe_learn_facts(self, user_text: str) -> None:
+        """Extract durable personal facts into Semantic Memory. Never raises."""
+        if self.semantic_memory is None:
+            return
+        try:
+            facts = await extract_personal_facts(self.llm, user_text)
+            for fact in facts:
+                try:
+                    await self.semantic_memory.add_fact(
+                        fact=fact.content,
+                        importance=FACT_IMPORTANCE,
+                        entities=fact.entities,
+                        language=fact.language,
+                    )
+                except Exception:
+                    logger.exception("Failed to store extracted fact")
+        except Exception:
+            logger.exception("Failed to learn facts from turn")

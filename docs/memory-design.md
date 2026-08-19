@@ -17,8 +17,10 @@ Zwei Memory-Ebenen:
   - `created_at`
   - `last_accessed`
 - Speicherung in MongoDB-Collection `working_memory`
-- Retrieval: nach `last_accessed` sortiert, optionaler Textfilter
+- Retrieval: nach `last_accessed` sortiert, optionaler Textfilter; abgelaufene Items (`expires_at`) werden ausgeblendet
+- TTL: 48 Stunden (`expires_at` als BSON Date + Mongo TTL-Index)
 - Vor dem Schreiben: Security-Check über `validate_memory_write`
+- Chat-Turns (Importance 0.4) bleiben kurzfristig; dauerhafte Fakten werden zusätzlich in Semantic Memory extrahiert
 
 ### 2. Semantic Memory (langfristig)
 
@@ -31,6 +33,7 @@ Zwei Memory-Ebenen:
   - `created_at`
   - `last_accessed`
   - `embedding` (optional)
+  - `language` (optional ISO-Tag des Originaltexts; keine Auto-Übersetzung)
 - Speicherung in MongoDB-Collection `semantic_memory`
 - Vor dem Schreiben: Security-Check über `validate_memory_write`
 
@@ -46,7 +49,7 @@ Zwei Memory-Ebenen:
 - Jeder Write geht durch `src/security/guardrails.py` → `validate_memory_write`
 - Input-Validierung und Memory-Policy (Importance-Schwelle, erlaubte Sources)
 - User-Isolation über `user_id` (UUID) in jeder Query
-- API-Header `X-User-Id` muss eine gültige UUID sein (sonst 401)
+- Auth: JWT `user_id` (kein `X-User-Id` Header)
 
 ## Consolidation (MVP – Minimal, erweiterbar)
 
