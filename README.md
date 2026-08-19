@@ -156,7 +156,7 @@ See **[docs/piper-voice-setup.md](docs/piper-voice-setup.md)** for download inst
 Optional per-language override in `.env`:
 
 ```env
-PIPER_VOICE_EN=voice_models/piper/en_US-amy-medium.onnx
+PIPER_VOICE_EN=voice_models/piper/en_GB-alan-medium.onnx
 PIPER_VOICE_DE=voice_models/piper/de_DE-thorsten-medium.onnx
 PIPER_VOICE_HU=voice_models/piper/hu_HU-anna-medium.onnx
 ```
