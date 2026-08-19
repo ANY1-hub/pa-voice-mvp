@@ -37,3 +37,8 @@ voice_models/piper/
 
 # else
 docs/research
+
+# Local-only agent notes (keep on this machine, never GitHub)
+docs/project-memory.md
+docs/handoff*.md
+docs/handoffs/
