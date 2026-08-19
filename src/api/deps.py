@@ -345,6 +345,7 @@ def get_skill_registry(
     note_repo: Annotated[NoteRepository, Depends(get_note_repository)],
     reminder_repo: Annotated[ReminderRepository, Depends(get_reminder_repository)],
     semantic_memory: Annotated[SemanticMemory, Depends(get_semantic_memory)],
+    llm: Annotated[LLMAdapter, Depends(get_llm_adapter)],
 ) -> SkillRegistry:
     """Build and return a SkillRegistry with all available skills for the user.
 
@@ -353,8 +354,9 @@ def get_skill_registry(
 
     Args:
         note_repo: User-scoped note repository.
-        reminder_repo: User-scoped reminder repository
+        reminder_repo: User-scoped reminder repository.
         semantic_memory: User-scoped semantic memory (for summary facts).
+        llm: LLM adapter used for optional reminder slot filling.
 
     Returns:
         ``SkillRegistry`` with registered skills.
@@ -363,7 +365,11 @@ def get_skill_registry(
     registry.register(ActiveRecallSkill(semantic_memory=semantic_memory))
     registry.register(NotesSkill(repository=note_repo, semantic_memory=semantic_memory))
     registry.register(
-        RemindersSkill(repository=reminder_repo, semantic_memory=semantic_memory)
+        RemindersSkill(
+            repository=reminder_repo,
+            semantic_memory=semantic_memory,
+            llm=llm,
+        )
     )
     registry.register(WebSearchSkill(semantic_memory=semantic_memory))
     return registry

@@ -273,8 +273,9 @@ async def test_execute_agenda_today_empty():
     assert result.handled is True
     assert (
         "nothing" in result.response_text.lower()
-        or "no" in result.response_text.lower()
+        or "nichts" in result.response_text.lower()
         or "keine" in result.response_text.lower()
+        or "no pending" in result.response_text.lower()
     )
 
 
@@ -363,6 +364,59 @@ def test_can_handle_lookup_still_matches_explicit_questions():
         skill.can_handle("wann habe ich meinen Termin bei der Arbeitsagentur?") is True
     )
     assert skill.can_handle("when do i need to call the bank?") is True
+
+
+@pytest.mark.asyncio
+async def test_execute_create_german_reply_and_numeric_date():
+    """DE create must answer in German and parse a numeric date like 18.8."""
+    repo = ReminderRepository(user_id="u1", collection=None)
+    skill = RemindersSkill(repository=repo, semantic_memory=None)
+
+    with (
+        patch.object(repo, "create", wraps=repo.create) as spy,
+        patch("src.skills.reminders.skill._now_utc") as mock_now,
+    ):
+        mock_now.return_value = datetime(2026, 8, 19, 12, 0, tzinfo=UTC)
+        result = await skill.execute(
+            user_text="Erinnerung für heute dem 18.8. Zahnarzt",
+            user_id="u1",
+        )
+
+    assert result.handled is True
+    assert "erinnere dich" in result.response_text.lower()
+    assert "got it" not in result.response_text.lower()
+    assert "Zahnarzt" in result.response_text
+    spy.assert_awaited_once()
+    due = spy.await_args.kwargs["due_at"]
+    assert due is not None
+    assert due.date() == datetime(2026, 8, 18).date()
+    content = spy.await_args.kwargs["content"]
+    assert "zahnarzt" in content.lower()
+    assert "18.8" not in content
+    assert "heute" not in content.lower()
+
+
+@pytest.mark.asyncio
+async def test_execute_create_uses_llm_slots_when_available():
+    """LLM slot fill must win over regex for content and due_at."""
+    repo = ReminderRepository(user_id="u1", collection=None)
+    llm = AsyncMock()
+    llm.generate_response.return_value = (
+        '{"content": "Zahnarzt", "due_iso": "2026-08-18T00:00:00+00:00"}'
+    )
+    skill = RemindersSkill(repository=repo, semantic_memory=None, llm=llm)
+
+    with patch.object(repo, "create", wraps=repo.create) as spy:
+        result = await skill.execute(
+            user_text="Erinnerung für heute dem 18.8. bitte",
+            user_id="u1",
+        )
+
+    assert result.handled is True
+    spy.assert_awaited_once()
+    assert spy.await_args.kwargs["content"] == "Zahnarzt"
+    assert spy.await_args.kwargs["due_at"].date() == datetime(2026, 8, 18).date()
+    llm.generate_response.assert_awaited()
 
 
 def test_can_handle_rejects_incidental_today():

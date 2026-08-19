@@ -7,10 +7,13 @@ import re
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from src.core.language import detect_response_language
 from src.memory.semantic_memory import SemanticMemory
 from src.models.reminder import Reminder
+from src.services.llm.base import LLMAdapter
 from src.skills.base import Skill, SkillResult
 from src.skills.reminders.repository import ReminderRepository
+from src.skills.reminders.slots import extract_reminder_slots
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +51,9 @@ _LOOKUP_PATTERNS = re.compile(
 )
 
 # Relative date tokens
-_TOMORROW = re.compile(r"\b(tomorrow|morgen)\b", re.IGNORECASE)
-_TODAY = re.compile(r"\b(today|heute)\b", re.IGNORECASE)
+_TOMORROW = re.compile(r"\b(tomorrow|morgen|holnap)\b", re.IGNORECASE)
+_TODAY = re.compile(r"\b(today|heute|ma)\b", re.IGNORECASE)
+_NUMERIC_DATE = re.compile(r"\b(\d{1,2})[./](\d{1,2})(?:[./](\d{2,4}))?\b")
 _DAY_AFTER = re.compile(r"\b(übermorgen|day after tomorrow)\b", re.IGNORECASE)
 
 _WEEKDAYS = {
@@ -107,17 +111,33 @@ def _parse_due(text: str) -> datetime | None:  # noqa: C901
     now = _now_utc()
     base: datetime | None = None
 
-    if _DAY_AFTER.search(text):
+    numeric = _NUMERIC_DATE.search(text)
+    if numeric:
+        day = int(numeric.group(1))
+        month = int(numeric.group(2))
+        year_raw = numeric.group(3)
+        if year_raw:
+            year = int(year_raw)
+            if year < 100:
+                year += 2000
+        else:
+            year = now.year
+        try:
+            base = datetime(year, month, day, tzinfo=UTC)
+        except ValueError:
+            base = None
+
+    if base is None and _DAY_AFTER.search(text):
         base = (now + timedelta(days=2)).replace(
             hour=0, minute=0, second=0, microsecond=0
         )
-    elif _TOMORROW.search(text):
+    elif base is None and _TOMORROW.search(text):
         base = (now + timedelta(days=1)).replace(
             hour=0, minute=0, second=0, microsecond=0
         )
-    elif _TODAY.search(text):
+    elif base is None and _TODAY.search(text):
         base = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    else:
+    elif base is None:
         wd = _WEEKDAY_RE.search(text)
         if wd:
             target = _WEEKDAYS[wd.group(1).lower()]
@@ -160,11 +180,15 @@ def _strip_date_tokens(text: str) -> str:
     cleaned = _DAY_AFTER.sub("", cleaned)
     cleaned = _WEEKDAY_RE.sub("", cleaned)
     cleaned = _TIME_RE.sub("", cleaned)
-    # common filler words after stripping
+    cleaned = _NUMERIC_DATE.sub("", cleaned)
     cleaned = re.sub(
-        r"\b(an den|an die|an das|an|to|um|at|on)\b", "", cleaned, flags=re.I
+        r"\b(an den|an die|an das|an|to|um|at|on|für|dem|den|die|das|"
+        r"eine|einen|einer|einem|zum|zur|bitte|for)\b",
+        "",
+        cleaned,
+        flags=re.I,
     )
-    return cleaned.strip(" :,-.").strip()
+    return re.sub(r"\s+", " ", cleaned).strip(" :,-.").strip()
 
 
 def _format_due(due: datetime | None) -> str:
@@ -225,10 +249,70 @@ def _lookup_keyword(text: str) -> str:
     return cleaned if len(cleaned) >= 2 else text.strip()
 
 
+_REPLIES: dict[str, dict[str, str]] = {
+    "en": {
+        "need_content": "I need a bit more content for the reminder.",
+        "save_fail": "Sorry, I could not save the reminder.",
+        "created": "Got it. I'll remind you{due}: {content}",
+        "created_due": " on {due}",
+        "list_fail": "Sorry, I could not retrieve your reminders.",
+        "list_empty": "You have no pending reminders.",
+        "list_header": "Here are your pending reminders:",
+        "agenda_fail": "Sorry, I could not load your agenda.",
+        "agenda_empty": "Nothing scheduled in that period.",
+        "agenda_header": "Here's what's on:",
+        "lookup_fail": "Sorry, I could not search your reminders.",
+        "lookup_empty": "I couldn't find a reminder matching '{keyword}'.",
+        "lookup_header": "Here's what I found:",
+        "no_date": "no date set",
+    },
+    "de": {
+        "need_content": "Ich brauche etwas mehr Inhalt für die Erinnerung.",
+        "save_fail": "Sorry, ich konnte die Erinnerung nicht speichern.",
+        "created": "Alles klar. Ich erinnere dich{due}: {content}",
+        "created_due": " am {due}",
+        "list_fail": "Sorry, ich konnte deine Erinnerungen nicht laden.",
+        "list_empty": "Du hast keine offenen Erinnerungen.",
+        "list_header": "Hier sind deine offenen Erinnerungen:",
+        "agenda_fail": "Sorry, ich konnte deinen Kalender nicht laden.",
+        "agenda_empty": "In dem Zeitraum steht nichts an.",
+        "agenda_header": "Das steht an:",
+        "lookup_fail": "Sorry, ich konnte nicht in deinen Erinnerungen suchen.",
+        "lookup_empty": "Ich habe keine Erinnerung zu '{keyword}' gefunden.",
+        "lookup_header": "Das habe ich gefunden:",
+        "no_date": "kein Datum",
+    },
+    "hu": {
+        "need_content": "Kicsit több tartalom kell az emlékeztetőhöz.",
+        "save_fail": "Sajnos nem tudtam menteni az emlékeztetőt.",
+        "created": "Rendben. Emlékeztetlek{due}: {content}",
+        "created_due": " ekkor: {due}",
+        "list_fail": "Sajnos nem tudtam lekérni az emlékeztetőket.",
+        "list_empty": "Nincs függő emlékeztetőd.",
+        "list_header": "Ezek a függő emlékeztetőid:",
+        "agenda_fail": "Sajnos nem tudtam betölteni a naptárad.",
+        "agenda_empty": "Ebben az időszakban nincs semmi.",
+        "agenda_header": "Ez van a naptárban:",
+        "lookup_fail": "Sajnos nem tudtam keresni az emlékeztetők között.",
+        "lookup_empty": "Nem találtam emlékeztetőt erre: '{keyword}'.",
+        "lookup_header": "Ezt találtam:",
+        "no_date": "nincs dátum",
+    },
+}
+
+
+def _t(lang: str, key: str, **kwargs: str) -> str:
+    """Look up a reply template in the detected language (fallback English)."""
+    table = _REPLIES.get(lang) or _REPLIES["en"]
+    template = table.get(key) or _REPLIES["en"][key]
+    return template.format(**kwargs) if kwargs else template
+
+
 class RemindersSkill(Skill):
     """Create, list, agenda-query and look up structured reminders.
 
     On create, also writes a short summary fact into Semantic Memory.
+    Replies use the same language as the user so TTS is not English-on-German.
     """
 
     name = "reminders"
@@ -237,9 +321,11 @@ class RemindersSkill(Skill):
         self,
         repository: ReminderRepository,
         semantic_memory: SemanticMemory | None = None,
+        llm: LLMAdapter | None = None,
     ) -> None:
         self.repository = repository
         self.semantic_memory = semantic_memory
+        self.llm = llm
 
     def can_handle(self, user_text: str, context: dict[str, Any] | None = None) -> bool:
         text = user_text.strip()
@@ -259,17 +345,18 @@ class RemindersSkill(Skill):
         **deps: Any,
     ) -> SkillResult:
         text = user_text.strip()
+        lang = detect_response_language(text)
 
         # Create wins over agenda: "remind me today to call mom" must not
         # be handled as "what's on today".
         if _CREATE_PATTERNS.search(text):
-            return await self._create_reminder(text)
+            return await self._create_reminder(text, lang)
 
         if _LOOKUP_PATTERNS.search(text):
-            return await self._lookup(text)
+            return await self._lookup(text, lang)
 
         if _LIST_PATTERNS.search(text):
-            return await self._list_reminders(text)
+            return await self._list_reminders(text, lang)
 
         if _AGENDA_PATTERNS.search(text):
             agenda = _agenda_range(text)
@@ -280,23 +367,32 @@ class RemindersSkill(Skill):
                     today_start,
                     today_start + timedelta(days=1) - timedelta(microseconds=1),
                 )
-            return await self._agenda(text, agenda[0], agenda[1])
+            return await self._agenda(text, agenda[0], agenda[1], lang)
 
-        return await self._create_reminder(text)
+        return await self._create_reminder(text, lang)
 
     # ------------------------------------------------------------------
     # Create
     # ------------------------------------------------------------------
 
-    async def _create_reminder(self, user_text: str) -> SkillResult:
+    async def _create_reminder(self, user_text: str, lang: str) -> SkillResult:
         due_at = _parse_due(user_text)
         content = _strip_date_tokens(user_text)
         if not content:
             content = user_text.strip()
 
+        if self.llm is not None:
+            llm_content, llm_due = await extract_reminder_slots(
+                self.llm, user_text, _now_utc()
+            )
+            if llm_content:
+                content = llm_content
+            if llm_due is not None:
+                due_at = llm_due
+
         if len(content) < 2:
             return SkillResult(
-                response_text="I need a bit more content for the reminder.",
+                response_text=_t(lang, "need_content"),
                 handled=True,
             )
 
@@ -305,7 +401,7 @@ class RemindersSkill(Skill):
         except Exception:
             logger.exception("Failed to create reminder")
             return SkillResult(
-                response_text="Sorry, I could not save the reminder.",
+                response_text=_t(lang, "save_fail"),
                 handled=True,
             )
 
@@ -323,9 +419,14 @@ class RemindersSkill(Skill):
             except Exception:
                 logger.exception("Failed to write reminder summary to semantic memory")
 
-        due_str = f" on {_format_due(due_at)}" if due_at else ""
+        due_part = _t(lang, "created_due", due=_format_due(due_at)) if due_at else ""
         return SkillResult(
-            response_text=f"Got it. I'll remind you{due_str}: {reminder.content[:120]}",
+            response_text=_t(
+                lang,
+                "created",
+                due=due_part,
+                content=reminder.content[:120],
+            ),
             handled=True,
             memory_writes=[{"content": summary, "importance": 0.6}],
         )
@@ -334,26 +435,24 @@ class RemindersSkill(Skill):
     # List (all pending)
     # ------------------------------------------------------------------
 
-    async def _list_reminders(self, user_text: str) -> SkillResult:
+    async def _list_reminders(self, user_text: str, lang: str) -> SkillResult:
         try:
             reminders = await self.repository.list_reminders(limit=15)
         except Exception:
             logger.exception("Failed to list reminders")
             return SkillResult(
-                response_text="Sorry, I could not retrieve your reminders.",
+                response_text=_t(lang, "list_fail"),
                 handled=True,
             )
 
         if not reminders:
             return SkillResult(
-                response_text="You have no pending reminders.",
+                response_text=_t(lang, "list_empty"),
                 handled=True,
             )
 
         return SkillResult(
-            response_text=self._format_list(
-                reminders, header="Here are your pending reminders:"
-            ),
+            response_text=self._format_list(reminders, header=_t(lang, "list_header")),
             handled=True,
         )
 
@@ -362,7 +461,11 @@ class RemindersSkill(Skill):
     # ------------------------------------------------------------------
 
     async def _agenda(
-        self, user_text: str, due_from: datetime, due_to: datetime
+        self,
+        user_text: str,
+        due_from: datetime,
+        due_to: datetime,
+        lang: str,
     ) -> SkillResult:
         try:
             reminders = await self.repository.list_reminders(
@@ -371,13 +474,13 @@ class RemindersSkill(Skill):
         except Exception:
             logger.exception("Failed to load agenda")
             return SkillResult(
-                response_text="Sorry, I could not load your agenda.",
+                response_text=_t(lang, "agenda_fail"),
                 handled=True,
             )
 
         if not reminders:
             return SkillResult(
-                response_text="Nothing scheduled in that period.",
+                response_text=_t(lang, "agenda_empty"),
                 handled=True,
             )
 
@@ -399,7 +502,7 @@ class RemindersSkill(Skill):
 
         body = "\n".join(lines)
         return SkillResult(
-            response_text=f"Here's what's on:\n{body}",
+            response_text=f"{_t(lang, 'agenda_header')}\n{body}",
             handled=True,
         )
 
@@ -407,20 +510,20 @@ class RemindersSkill(Skill):
     # Lookup (specific event)
     # ------------------------------------------------------------------
 
-    async def _lookup(self, user_text: str) -> SkillResult:
+    async def _lookup(self, user_text: str, lang: str) -> SkillResult:
         keyword = _lookup_keyword(user_text)
         try:
             reminders = await self.repository.search_by_content(keyword, limit=5)
         except Exception:
             logger.exception("Failed to search reminders")
             return SkillResult(
-                response_text="Sorry, I could not search your reminders.",
+                response_text=_t(lang, "lookup_fail"),
                 handled=True,
             )
 
         if not reminders:
             return SkillResult(
-                response_text=f"I couldn't find a reminder matching '{keyword}'.",
+                response_text=_t(lang, "lookup_empty", keyword=keyword),
                 handled=True,
             )
 
@@ -430,10 +533,10 @@ class RemindersSkill(Skill):
             if due_str:
                 lines.append(f"• {r.content[:80]} — {due_str}")
             else:
-                lines.append(f"• {r.content[:80]} (no date set)")
+                lines.append(f"• {r.content[:80]} ({_t(lang, 'no_date')})")
 
         return SkillResult(
-            response_text="Here's what I found:\n" + "\n".join(lines),
+            response_text=_t(lang, "lookup_header") + "\n" + "\n".join(lines),
             handled=True,
         )
 
