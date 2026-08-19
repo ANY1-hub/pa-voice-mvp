@@ -1,0 +1,12 @@
+# Keep the tree LF so Windows/WSL editors do not rewrite every file.
+* text=auto eol=lf
+*.onnx binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.wav binary
+*.mp3 binary
+*.woff binary
+*.woff2 binary
