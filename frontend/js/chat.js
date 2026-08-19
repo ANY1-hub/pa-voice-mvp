@@ -1,22 +1,70 @@
 import { api } from "./auth.js";
 import { playBase64Audio } from "./audio.js";
+import { t } from "./i18n.js";
 
 const chatContainer = () => document.getElementById("chatContainer");
 const statusLine = () => document.getElementById("statusLine");
 
-export function appendMessage(role, text) {
+let lastLocalDayKey = null;
+
+function localDayKey(date) {
+    return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+}
+
+function formatLocalTime(date) {
+    return date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatLocalDate(date) {
+    return date.toLocaleDateString(undefined, {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+    });
+}
+
+function maybeAppendDateSeparator(when) {
+    const key = localDayKey(when);
+    if (lastLocalDayKey === key) return;
+    lastLocalDayKey = key;
+    const sep = document.createElement("div");
+    sep.className = "chat-date-sep";
+    sep.textContent = formatLocalDate(when);
+    chatContainer().appendChild(sep);
+}
+
+export function resetChatTimestamps() {
+    lastLocalDayKey = null;
+}
+
+export function appendMessage(role, text, isoUtc) {
+    const when = isoUtc ? new Date(isoUtc) : new Date();
+    maybeAppendDateSeparator(when);
+
     const el = document.createElement("div");
     el.className = `msg ${role}`;
+    el.dataset.utc = when.toISOString();
 
-    const roleLabel = document.createElement("div");
-    roleLabel.className = "msg-role";
-    roleLabel.textContent = role === "user" ? "You" : "J.A.R.V.I.S.";
+    const meta = document.createElement("div");
+    meta.className = "msg-role";
+
+    const name = document.createElement("span");
+    name.textContent = role === "user" ? t("you") : t("jarvis");
+
+    const time = document.createElement("time");
+    time.className = "msg-time";
+    time.dateTime = when.toISOString();
+    time.textContent = formatLocalTime(when);
+
+    meta.appendChild(name);
+    meta.appendChild(time);
 
     const body = document.createElement("div");
     body.className = "msg-body";
     body.textContent = text;
 
-    el.appendChild(roleLabel);
+    el.appendChild(meta);
     el.appendChild(body);
     chatContainer().appendChild(el);
     chatContainer().scrollTop = chatContainer().scrollHeight;
@@ -45,7 +93,7 @@ function formatApiDetail(detail) {
 }
 
 export async function sendText(text) {
-    setStatus("Processing…");
+    setStatus(t("processing"));
     const res = await api("/api/v1/chat/text", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -58,14 +106,15 @@ export async function sendText(text) {
     }
 
     const data = await res.json();
-    appendMessage("user", data.transcript);
-    appendMessage("jarvis", data.response);
+    const sentAt = new Date().toISOString();
+    appendMessage("user", data.transcript, sentAt);
+    appendMessage("jarvis", data.response, sentAt);
     playBase64Audio(data.audio_base64);
     setStatus("");
 }
 
 export async function sendVoice(blob) {
-    setStatus("Transcribing & thinking…");
+    setStatus(t("transcribing"));
     const form = new FormData();
     form.append("audio", blob, "recording.wav");
 
@@ -80,8 +129,9 @@ export async function sendVoice(blob) {
     }
 
     const data = await res.json();
-    appendMessage("user", data.transcript);
-    appendMessage("jarvis", data.response);
+    const sentAt = new Date().toISOString();
+    appendMessage("user", data.transcript, sentAt);
+    appendMessage("jarvis", data.response, sentAt);
     playBase64Audio(data.audio_base64);
     setStatus("");
 }
