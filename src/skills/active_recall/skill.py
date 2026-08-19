@@ -30,8 +30,6 @@ _TRIGGER_PHRASES: list[str] = [
     r"meine vorlieben",
     r"my preferences",
     r"what do you know",
-    r"recall",
-    r"erinner dich",
 ]
 
 _TRIGGER_RE = re.compile(
@@ -78,9 +76,7 @@ class ActiveRecallSkill(Skill):
             )
 
         try:
-            facts = await self.semantic_memory.search(
-                query=query or "preferences", limit=6
-            )
+            facts = await self.semantic_memory.search(query=query, limit=6)
         except Exception:
             logger.exception("Active recall search failed")
             return SkillResult(

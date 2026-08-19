@@ -23,7 +23,7 @@ _SEARCH_PATTERNS = re.compile(
 
 _TRIGGER_PHRASES = [
     # longer phrases first – order matters
-    r"^(search for|look up|find out|google for|suche nach|finde heraus|keress rá| keresd meg)\s*",
+    r"^(search for|look up|find out|google for|suche nach|finde heraus|keress rá|keresd meg)\s*",
     r"^(search|google|look up|lookup|find out|suche|finde|keress|"
     r"what is|who is|what's|was ist|wer ist|mi az|ki az)\s*",
 ]
@@ -63,10 +63,12 @@ class WebSearchSkill(Skill):
         return await self._run_search(query)
 
     def _extract_query(self, user_text: str) -> str:
-        """Remove known trigger phrases, return the remaining substance."""
+        """Remove the first matching trigger prefix, return the remaining substance."""
         text = user_text.strip()
         for pat in _TRIGGER_PHRASES:
-            text = re.sub(pat, "", text, flags=re.IGNORECASE).strip()
+            stripped = re.sub(pat, "", text, count=1, flags=re.IGNORECASE).strip()
+            if stripped != text:
+                return stripped.strip(" :,-?")
         return text.strip(" :,-?")
 
     async def _run_search(self, query: str) -> SkillResult:

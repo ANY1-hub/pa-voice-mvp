@@ -3,10 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from typing import Protocol
-
-logger = logging.getLogger(__name__)
 
 
 class SearchClient(Protocol):
@@ -32,20 +29,16 @@ class DuckDuckGoClient:
         """
 
         def _sync_search() -> list[dict[str, str]]:
-            try:
-                from ddgs import DDGS
+            from ddgs import DDGS
 
-                raw = DDGS().text(query, max_results=max_results)
-                return [
-                    {
-                        "title": r.get("title") or "",
-                        "href": r.get("href") or "",
-                        "body": r.get("body") or "",
-                    }
-                    for r in raw
-                ]
-            except Exception:
-                logger.exception("DuckDuckGo search failed")
-                return []
+            raw = DDGS().text(query, max_results=max_results)
+            return [
+                {
+                    "title": r.get("title") or "",
+                    "href": r.get("href") or "",
+                    "body": r.get("body") or "",
+                }
+                for r in raw
+            ]
 
         return await asyncio.to_thread(_sync_search)

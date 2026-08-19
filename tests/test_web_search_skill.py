@@ -301,8 +301,8 @@ async def test_ddg_client_maps_results():
 
 
 @pytest.mark.asyncio
-async def test_ddg_client_exception_returns_empty_list():
-    """If the DDGS library raises, the client must return [] instead of crashing the skill."""
+async def test_ddg_client_exception_propagates():
+    """If the DDGS library raises, the client must propagate so the skill can report failure."""
     from src.skills.web_search.client import DuckDuckGoClient
 
     with patch("src.skills.web_search.client.asyncio.to_thread") as mock_thread:
@@ -321,6 +321,5 @@ async def test_ddg_client_exception_returns_empty_list():
             mock_ddgs_mod.DDGS.return_value = mock_ddgs_inst
 
             client = DuckDuckGoClient()
-            results = await client.search("anything")
-
-    assert results == []
+            with pytest.raises(RuntimeError, match="ddgs boom"):
+                await client.search("anything")

@@ -37,6 +37,7 @@ def test_can_handle_english_recall_intents():
     assert skill.can_handle("Remind me what I told you about coffee") is True
     assert skill.can_handle("What are my preferences?") is True
     assert skill.can_handle("just chatting about the weather") is False
+    assert skill.can_handle("I don't recall his name") is False
 
 
 def test_can_handle_german_recall_intents():
