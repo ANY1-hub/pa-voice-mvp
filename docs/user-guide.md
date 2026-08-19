@@ -25,7 +25,9 @@ You can speak or type them. Matching is case-insensitive and works in English, G
 | Agenda | what's on today, this week, next week, this month | was steht heute an, diese Woche, nächste Woche, diesen Monat | – |
 | Lookup | when is …, when do I … | wann habe ich …, wann muss ich … | – |
 
-**Date tokens on create** (optional): today/heute, tomorrow/morgen, weekdays, “um 14 Uhr” / “at 14:00”.
+**Date tokens on create** (optional): today/heute/ma, tomorrow/morgen/holnap, weekdays, numeric dates (`18.8.` / `18.8.2026`), “um 14 Uhr” / “at 14:00”.
+
+Skill replies match the user's language (EN / DE / HU) so TTS is not English-on-German.
 
 **Example**  
 - “Remind me tomorrow at 10 to call the dentist”  
@@ -64,4 +66,4 @@ Longer prefixes that are stripped automatically:
 
 - First matching skill wins (Active Recall is checked before Notes / Reminders / Web Search).
 - If no skill matches, the request goes to the general LLM + memory path.
-- Triggers are deliberately simple keyword / phrase patterns for the MVP. More robust NLU can be added later.
+- Triggers are keyword / phrase patterns for the MVP. Reminder *create* may also ask the configured LLM to extract content and due date; regex remains the fallback if that call fails.

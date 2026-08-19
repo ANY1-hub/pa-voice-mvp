@@ -4,7 +4,7 @@
 
 A local-first, privacy-centric voice assistant that actively learns and maintains personal insights.
 
-## Status (2026-08-18)
+## Status (2026-08-19)
 
 | Phase | Status |
 |-------|--------|

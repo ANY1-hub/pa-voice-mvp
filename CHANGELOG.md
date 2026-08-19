@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] 2026-08-19
 
+### Added
+- Chat bubbles store UTC ISO timestamps and show local time next to You / J.A.R.V.I.S.; a date separator is inserted for each local calendar day
+- Frontend i18n (EN / DE / HU) with flag buttons in the Help panel; help lists show only the selected language
+- RemindersSkill replies in the user's language; optional LLM slot fill for create content/due date
+
 ### Fixed
 - Reminders: "remind me today …" creates a reminder instead of listing the agenda; agenda no longer claims bare "today"/"this week" chat
 - Reminders: time-of-day without a date token now sets due_at (today, or tomorrow if already past); `erinner(e)? mich` matches German create
