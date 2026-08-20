@@ -16,7 +16,7 @@ from src.main import app
 from src.models.reminder import Reminder
 from src.skills.reminders.repository import ReminderRepository, claim_due_reminders
 from src.skills.reminders.skill import fire_speech
-from tests.conftest import wipe_users
+from tests.conftest import set_test_display_name, wipe_users
 
 
 @pytest.mark.asyncio
@@ -117,6 +117,7 @@ def delivery_auth(delivery_client) -> tuple[dict, str]:
         "/api/v1/auth/login", json={"email": email, "password": password}
     ).json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
+    set_test_display_name(client, headers)
     user_id = client.get("/api/v1/auth/me", headers=headers).json()["id"]
     return headers, user_id
 

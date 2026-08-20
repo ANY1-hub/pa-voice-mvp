@@ -11,7 +11,7 @@ from pymongo import MongoClient
 from src.api.deps import get_llm_adapter, get_tts_adapter
 from src.core.config import get_settings
 from src.main import app
-from tests.conftest import wipe_users
+from tests.conftest import set_test_display_name, wipe_users
 
 
 @pytest.fixture
@@ -42,6 +42,7 @@ def probe_auth(probe_client: TestClient) -> tuple[dict, str]:
         "/api/v1/auth/login", json={"email": email, "password": password}
     ).json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
+    set_test_display_name(probe_client, headers)
     user_id = probe_client.get("/api/v1/auth/me", headers=headers).json()["id"]
     return headers, user_id
 

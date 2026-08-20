@@ -161,3 +161,25 @@ class UserRepository:
             return None
         result.pop("_id", None)
         return User.model_validate(result)
+
+    async def set_display_name(self, user_id: str, display_name: str) -> User | None:
+        """Store the preferred name Jarvis should use when addressing the user.
+
+        Args:
+            user_id: Target user UUID.
+            display_name: Already-normalized preferred name.
+
+        Returns:
+            Updated ``User``, or ``None`` if not found / no collection.
+        """
+        if self.collection is None:
+            return None
+        result = await self.collection.find_one_and_update(
+            {"id": user_id},
+            {"$set": {"display_name": display_name}},
+            return_document=True,
+        )
+        if result is None:
+            return None
+        result.pop("_id", None)
+        return User.model_validate(result)

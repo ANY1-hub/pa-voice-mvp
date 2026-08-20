@@ -466,3 +466,13 @@ async def test_semantic_add_fact_failure_does_not_break_turn(
 
     assert result.response == "Got it."
     mock_semantic_memory.add_fact.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_display_name_is_in_system_prompt(mock_llm, mock_tts):
+    """When a preferred name is set, the system prompt must tell Jarvis to use it."""
+    orch = ChatOrchestrator(llm=mock_llm, tts=mock_tts, display_name="Jarvis-Tester")
+    await orch.process(text="Hello")
+    messages = mock_llm.generate_response.await_args.args[0]
+    system = messages[0]["content"]
+    assert "Jarvis-Tester" in system

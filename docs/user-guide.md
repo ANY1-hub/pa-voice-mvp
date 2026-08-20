@@ -1,5 +1,7 @@
 # User Guide – Skill Vocabulary (MVP)
 
+On first login Jarvis asks how you want to be addressed (after a forced password change, if any). That name is used in conversation.
+
 Jarvis reacts to natural language. The phrases below are the **trigger patterns** that currently route a request to a dedicated skill instead of the general LLM path.
 
 You can speak or type them. Matching is case-insensitive and works in English, German and Hungarian.

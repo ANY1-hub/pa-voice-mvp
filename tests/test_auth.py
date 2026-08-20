@@ -7,7 +7,7 @@ from jose import jwt
 from pymongo import MongoClient
 
 from src.core.config import get_settings
-from tests.conftest import wipe_users
+from tests.conftest import set_test_display_name, wipe_users
 
 
 def test_register_success(client):
@@ -100,6 +100,7 @@ def test_me_with_valid_token(client, auth_headers):
     data = response.json()
     assert "email" in data
     assert "id" in data
+    assert data["display_name"] == "Test"
     assert "hashed_password" not in data
 
 
@@ -330,6 +331,7 @@ def test_admin_created_user_must_change_password_then_clear(client):
         json={"email": super_email, "password": super_pw},
     ).json()["access_token"]
     super_headers = {"Authorization": f"Bearer {super_token}"}
+    set_test_display_name(client, super_headers)
 
     # Admin creates user with initial password
     user_email = f"forced-{uuid.uuid4().hex[:8]}@example.com"
@@ -375,6 +377,7 @@ def test_must_change_password_blocks_memory_but_allows_me(client):
         json={"email": super_email, "password": super_pw},
     ).json()["access_token"]
     super_headers = {"Authorization": f"Bearer {super_token}"}
+    set_test_display_name(client, super_headers)
 
     user_email = f"forced-{uuid.uuid4().hex[:8]}@example.com"
     initial_pw = "InitialPass123!"

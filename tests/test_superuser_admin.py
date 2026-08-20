@@ -2,7 +2,7 @@
 
 import uuid
 
-from tests.conftest import wipe_users
+from tests.conftest import set_test_display_name, wipe_users
 
 
 def _make_superuser_headers(client) -> dict:
@@ -24,7 +24,9 @@ def _make_superuser_headers(client) -> dict:
     )
     assert login.status_code == 200
     token = login.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
+    headers = {"Authorization": f"Bearer {token}"}
+    set_test_display_name(client, headers)
+    return headers
 
 
 def _make_normal_headers(client, super_headers: dict) -> dict:

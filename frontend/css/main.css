@@ -40,10 +40,19 @@ body {
 }
 
 /* ---------- Login ---------- */
-#authScreen {
+#authScreen,
+#changePasswordScreen,
+#displayNameScreen {
     align-items: center;
     justify-content: center;
     padding: 1.5rem;
+}
+
+.onboard-lang-switch {
+    display: flex;
+    justify-content: center;
+    gap: 0.25rem;
+    margin: 0 0 1.25rem;
 }
 
 .login-card {

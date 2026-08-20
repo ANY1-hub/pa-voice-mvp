@@ -48,8 +48,9 @@ JWT + bcrypt. Multi-user isolation enforced on every memory and chat route.
 | GET    | `/api/v1/auth/bootstrap-status`   | Public – `{ needs_bootstrap: bool }`                     |
 | POST   | `/api/v1/auth/register`           | Only when 0 users; first user = SuperUser                |
 | POST   | `/api/v1/auth/login`              | Returns access token                                     |
-| GET    | `/api/v1/auth/me`                 | Current user (+ `must_change_password`)                  |
+| GET    | `/api/v1/auth/me`                 | Current user (`must_change_password`, `display_name`)    |
 | POST   | `/api/v1/auth/change-password`    | Change password; clears `must_change_password`           |
+| POST   | `/api/v1/auth/display-name`       | Set preferred name (how Jarvis should address the user)  |
 
 ### Admin Endpoints (SuperUser only)
 
@@ -91,6 +92,7 @@ Authorization: Bearer <access_token>
   → see `docs/decisions/001-dependency-injection-memory.md`
 - Public registration is closed after the first SuperUser; further accounts only via Admin API
 - Admin-created users must change their password on first login (`must_change_password`)
+- After password onboarding, every user must set a preferred name (`display_name`) before chat
 
 ### Skill Vocabulary
 
@@ -128,7 +130,7 @@ python -m http.server 5500
 Open http://localhost:5500
 
 - Empty DB → Bootstrap screen (Create SuperUser)
-- Otherwise → Login; if `must_change_password` → forced password change
+- Otherwise → Login; if `must_change_password` → forced password change; then preferred name; then chat
 - SuperUser sees Admin button (user list / create / toggle active & super)
 
 Backend must be running on port 8000.

@@ -1,34 +1,36 @@
 """Authentication routes: register, login, me."""
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from motor.motor_asyncio import AsyncIOMotorCollection
 from pymongo.errors import DuplicateKeyError
 
-from src.api.deps import get_current_user, get_user_repository
+from src.api.deps import (
+    get_current_user,
+    get_embeddings_adapter,
+    get_semantic_memory_collection,
+    get_user_repository,
+)
 from src.auth.jwt import create_access_token
 from src.auth.password import hash_password, verify_password
 from src.auth.repository import UserRepository
+from src.memory.semantic_memory import SemanticMemory
 from src.models.user import (
     ChangePasswordRequest,
     ChangePasswordResponse,
+    DisplayNameRequest,
     User,
     UserCreate,
     UserLogin,
     UserPublic,
 )
+from src.services.embeddings.openai import OpenAIEmbeddingsAdapter
+from src.services.memory_facts import FACT_IMPORTANCE
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-
-def _to_public(user: User) -> UserPublic:
-    """Map a User document to the public response model."""
-    return UserPublic(
-        id=user.id,
-        email=user.email,
-        created_at=user.created_at,
-        is_active=user.is_active,
-        is_superuser=user.is_superuser,
-        must_change_password=user.must_change_password,
-    )
 
 
 @router.get("/bootstrap-status")
@@ -87,7 +89,7 @@ async def register(
             detail="Public registration is closed. Ask an administrator to create your account.",
         ) from None
 
-    return _to_public(user)
+    return user.to_public()
 
 
 @router.post("/login")
@@ -136,7 +138,7 @@ async def me(
     Returns:
         Public user representation.
     """
-    return _to_public(current_user)
+    return current_user.to_public()
 
 
 @router.post("/change-password", response_model=ChangePasswordResponse)
@@ -168,7 +170,7 @@ async def change_password(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
         )
-    public = _to_public(updated)
+    public = updated.to_public()
     return ChangePasswordResponse(
         **public.model_dump(),
         access_token=create_access_token(
@@ -176,3 +178,50 @@ async def change_password(
         ),
         token_type="bearer",
     )
+
+
+@router.post("/display-name", response_model=UserPublic)
+async def set_display_name(
+    payload: DisplayNameRequest,
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    repo: UserRepository = Depends(get_user_repository),  # noqa: B008
+    semantic_collection: AsyncIOMotorCollection | None = Depends(  # noqa: B008
+        get_semantic_memory_collection
+    ),
+    embeddings: OpenAIEmbeddingsAdapter | None = Depends(  # noqa: B008
+        get_embeddings_adapter
+    ),
+) -> UserPublic:
+    """Store how Jarvis should address the user; required after first login.
+
+    Writes a semantic fact so Active Recall can find the name later.
+    Password change (if required) must complete first.
+    """
+    if current_user.must_change_password:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Password change required",
+        )
+
+    updated = await repo.set_display_name(current_user.id, payload.display_name)
+    if updated is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    try:
+        memory = SemanticMemory(
+            user_id=updated.id,
+            collection=semantic_collection,
+            embeddings_adapter=embeddings,
+        )
+        await memory.add_fact(
+            fact=f"The user prefers to be addressed as {payload.display_name}.",
+            importance=FACT_IMPORTANCE,
+            entities=[payload.display_name],
+        )
+    except Exception:
+        logger.exception("Failed to store display-name fact in semantic memory")
+
+    return updated.to_public()

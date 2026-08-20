@@ -225,13 +225,19 @@ async def get_current_ready_user(
 ) -> User:
     """Authenticated user who is allowed to use chat / memory / admin.
 
-    ``/auth/me`` and ``/auth/change-password`` keep using ``get_current_user``
-    so a forced password change can complete.
+    ``/auth/me``, ``/auth/change-password`` and ``/auth/display-name`` keep
+    using ``get_current_user`` so first-login onboarding can complete.
+    Password change is required before the preferred name.
     """
     if current_user.must_change_password:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Password change required",
+        )
+    if not (current_user.display_name and current_user.display_name.strip()):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Display name required",
         )
     return current_user
 
@@ -382,6 +388,7 @@ def get_orchestrator(
     working_memory: Annotated[WorkingMemory, Depends(get_working_memory)],
     semantic_memory: Annotated[SemanticMemory, Depends(get_semantic_memory)],
     skill_registry: Annotated[SkillRegistry, Depends(get_skill_registry)],
+    current_user: Annotated[User, Depends(get_current_ready_user)],
 ) -> ChatOrchestrator:
     """Wire a ChatOrchestrator for the current authenticated user.
 
@@ -392,6 +399,7 @@ def get_orchestrator(
         working_memory: User-scoped working memory.
         semantic_memory: User-scoped semantic memory.
         skill_registry: Registry of available skills for the current user.
+        current_user: Ready user (password + display name already set).
 
     Returns:
         Fully wired ``ChatOrchestrator``.
@@ -403,4 +411,5 @@ def get_orchestrator(
         working_memory=working_memory,
         semantic_memory=semantic_memory,
         skill_registry=skill_registry,
+        display_name=current_user.display_name,
     )

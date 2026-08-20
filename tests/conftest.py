@@ -1,5 +1,6 @@
 """Shared pytest fixtures."""
 
+import contextlib
 import os
 import uuid
 
@@ -19,6 +20,18 @@ get_settings.cache_clear()  # important: Settings is lru_cached
 from src.main import app  # noqa: E402
 
 
+def set_test_display_name(
+    client: TestClient, headers: dict, name: str = "Test"
+) -> None:
+    """Complete first-login name onboarding so ready-user routes are allowed."""
+    res = client.post(
+        "/api/v1/auth/display-name",
+        headers=headers,
+        json={"display_name": name},
+    )
+    assert res.status_code == 200, res.text
+
+
 def wipe_users() -> None:
     """Delete all users in the test DB so bootstrap/register stays deterministic.
 
@@ -36,6 +49,14 @@ def wipe_users() -> None:
         sync[settings.mongodb_db_name]["users"].delete_many({})
     finally:
         sync.close()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _wipe_test_users_after_suite():
+    """Do not leave a pytest SuperUser in jarvis_test after the suite."""
+    yield
+    with contextlib.suppress(Exception):
+        wipe_users()
 
 
 @pytest.fixture
@@ -66,5 +87,6 @@ def auth_headers(client: TestClient) -> dict:
     )
     assert login.status_code == 200, login.text
     token = login.json()["access_token"]
-
-    return {"Authorization": f"Bearer {token}"}
+    headers = {"Authorization": f"Bearer {token}"}
+    set_test_display_name(client, headers)
+    return headers

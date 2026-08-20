@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 def now_utc() -> datetime:
@@ -25,6 +25,9 @@ class User(BaseModel):
         created_at: Account creation timestamp (UTC).
         is_active: Whether the account is allowed to authenticate.
         is_superuser: Whether the account has admin privileges.
+        must_change_password: Force a password change before chat.
+        token_version: Incremented on password change; JWT ``ver`` must match.
+        display_name: Preferred name Jarvis should use, or ``None`` until set.
     """
 
     id: str = Field(default_factory=lambda: str(uuid4()))
@@ -35,6 +38,19 @@ class User(BaseModel):
     is_superuser: bool = False
     must_change_password: bool = False
     token_version: int = 0
+    display_name: str | None = None
+
+    def to_public(self) -> "UserPublic":
+        """Safe user representation (no password hash)."""
+        return UserPublic(
+            id=self.id,
+            email=self.email,
+            created_at=self.created_at,
+            is_active=self.is_active,
+            is_superuser=self.is_superuser,
+            must_change_password=self.must_change_password,
+            display_name=self.display_name,
+        )
 
 
 class UserCreate(BaseModel):
@@ -70,6 +86,8 @@ class UserPublic(BaseModel):
         created_at: Account creation timestamp.
         is_active: Active flag.
         is_superuser: Superuser flag.
+        must_change_password: Whether a password change is still required.
+        display_name: Preferred name, or ``None`` until first-login onboarding.
     """
 
     id: str
@@ -78,6 +96,7 @@ class UserPublic(BaseModel):
     is_active: bool
     is_superuser: bool = False
     must_change_password: bool = False
+    display_name: str | None = None
 
 
 class UserAdminCreate(BaseModel):
@@ -105,6 +124,27 @@ class UserAdminUpdate(BaseModel):
 
     is_active: bool | None = None
     is_superuser: bool | None = None
+
+
+class DisplayNameRequest(BaseModel):
+    """Payload for first-login (or later) preferred-name update.
+
+    Attributes:
+        display_name: How Jarvis should address the user (1–40 characters).
+    """
+
+    display_name: str = Field(min_length=1, max_length=80)
+
+    @field_validator("display_name")
+    @classmethod
+    def normalize_display_name(cls, value: str) -> str:
+        """Strip, collapse whitespace, and enforce the 40-character cap."""
+        cleaned = " ".join(value.split())
+        if not cleaned:
+            raise ValueError("Display name cannot be empty")
+        if len(cleaned) > 40:
+            raise ValueError("Display name must be at most 40 characters")
+        return cleaned
 
 
 class ChangePasswordRequest(BaseModel):

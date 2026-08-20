@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] 2026-08-20
 
 ### Added
+- First-login preferred name: `display_name` on User, `POST /api/v1/auth/display-name`, chat/memory/admin gated until set (after password change). Jarvis addresses the user by that name; a semantic fact is stored for recall
 - Skill phrase matching: accent-fold, inflection tails on long tokens, up to two filler words (three in Hungarian) between tokens
 - Due reminder delivery: scheduler claims at ``due_at``, ``GET /api/v1/reminders/due`` + TTS, ``POST /ack``, frontend poll while the tab is open
 - Working principle: prefer the end-state design (`docs/decisions/002-prefer-end-state-design.md`)

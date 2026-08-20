@@ -24,7 +24,9 @@ export function getStoredUser() {
 
 /** Public: whether the first SuperUser still needs to be created. */
 export async function getBootstrapStatus() {
-    const res = await fetch(`${API_BASE}/api/v1/auth/bootstrap-status`);
+    const res = await fetch(`${API_BASE}/api/v1/auth/bootstrap-status`, {
+        signal: AbortSignal.timeout(5000),
+    });
     if (!res.ok) throw new Error("Could not check bootstrap status");
     return res.json(); // { needs_bootstrap: bool }
 }
@@ -88,15 +90,24 @@ export async function changePassword(currentPassword, newPassword) {
     }
     const data = await res.json();
     if (!data.access_token) throw new Error("No token received");
-    const user = {
-        id: data.id,
-        email: data.email,
-        created_at: data.created_at,
-        is_active: data.is_active,
-        is_superuser: data.is_superuser,
-        must_change_password: data.must_change_password,
-    };
-    setAuth(data.access_token, user);
+    const { access_token, token_type, ...user } = data;
+    setAuth(access_token, user);
+    return user;
+}
+
+/** Preferred name / how Jarvis should address the user. */
+export async function setDisplayName(displayName) {
+    const res = await api("/api/v1/auth/display-name", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ display_name: displayName }),
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "Could not save name");
+    }
+    const user = await res.json();
+    setAuth(getToken(), user);
     return user;
 }
 

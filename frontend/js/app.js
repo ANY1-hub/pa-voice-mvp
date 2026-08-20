@@ -4,6 +4,7 @@ import {
     login,
     register,
     changePassword,
+    setDisplayName,
     clearAuth,
     getStoredUser,
     getBootstrapStatus,
@@ -23,13 +24,17 @@ import { API_BASE } from "./config.js";
 // ------------------------------------------------------------------
 const authScreen            = document.getElementById("authScreen");
 const changePasswordScreen  = document.getElementById("changePasswordScreen");
+const displayNameScreen     = document.getElementById("displayNameScreen");
 const appScreen             = document.getElementById("appScreen");
 const loginForm             = document.getElementById("loginForm");
 const registerForm          = document.getElementById("registerForm");
 const changePasswordForm    = document.getElementById("changePasswordForm");
+const displayNameForm       = document.getElementById("displayNameForm");
 const authError             = document.getElementById("authError");
 const authSuccess           = document.getElementById("authSuccess");
+const authStatusHint        = document.getElementById("authStatusHint");
 const changePasswordError   = document.getElementById("changePasswordError");
+const displayNameError      = document.getElementById("displayNameError");
 const speakBtn              = document.getElementById("speakBtn");
 const speakHint             = document.getElementById("speakHint");
 const recIndicator          = document.getElementById("recIndicator");
@@ -64,12 +69,25 @@ setSpeakingHandlers({
 // ------------------------------------------------------------------
 // Screen helpers
 // ------------------------------------------------------------------
+function hideEl(el) {
+    el?.classList.add("hidden");
+}
+
+function showEl(el) {
+    el?.classList.remove("hidden");
+}
+
+function on(el, event, handler) {
+    el?.addEventListener(event, handler);
+}
+
 function hideAllScreens() {
-    authScreen.classList.add("hidden");
-    changePasswordScreen.classList.add("hidden");
-    appScreen.classList.add("hidden");
-    adminPanel.classList.add("hidden");
-    helpPanel.classList.add("hidden");
+    hideEl(authScreen);
+    hideEl(changePasswordScreen);
+    hideEl(displayNameScreen);
+    hideEl(appScreen);
+    hideEl(adminPanel);
+    hideEl(helpPanel);
 }
 
 function stopDuePoll() {
@@ -101,28 +119,57 @@ function startDuePoll() {
     dueTimer = setInterval(tickDueReminders, DUE_POLL_MS);
 }
 
-function showAuth({ bootstrap = false } = {}) {
+function showAuth({ bootstrap = false, unknown = false } = {}) {
     stopDuePoll();
     hideAllScreens();
-    authScreen.classList.remove("hidden");
-    authError.classList.add("hidden");
-    authSuccess.classList.add("hidden");
+    showEl(authScreen);
+    hideEl(authError);
+    hideEl(authSuccess);
+    hideEl(authStatusHint);
 
+    if (unknown) {
+        showEl(loginForm);
+        showEl(registerForm);
+        if (authStatusHint) {
+            authStatusHint.textContent = t("bootstrapStatusFailed");
+            showEl(authStatusHint);
+        }
+        return;
+    }
     if (bootstrap) {
-        loginForm.classList.add("hidden");
-        registerForm.classList.remove("hidden");
+        hideEl(loginForm);
+        showEl(registerForm);
     } else {
-        registerForm.classList.add("hidden");
-        loginForm.classList.remove("hidden");
+        hideEl(registerForm);
+        showEl(loginForm);
     }
 }
 
 function showChangePassword() {
     stopDuePoll();
     hideAllScreens();
-    changePasswordScreen.classList.remove("hidden");
-    changePasswordError.classList.add("hidden");
-    changePasswordForm.reset();
+    showEl(changePasswordScreen);
+    hideEl(changePasswordError);
+    changePasswordForm?.reset();
+}
+
+function showDisplayName() {
+    stopDuePoll();
+    hideAllScreens();
+    showEl(displayNameScreen);
+    hideEl(displayNameError);
+    displayNameForm?.reset();
+    applyI18n();
+}
+
+function routeAfterAuth(user) {
+    if (user.must_change_password) {
+        showChangePassword();
+    } else if (!user.display_name) {
+        showDisplayName();
+    } else {
+        showApp();
+    }
 }
 
 function showApp() {
@@ -130,7 +177,7 @@ function showApp() {
     appScreen.classList.remove("hidden");
     startDuePoll();
     const user = getStoredUser();
-    userLabel.textContent = user.email || "User";
+    userLabel.textContent = user.display_name || user.email || "User";
     if (user.is_superuser) {
         adminBtn.classList.remove("hidden");
     } else {
@@ -158,7 +205,7 @@ function showSuccess(el, msg) {
 // ------------------------------------------------------------------
 // Auth events
 // ------------------------------------------------------------------
-loginForm.addEventListener("submit", async (e) => {
+on(loginForm, "submit", async (e) => {
     e.preventDefault();
     authError.classList.add("hidden");
     authSuccess.classList.add("hidden");
@@ -167,17 +214,13 @@ loginForm.addEventListener("submit", async (e) => {
 
     try {
         const user = await login(email, password);
-        if (user.must_change_password) {
-            showChangePassword();
-        } else {
-            showApp();
-        }
+        routeAfterAuth(user);
     } catch (err) {
         showError(authError, err.message || "Login failed");
     }
 });
 
-registerForm.addEventListener("submit", async (e) => {
+on(registerForm, "submit", async (e) => {
     e.preventDefault();
     authError.classList.add("hidden");
     authSuccess.classList.add("hidden");
@@ -205,7 +248,7 @@ registerForm.addEventListener("submit", async (e) => {
     }
 });
 
-changePasswordForm.addEventListener("submit", async (e) => {
+on(changePasswordForm, "submit", async (e) => {
     e.preventDefault();
     changePasswordError.classList.add("hidden");
 
@@ -223,10 +266,28 @@ changePasswordForm.addEventListener("submit", async (e) => {
     }
 
     try {
-        await changePassword(current, next);
-        showApp();
+        const user = await changePassword(current, next);
+        routeAfterAuth(user);
     } catch (err) {
         showError(changePasswordError, err.message || "Password change failed");
+    }
+});
+
+on(displayNameForm, "submit", async (e) => {
+    e.preventDefault();
+    displayNameError.classList.add("hidden");
+
+    const name = document.getElementById("displayNameInput").value.trim();
+    if (!name) {
+        showError(displayNameError, t("displayNameRequired"));
+        return;
+    }
+
+    try {
+        const user = await setDisplayName(name);
+        routeAfterAuth(user);
+    } catch (err) {
+        showError(displayNameError, err.message || t("displayNameFailed"));
     }
 });
 
@@ -289,7 +350,7 @@ async function refreshUserList() {
         adminUserList.innerHTML = users.map((u) => `
             <div class="admin-user-row" data-id="${u.id}">
                 <div class="admin-user-info">
-                    <span class="admin-user-email">${escapeHtml(u.email)}</span>
+                    <span class="admin-user-email">${escapeHtml(u.display_name ? `${u.display_name} · ${u.email}` : u.email)}</span>
                     <span class="admin-user-badges">
                         ${u.is_superuser ? '<span class="badge badge-super">Super</span>' : ""}
                         ${u.is_active ? '<span class="badge badge-active">Active</span>' : '<span class="badge badge-inactive">Inactive</span>'}
@@ -457,14 +518,20 @@ textInput.addEventListener("keydown", (e) => {
 async function boot() {
     setLang(getLang());
     refreshI18n();
+
+    let needsBootstrap = false;
     try {
-        const { needs_bootstrap } = await getBootstrapStatus();
-        if (needs_bootstrap) {
-            showAuth({ bootstrap: true });
-            return;
-        }
-    } catch (_) {
-        // Backend unreachable – still show login
+        const status = await getBootstrapStatus();
+        needsBootstrap = Boolean(status && status.needs_bootstrap);
+    } catch (err) {
+        console.error("bootstrap-status failed", err);
+        showAuth({ unknown: true });
+        return;
+    }
+
+    if (needsBootstrap) {
+        showAuth({ bootstrap: true });
+        return;
     }
 
     const token = getToken();
@@ -476,12 +543,7 @@ async function boot() {
     try {
         const user = await fetchMe(token);
         setAuth(token, user);
-
-        if (user.must_change_password) {
-            showChangePassword();
-        } else {
-            showApp();
-        }
+        routeAfterAuth(user);
     } catch (_) {
         clearAuth();
         showAuth({ bootstrap: false });

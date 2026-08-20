@@ -12,14 +12,7 @@ router = APIRouter()
 
 
 def _to_public(user: User) -> UserPublic:
-    return UserPublic(
-        id=user.id,
-        email=user.email,
-        created_at=user.created_at,
-        is_active=user.is_active,
-        is_superuser=user.is_superuser,
-        must_change_password=user.must_change_password,
-    )
+    return user.to_public()
 
 
 @router.get("/users", response_model=list[UserPublic])

@@ -44,6 +44,7 @@
                 <button type="submit" class="btn-primary">Create SuperUser</button>
             </form>
 
+            <p id="authStatusHint" class="auth-hint hidden"></p>
             <p id="authError" class="error-msg hidden"></p>
             <p id="authSuccess" class="success-msg hidden"></p>
         </div>
@@ -70,6 +71,27 @@
                 <button type="submit" class="btn-primary">Update Password</button>
             </form>
             <p id="changePasswordError" class="error-msg hidden"></p>
+        </div>
+    </div>
+
+    <!-- First-login preferred name -->
+    <div id="displayNameScreen" class="screen hidden">
+        <div class="login-card">
+            <div class="logo" data-i18n="displayNameTitle">How should Jarvis address you?</div>
+            <p class="tagline" data-i18n="displayNameTagline">Used in conversation. First name or nickname is enough.</p>
+            <div class="onboard-lang-switch" role="group" aria-label="Language">
+                <button type="button" class="lang-flag" data-lang="en" title="English">🇬🇧</button>
+                <button type="button" class="lang-flag" data-lang="de" title="Deutsch">🇩🇪</button>
+                <button type="button" class="lang-flag" data-lang="hu" title="Magyar">🇭🇺</button>
+            </div>
+            <form id="displayNameForm">
+                <div class="field">
+                    <label for="displayNameInput" data-i18n="displayNameLabel">Preferred name</label>
+                    <input type="text" id="displayNameInput" required maxlength="40" autocomplete="nickname" data-i18n-placeholder="displayNamePlaceholder" placeholder="e.g. Tony">
+                </div>
+                <button type="submit" class="btn-primary" data-i18n="displayNameSubmit">Continue</button>
+            </form>
+            <p id="displayNameError" class="error-msg hidden"></p>
         </div>
     </div>
 
