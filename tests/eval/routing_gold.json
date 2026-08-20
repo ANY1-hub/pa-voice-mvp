@@ -241,6 +241,13 @@
       "tag": "gappy"
     },
     {
+      "id": "hu-remind-gappy-create-uj",
+      "lang": "hu",
+      "text": "állíts be kérlek egy új emlékeztetőt",
+      "expected": "reminders",
+      "tag": "gappy"
+    },
+    {
       "id": "hu-remind-list-possessive",
       "lang": "hu",
       "text": "mutasd az emlékeztetőimet",

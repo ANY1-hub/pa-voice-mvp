@@ -86,6 +86,9 @@ def test_hungarian_inflected_and_gappy_reminders_route():
     for text in (
         "emlékeztetnél holnap a fogorvosra",
         "állíts be kérlek egy emlékeztetőt a fogorvosra",
+        "állíts be kérlek egy új emlékeztetőt",
+        "állíts be kérlek egy újabb emlékeztetőt",
+        "állíts be kérlek egy további emlékeztetőt",
         "mutasd az emlékeztetőimet",
         "emlekeztess holnap",
     ):

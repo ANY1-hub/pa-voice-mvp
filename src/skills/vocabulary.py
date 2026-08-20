@@ -367,14 +367,24 @@ def _token_pattern(token: str) -> str:
     return re.escape(token)
 
 
-def _phrase_pattern(phrase: str) -> str:
-    """Tokens in order with up to two filler words between them."""
+def _max_gap(lang: str | None, phrase: str) -> int:
+    """Hungarian allows three fillers (kérlek egy új …)."""
+    if lang == "hu":
+        return 3
+    if lang is None and any(ord(c) > 127 for c in phrase):
+        return 3
+    return 2
+
+
+def _phrase_pattern(phrase: str, max_gap: int = 2) -> str:
+    """Tokens in order with up to ``max_gap`` filler words between them."""
     tokens = phrase.split()
     if not tokens:
         return ""
+    gap = rf"(?:\s+\S+){{0,{max_gap}}}\s+"
     parts = [_token_pattern(tokens[0])]
     for tok in tokens[1:]:
-        parts.append(r"(?:\s+\S+){0,2}\s+")
+        parts.append(gap)
         parts.append(_token_pattern(tok))
     return "".join(parts)
 
@@ -414,11 +424,26 @@ def compile_phrase_regex(
     """Matcher for spoken phrases: order-preserving, gappy, stem-tolerant.
 
     Accents are folded so STT without diacritics still hits. Tokens of
-    length 6+ allow an inflection tail. Up to two words may appear between
-    tokens (please / kérlek / ein).
+    length 6+ allow an inflection tail. Up to two filler words (three in
+    Hungarian) may appear between tokens (please / kérlek egy új).
     """
-    phrases = _flatten(*groups, extra=extra)
-    parts = [_phrase_pattern(fold_text(p)) for p in phrases if p.strip()]
+    scored: list[tuple[int, str]] = []
+    for group in groups:
+        for lang, items in group.items():
+            gap = _max_gap(lang, "")
+            for raw in items:
+                phrase = raw.strip()
+                if not phrase:
+                    continue
+                scored.append((len(phrase), _phrase_pattern(fold_text(phrase), gap)))
+    for raw in extra or []:
+        phrase = raw.strip()
+        if not phrase:
+            continue
+        gap = _max_gap(None, phrase)
+        scored.append((len(phrase), _phrase_pattern(fold_text(phrase), gap)))
+    scored.sort(key=lambda item: item[0], reverse=True)
+    parts = [pattern for _, pattern in scored]
     combined = r"(?i)(?<!\w)(?:" + "|".join(parts) + r")(?!\w)"
     return PhraseMatcher(re.compile(combined))
 
