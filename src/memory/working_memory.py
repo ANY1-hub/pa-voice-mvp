@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from motor.motor_asyncio import AsyncIOMotorCollection
 
 from src.db.mongodb import contains_regex
-from src.models.memory import WorkingMemoryItem
+from src.models.memory import WorkingMemoryItem, assign_stable_id
 from src.security.guardrails import validate_memory_write
 
 
@@ -33,6 +33,7 @@ class WorkingMemory:
         importance: float = 0.5,
         *,
         source: str = "user",
+        correlation_id: str | None = None,
     ) -> WorkingMemoryItem:
         """Add a new item to Working Memory.
 
@@ -43,6 +44,7 @@ class WorkingMemory:
             importance: Importance score in ``[0.0, 1.0]`` (default ``0.5``).
             source: Write origin. ``"system"`` skips the user injection
                 blocklist so assistant replies can be stored.
+            correlation_id: Optional chat-turn id shared by both sides of a turn.
 
         Returns:
             The created ``WorkingMemoryItem`` (also persisted when a collection
@@ -61,6 +63,7 @@ class WorkingMemory:
             user_id=self.user_id,
             content=content,
             importance_score=importance,
+            correlation_id=correlation_id,
         )
 
         # 3. Persistence
@@ -110,6 +113,7 @@ class WorkingMemory:
 
         items: list[WorkingMemoryItem] = []
         async for doc in cursor:
+            assign_stable_id(doc)
             doc.pop("_id", None)
             items.append(WorkingMemoryItem.model_validate(doc))
         return items

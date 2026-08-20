@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timedelta
 from motor.motor_asyncio import AsyncIOMotorCollection
 
 from src.db.mongodb import contains_regex
-from src.models.memory import SemanticMemoryFact
+from src.models.memory import SemanticMemoryFact, assign_stable_id
 from src.security.guardrails import validate_memory_write
 from src.services.embeddings.base import EmbeddingsAdapter
 
@@ -178,6 +178,7 @@ class SemanticMemory:
 
         cursor = self.collection.find({"user_id": self.user_id})
         async for doc in cursor:
+            assign_stable_id(doc)
             doc_id = doc.pop("_id", None)
             fact = SemanticMemoryFact.model_validate(doc)
             if fact.embedding:
@@ -219,6 +220,7 @@ class SemanticMemory:
         )
         results: list[tuple[SemanticMemoryFact, object]] = []
         async for doc in cursor:
+            assign_stable_id(doc)
             doc_id = doc.pop("_id", None)
             results.append((SemanticMemoryFact.model_validate(doc), doc_id))
         await self._touch_facts(results)
@@ -241,6 +243,7 @@ class SemanticMemory:
         )
         results: list[tuple[SemanticMemoryFact, object]] = []
         async for doc in cursor:
+            assign_stable_id(doc)
             doc_id = doc.pop("_id", None)
             fact = SemanticMemoryFact.model_validate(doc)
             results.append((fact, doc_id))

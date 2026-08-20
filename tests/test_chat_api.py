@@ -51,6 +51,7 @@ def test_chat_text_happy_path(client_with_mock_orch, auth_headers, mock_orchestr
     assert data["transcript"] == "User said this"
     assert data["response"] == "Jarvis reply"
     assert data["audio_base64"] == "ZmFrZS1hdWRpbw=="
+    assert "correlation_id" in data
 
     mock_orchestrator.process.assert_awaited_once()
     call_kwargs = mock_orchestrator.process.await_args.kwargs

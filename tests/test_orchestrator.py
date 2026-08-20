@@ -5,6 +5,7 @@ plus validation errors and resilience when optional subsystems fail.
 """
 
 from unittest.mock import ANY, AsyncMock, MagicMock
+from uuid import UUID
 
 import pytest
 
@@ -80,10 +81,13 @@ async def test_process_text_happy_path(
     assert result.audio_base64 is not None  # base64 of fake-wav-bytes
     assert result.path == "llm"
     assert result.language == "en"
+    UUID(result.correlation_id)
 
     mock_llm.generate_response.assert_awaited_once()
     mock_tts.synthesize.assert_awaited_once_with("Hello from Jarvis.", language=ANY)
     assert mock_working_memory.add.await_count == 2  # user + jarvis turn
+    for call in mock_working_memory.add.await_args_list:
+        assert call.kwargs["correlation_id"] == result.correlation_id
 
 
 @pytest.mark.asyncio

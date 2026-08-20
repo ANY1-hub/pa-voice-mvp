@@ -11,11 +11,13 @@ Zwei Memory-Ebenen:
 
 - Session-Kontext und letzte Interaktionen
 - Felder pro Eintrag:
+  - `id` (UUID v4; legacy documents may expose Mongo ``_id``)
   - `user_id` (UUID-String)
   - `content`
   - `importance_score` (0.0 – 1.0)
   - `created_at`
   - `last_accessed`
+  - `correlation_id` (optional chat-turn UUID)
 - Speicherung in MongoDB-Collection `working_memory`
 - Retrieval: nach `last_accessed` sortiert, optionaler Textfilter; abgelaufene Items (`expires_at`) werden ausgeblendet
 - TTL: 48 Stunden (`expires_at` als BSON Date + Mongo TTL-Index)
@@ -26,6 +28,7 @@ Zwei Memory-Ebenen:
 
 - Dauerhafte User-Erkenntnisse: Präferenzen, Fakten, Muster, Wissensstand
 - Felder pro Eintrag:
+  - `id` (UUID v4; legacy documents may expose Mongo ``_id``)
   - `user_id` (UUID-String)
   - `content`
   - `importance_score` (0.0 – 1.0)

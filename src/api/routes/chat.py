@@ -44,11 +44,13 @@ class ChatResponse(BaseModel):
         transcript: Sanitized user utterance.
         response: LLM reply text.
         audio_base64: Optional base64-encoded TTS audio.
+        correlation_id: UUID v4 for this turn (logging / support).
     """
 
     transcript: str
     response: str
     audio_base64: str | None = None
+    correlation_id: str | None = None
 
 
 @router.post("/text", response_model=ChatResponse)
@@ -74,6 +76,7 @@ async def chat_text(
             transcript=result.transcript,
             response=result.response,
             audio_base64=result.audio_base64,
+            correlation_id=result.correlation_id,
         )
     except InputValidationError as e:
         raise HTTPException(
@@ -138,6 +141,7 @@ async def chat_voice(
             transcript=result.transcript,
             response=result.response,
             audio_base64=result.audio_base64,
+            correlation_id=result.correlation_id,
         )
     except InputValidationError as e:
         raise HTTPException(

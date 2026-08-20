@@ -1,6 +1,7 @@
 """Unit tests for SemanticMemory (add, search, cosine)."""
 
 from unittest.mock import AsyncMock, MagicMock
+from uuid import UUID
 
 import pytest
 
@@ -72,6 +73,7 @@ async def test_add_fact_without_collection():
     assert fact.content == "Lives in Berlin"
     assert fact.entities_involved == ["Berlin"]
     assert fact.embedding is None
+    UUID(fact.id)
 
 
 @pytest.mark.asyncio
@@ -91,6 +93,9 @@ async def test_add_fact_with_embeddings_and_persist():
     embeddings.get_embedding.assert_awaited_once_with("Speaks Hungarian")
     collection.insert_one.assert_awaited_once()
     assert fact.embedding == [0.1, 0.2, 0.3]
+    dumped = collection.insert_one.await_args.args[0]
+    UUID(dumped["id"])
+    assert dumped["id"] == fact.id
 
 
 @pytest.mark.asyncio

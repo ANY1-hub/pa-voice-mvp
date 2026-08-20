@@ -1,5 +1,7 @@
 """API tests for memory endpoints."""
 
+from uuid import UUID
+
 
 def test_health_check(client):
     """Health endpoint must return 200 and the expected status payload."""
@@ -31,6 +33,7 @@ def test_add_working_memory_success(client, auth_headers):
     data = response.json()["data"]
     assert data["content"] == "I am testing the api"
     assert data["importance_score"] == 0.5
+    UUID(data["id"])
 
 
 def test_add_working_memory_injection(client, auth_headers):
@@ -62,6 +65,7 @@ def test_add_semantic_memory_success(client, auth_headers):
     data = response.json()["data"]
     assert data["content"] == "I like cats"
     assert data["importance_score"] == 0.8
+    UUID(data["id"])
     assert "cats" in data["entities_involved"]
 
 

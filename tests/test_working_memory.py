@@ -1,11 +1,12 @@
 """Unit tests for WorkingMemory."""
 
 from unittest.mock import AsyncMock, MagicMock
+from uuid import UUID
 
 import pytest
 
 from src.memory.working_memory import WorkingMemory
-from src.models.memory import WorkingMemoryItem
+from src.models.memory import WorkingMemoryItem, assign_stable_id
 from src.security.exceptions import InputValidationError, MemoryWritePolicyViolation
 
 USER_ID = "550e8400-e29b-41d4-a716-446655440000"
@@ -33,6 +34,20 @@ def _chainable_find(docs: list):
     return cursor
 
 
+def test_assign_stable_id_uses_mongo_id_when_application_id_missing():
+    """Legacy rows without ``id`` must stay addressable via Mongo ``_id``."""
+    doc = {"_id": "mongo-legacy", "content": "x"}
+    assign_stable_id(doc)
+    assert doc["id"] == "mongo-legacy"
+
+
+def test_assign_stable_id_mints_uuid_when_neither_id_exists():
+    """A document with no ids at all still gets a UUID v4."""
+    doc: dict = {"content": "x"}
+    assign_stable_id(doc)
+    UUID(doc["id"])
+
+
 @pytest.mark.asyncio
 async def test_add_without_collection_still_returns_item():
     """add without DB must still return a WorkingMemoryItem for unit tests."""
@@ -43,6 +58,7 @@ async def test_add_without_collection_still_returns_item():
     assert item.user_id == USER_ID
     assert item.content == "User likes dark mode"
     assert item.importance_score == 0.6
+    UUID(item.id)
 
 
 @pytest.mark.asyncio
@@ -59,6 +75,8 @@ async def test_add_persists_when_collection_present():
     assert dumped["user_id"] == USER_ID
     assert item.content == "Prefers tea"
     assert dumped["expires_at"] == item.expires_at
+    UUID(dumped["id"])
+    assert dumped["id"] == item.id
 
 
 @pytest.mark.asyncio
@@ -105,6 +123,7 @@ async def test_retrieve_maps_documents():
 
     assert len(items) == 1
     assert items[0].content == "Recent note"
+    assert items[0].id == "mongo1"
     collection.find.assert_called_once()
     filters = collection.find.call_args.args[0]
     assert filters["user_id"] == USER_ID

@@ -9,7 +9,8 @@ from __future__ import annotations
 import base64
 import logging
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from uuid import uuid4
 
 from src.core.language import detect_response_language
 from src.memory.semantic_memory import SemanticMemory
@@ -54,6 +55,7 @@ class ChatResult:
         skill_name: Winning skill name, if any.
         language: Language used for TTS / skill replies.
         duration_ms: Wall time for the turn (measurement only).
+        correlation_id: UUID v4 for this turn (logs, later GOVERN/ASSURE).
     """
 
     transcript: str
@@ -63,6 +65,7 @@ class ChatResult:
     skill_name: str | None = None
     language: str | None = None
     duration_ms: float = 0.0
+    correlation_id: str = field(default_factory=lambda: str(uuid4()))
 
 
 class ChatOrchestrator:
@@ -124,6 +127,7 @@ class ChatOrchestrator:
             raise ValueError("Provide either text or audio_bytes, not both")
 
         started = time.perf_counter()
+        correlation_id = str(uuid4())
 
         # 1. Resolve transcript (STT or plain text)
         transcript, detected_lang = await self._resolve_transcript(
@@ -167,7 +171,7 @@ class ChatOrchestrator:
                         tts_lang = detect_response_language(
                             response_text, hint=language or detected_lang
                         )
-                        await self._store_turn(sanitized, response_text)
+                        await self._store_turn(sanitized, response_text, correlation_id)
                         audio_b64 = await self._maybe_synthesize(
                             response_text, tts_lang
                         )
@@ -179,6 +183,7 @@ class ChatOrchestrator:
                                 path="skill",
                                 skill_name=getattr(skill, "name", None),
                                 language=tts_lang,
+                                correlation_id=correlation_id,
                             ),
                             started,
                         )
@@ -204,7 +209,7 @@ class ChatOrchestrator:
         tts_lang = detect_response_language(response_text, hint=tts_lang)
 
         # 5. Persist the turn in Working Memory (active use of memory)
-        await self._store_turn(sanitized, response_text)
+        await self._store_turn(sanitized, response_text, correlation_id)
         await self._maybe_learn_facts(sanitized)
 
         # 6. TTS (optional – text-only clients can ignore audio)
@@ -218,6 +223,7 @@ class ChatOrchestrator:
                 path="llm",
                 skill_name=None,
                 language=tts_lang,
+                correlation_id=correlation_id,
             ),
             started,
         )
@@ -226,7 +232,8 @@ class ChatOrchestrator:
         """Attach duration and emit a structured measurement log line."""
         result.duration_ms = (time.perf_counter() - started) * 1000.0
         logger.info(
-            "turn path=%s skill=%s language=%s duration_ms=%.1f",
+            "turn correlation_id=%s path=%s skill=%s language=%s duration_ms=%.1f",
+            result.correlation_id,
             result.path,
             result.skill_name,
             result.language,
@@ -354,12 +361,18 @@ class ChatOrchestrator:
             {"role": "user", "content": user_text},
         ]
 
-    async def _store_turn(self, user_text: str, assistant_text: str) -> None:
+    async def _store_turn(
+        self,
+        user_text: str,
+        assistant_text: str,
+        correlation_id: str | None = None,
+    ) -> None:
         """Store the turn in Working Memory so future turns have context.
 
         Args:
             user_text: Sanitized user utterance.
             assistant_text: LLM response text.
+            correlation_id: Optional turn UUID shared by both WM writes.
         """
         if self.working_memory is None:
             return
@@ -368,11 +381,13 @@ class ChatOrchestrator:
                 content=f"User: {user_text}",
                 importance=0.4,
                 source="user",
+                correlation_id=correlation_id,
             )
             await self.working_memory.add(
                 content=f"Jarvis: {assistant_text}",
                 importance=0.4,
                 source="system",
+                correlation_id=correlation_id,
             )
         except Exception:
             logger.exception("Failed to store turn in working memory")

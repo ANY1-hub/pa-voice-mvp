@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] 2026-08-20
 
 ### Added
+- UUID v4 ``id`` on Working Memory items and Semantic Memory facts (legacy rows keep Mongo ``_id`` as ``id``)
+- Chat-turn ``correlation_id`` (UUID v4) on ``ChatResult``, API responses, logs, and Working Memory writes
 - Routing gold set (`tests/eval/routing_gold.json`) for EN/DE/HU skill vs LLM fallthrough
 - Reminder create parses relative waits: `in 2 minutes`, `in 5 Minuten`, `2 perc múlva`
 - Turn measurement on `ChatResult`: path, skill name, language, duration_ms (structured log)
