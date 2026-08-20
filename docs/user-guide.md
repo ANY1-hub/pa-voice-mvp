@@ -27,7 +27,7 @@ The Help panel (`?`) lists **ten everyday phrases per skill** for the language y
 | Agenda | what's on today, this week, next week, this month | was steht heute an, diese Woche, nächste Woche, diesen Monat | mi van ma, mi van a héten, jövő héten, ebben a hónapban |
 | Lookup | when is …, when do I … | wann habe ich …, wann muss ich … | mikor van a … |
 
-**Date tokens on create** (optional): today/heute/ma, tomorrow/morgen/holnap, weekdays, numeric dates (`18.8.` / `18.8.2026`), “um 14 Uhr” / “at 14:00”.
+**Date tokens on create** (optional): today/heute/ma, tomorrow/morgen/holnap, weekdays, numeric dates (`18.8.` / `18.8.2026`), “um 14 Uhr” / “at 14:00”, relative wait (`in 2 minutes` / `in 5 Minuten` / `2 perc múlva`).
 
 Skill replies (Reminders, Notes, Active Recall, Web Search) match the user's language (EN / DE / HU) so TTS is not English-on-German. The Help-panel flag is sent with voice and text turns as the STT/TTS hint.
 

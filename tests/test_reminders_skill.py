@@ -548,3 +548,105 @@ async def test_execute_hungarian_today_agenda_uses_today_window():
     kwargs = mock_repo.list_reminders.await_args.kwargs
     assert kwargs["due_from"].date() == date(2026, 8, 19)
     assert kwargs["due_to"].date() == date(2026, 8, 19)
+
+
+@pytest.mark.asyncio
+async def test_execute_create_relative_minutes_english():
+    """'in 2 minutes' must set due_at two minutes from now (UTC)."""
+    repo = ReminderRepository(user_id="u1", collection=None)
+    skill = RemindersSkill(repository=repo, semantic_memory=None)
+
+    with (
+        patch.object(repo, "create", wraps=repo.create) as spy,
+        patch("src.skills.reminders.skill._now_utc") as mock_now,
+    ):
+        mock_now.return_value = datetime(2026, 8, 20, 12, 0, tzinfo=UTC)
+        result = await skill.execute(
+            user_text="remind me in 2 minutes to drink water",
+            user_id="u1",
+        )
+
+    assert result.handled is True
+    due = spy.await_args.kwargs["due_at"]
+    assert due == datetime(2026, 8, 20, 12, 2, tzinfo=UTC)
+    assert "water" in spy.await_args.kwargs["content"].lower()
+
+
+@pytest.mark.asyncio
+async def test_execute_create_relative_minutes_german():
+    """'in 5 Minuten' must set due_at five minutes from now."""
+    repo = ReminderRepository(user_id="u1", collection=None)
+    skill = RemindersSkill(repository=repo, semantic_memory=None)
+
+    with (
+        patch.object(repo, "create", wraps=repo.create) as spy,
+        patch("src.skills.reminders.skill._now_utc") as mock_now,
+    ):
+        mock_now.return_value = datetime(2026, 8, 20, 12, 0, tzinfo=UTC)
+        await skill.execute(
+            user_text="Erinner mich in 5 Minuten Wasser zu trinken",
+            user_id="u1",
+        )
+
+    due = spy.await_args.kwargs["due_at"]
+    assert due == datetime(2026, 8, 20, 12, 5, tzinfo=UTC)
+
+
+@pytest.mark.asyncio
+async def test_execute_create_relative_minutes_hungarian():
+    """'2 perc múlva' must set due_at two minutes from now."""
+    repo = ReminderRepository(user_id="u1", collection=None)
+    skill = RemindersSkill(repository=repo, semantic_memory=None)
+
+    with (
+        patch.object(repo, "create", wraps=repo.create) as spy,
+        patch("src.skills.reminders.skill._now_utc") as mock_now,
+    ):
+        mock_now.return_value = datetime(2026, 8, 20, 12, 0, tzinfo=UTC)
+        await skill.execute(
+            user_text="emlékeztess 2 perc múlva vizet inni",
+            user_id="u1",
+        )
+
+    due = spy.await_args.kwargs["due_at"]
+    assert due == datetime(2026, 8, 20, 12, 2, tzinfo=UTC)
+
+
+@pytest.mark.asyncio
+async def test_execute_create_relative_hour_german():
+    """'in einer Stunde' must set due_at one hour from now."""
+    repo = ReminderRepository(user_id="u1", collection=None)
+    skill = RemindersSkill(repository=repo, semantic_memory=None)
+
+    with (
+        patch.object(repo, "create", wraps=repo.create) as spy,
+        patch("src.skills.reminders.skill._now_utc") as mock_now,
+    ):
+        mock_now.return_value = datetime(2026, 8, 20, 12, 0, tzinfo=UTC)
+        await skill.execute(
+            user_text="Erinner mich in einer Stunde an den Anruf",
+            user_id="u1",
+        )
+
+    due = spy.await_args.kwargs["due_at"]
+    assert due == datetime(2026, 8, 20, 13, 0, tzinfo=UTC)
+
+
+@pytest.mark.asyncio
+async def test_execute_create_relative_hour_hungarian():
+    """'1 óra múlva' must set due_at one hour from now."""
+    repo = ReminderRepository(user_id="u1", collection=None)
+    skill = RemindersSkill(repository=repo, semantic_memory=None)
+
+    with (
+        patch.object(repo, "create", wraps=repo.create) as spy,
+        patch("src.skills.reminders.skill._now_utc") as mock_now,
+    ):
+        mock_now.return_value = datetime(2026, 8, 20, 12, 0, tzinfo=UTC)
+        await skill.execute(
+            user_text="emlékeztess 1 óra múlva a hívásra",
+            user_id="u1",
+        )
+
+    due = spy.await_args.kwargs["due_at"]
+    assert due == datetime(2026, 8, 20, 13, 0, tzinfo=UTC)

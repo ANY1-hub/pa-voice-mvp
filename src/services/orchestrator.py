@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import base64
 import logging
+import time
 from dataclasses import dataclass
 
 from src.core.language import detect_response_language
@@ -49,11 +50,19 @@ class ChatResult:
         transcript: Sanitized user utterance (from text or STT).
         response: LLM-generated reply text.
         audio_base64: Optional base64-encoded TTS audio (WAV-like).
+        path: ``skill`` when a skill handled the turn, otherwise ``llm``.
+        skill_name: Winning skill name, if any.
+        language: Language used for TTS / skill replies.
+        duration_ms: Wall time for the turn (measurement only).
     """
 
     transcript: str
     response: str
     audio_base64: str | None = None
+    path: str = "llm"
+    skill_name: str | None = None
+    language: str | None = None
+    duration_ms: float = 0.0
 
 
 class ChatOrchestrator:
@@ -114,6 +123,8 @@ class ChatOrchestrator:
         if text and audio_bytes:
             raise ValueError("Provide either text or audio_bytes, not both")
 
+        started = time.perf_counter()
+
         # 1. Resolve transcript (STT or plain text)
         transcript, detected_lang = await self._resolve_transcript(
             text, audio_bytes, language
@@ -160,10 +171,16 @@ class ChatOrchestrator:
                         audio_b64 = await self._maybe_synthesize(
                             response_text, tts_lang
                         )
-                        return ChatResult(
-                            transcript=sanitized,
-                            response=response_text,
-                            audio_base64=audio_b64,
+                        return self._finish_turn(
+                            ChatResult(
+                                transcript=sanitized,
+                                response=response_text,
+                                audio_base64=audio_b64,
+                                path="skill",
+                                skill_name=getattr(skill, "name", None),
+                                language=tts_lang,
+                            ),
+                            started,
                         )
 
         # 3. Memory context
@@ -193,11 +210,29 @@ class ChatOrchestrator:
         # 6. TTS (optional – text-only clients can ignore audio)
         audio_b64 = await self._maybe_synthesize(response_text, tts_lang)
 
-        return ChatResult(
-            transcript=sanitized,
-            response=response_text,
-            audio_base64=audio_b64,
+        return self._finish_turn(
+            ChatResult(
+                transcript=sanitized,
+                response=response_text,
+                audio_base64=audio_b64,
+                path="llm",
+                skill_name=None,
+                language=tts_lang,
+            ),
+            started,
         )
+
+    def _finish_turn(self, result: ChatResult, started: float) -> ChatResult:
+        """Attach duration and emit a structured measurement log line."""
+        result.duration_ms = (time.perf_counter() - started) * 1000.0
+        logger.info(
+            "turn path=%s skill=%s language=%s duration_ms=%.1f",
+            result.path,
+            result.skill_name,
+            result.language,
+            result.duration_ms,
+        )
+        return result
 
     async def _resolve_transcript(
         self,

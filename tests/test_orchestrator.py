@@ -78,6 +78,8 @@ async def test_process_text_happy_path(
     assert result.transcript == "Hi there"
     assert result.response == "Hello from Jarvis."
     assert result.audio_base64 is not None  # base64 of fake-wav-bytes
+    assert result.path == "llm"
+    assert result.language == "en"
 
     mock_llm.generate_response.assert_awaited_once()
     mock_tts.synthesize.assert_awaited_once_with("Hello from Jarvis.", language=ANY)
@@ -281,7 +283,7 @@ async def test_skill_handles_turn_skips_llm(
         skill_registry=mock_registry,
     )
 
-    result = await orch.process(text="note: buy milk")
+    result = await orch.process(text="note: buy milk", language="de")
 
     assert result.transcript == "note: buy milk"
     assert "saved the note" in result.response.lower() or "Got it" in result.response
@@ -289,6 +291,10 @@ async def test_skill_handles_turn_skips_llm(
     mock_skill.execute.assert_awaited_once()
     mock_llm.generate_response.assert_not_awaited()
     assert mock_working_memory.add.await_count == 2  # user + jarvis
+    assert result.path == "skill"
+    assert result.skill_name == "notes"
+    assert result.language == "de"
+    assert result.duration_ms >= 0.0
 
 
 @pytest.mark.asyncio
@@ -312,6 +318,9 @@ async def test_no_skill_match_uses_llm(
     assert result.response == "Hello from Jarvis."
     registry.find_handler.assert_called_once()
     mock_llm.generate_response.assert_awaited_once()
+    assert result.path == "llm"
+    assert result.skill_name is None
+    assert result.duration_ms >= 0.0
 
 
 @pytest.mark.asyncio

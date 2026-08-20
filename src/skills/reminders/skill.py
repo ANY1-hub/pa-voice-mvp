@@ -67,6 +67,21 @@ _TIME_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Relative wait: "in 2 minutes", "in 5 Minuten", "in einer Stunde", "2 perc múlva"
+_RELATIVE_IN = re.compile(
+    r"\bin\s+(?:einer|einem|one|a)\s+"
+    r"(minutes?|mins?|minuten|minute|hours?|hrs?|stunden|stunde)\b",
+    re.IGNORECASE,
+)
+_RELATIVE_N = re.compile(
+    r"\bin\s+(\d+)\s*" r"(minutes?|mins?|minuten|minute|hours?|hrs?|stunden|stunde)\b",
+    re.IGNORECASE,
+)
+_RELATIVE_HU = re.compile(
+    r"\b(\d+)\s*(perc|óra)\s*múlva\b",
+    re.IGNORECASE,
+)
+
 
 def _now_utc() -> datetime:
     """Return current UTC time (patchable in tests)."""
@@ -89,13 +104,38 @@ def _parse_time(text: str) -> tuple[int, int] | None:
     return None
 
 
+def _unit_to_delta(n: int, unit: str) -> timedelta:
+    """Map a spoken duration unit to a timedelta."""
+    key = unit.lower()
+    if key.startswith("perc") or key.startswith("min"):
+        return timedelta(minutes=n)
+    return timedelta(hours=n)
+
+
+def _parse_relative_duration(text: str, now: datetime) -> datetime | None:
+    """Parse 'in N minutes' / 'in einer Stunde' / 'N perc múlva'."""
+    m = _RELATIVE_HU.search(text)
+    if m:
+        return now + _unit_to_delta(int(m.group(1)), m.group(2))
+    m = _RELATIVE_N.search(text)
+    if m:
+        return now + _unit_to_delta(int(m.group(1)), m.group(2))
+    m = _RELATIVE_IN.search(text)
+    if m:
+        return now + _unit_to_delta(1, m.group(1))
+    return None
+
+
 def _parse_due(text: str) -> datetime | None:  # noqa: C901
     """Parse a simple relative date (+ optional time) from free text.
 
-    Supports: today/heute, tomorrow/morgen, day-after, weekdays.
-    Returns None when no date token is found.
+    Supports: in N minutes/hours, today/heute, tomorrow/morgen, day-after,
+    weekdays. Returns None when no date token is found.
     """
     now = _now_utc()
+    relative = _parse_relative_duration(text, now)
+    if relative is not None:
+        return relative
     base: datetime | None = None
 
     numeric = _NUMERIC_DATE.search(text)
@@ -168,6 +208,9 @@ def _strip_date_tokens(text: str) -> str:
     cleaned = _WEEKDAY_RE.sub("", cleaned)
     cleaned = _TIME_RE.sub("", cleaned)
     cleaned = _NUMERIC_DATE.sub("", cleaned)
+    cleaned = _RELATIVE_HU.sub("", cleaned)
+    cleaned = _RELATIVE_N.sub("", cleaned)
+    cleaned = _RELATIVE_IN.sub("", cleaned)
     cleaned = re.sub(
         r"\b(an den|an die|an das|an|to|um|at|on|für|dem|den|die|das|"
         r"eine|einen|einer|einem|zum|zur|bitte|for)\b",

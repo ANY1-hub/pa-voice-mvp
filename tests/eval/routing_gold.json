@@ -1,0 +1,278 @@
+{
+  "version": 1,
+  "description": "Expected skill (or llm fallthrough) for canonical, collision, and future inflected/gappy utterances. xfail=true documents matcher gaps (agglutination / insertions), not current bugs.",
+  "cases": [
+    {
+      "id": "en-remind-create",
+      "lang": "en",
+      "text": "remind me tomorrow to call the dentist",
+      "expected": "reminders",
+      "tag": "canonical"
+    },
+    {
+      "id": "en-remind-relative-wait",
+      "lang": "en",
+      "text": "remind me in 2 minutes to drink water",
+      "expected": "reminders",
+      "tag": "canonical"
+    },
+    {
+      "id": "en-remind-list",
+      "lang": "en",
+      "text": "show my reminders",
+      "expected": "reminders",
+      "tag": "canonical"
+    },
+    {
+      "id": "en-remind-agenda",
+      "lang": "en",
+      "text": "what's on today",
+      "expected": "reminders",
+      "tag": "canonical"
+    },
+    {
+      "id": "en-notes-create",
+      "lang": "en",
+      "text": "note: buy oat milk",
+      "expected": "notes",
+      "tag": "canonical"
+    },
+    {
+      "id": "en-notes-list",
+      "lang": "en",
+      "text": "list my notes",
+      "expected": "notes",
+      "tag": "canonical"
+    },
+    {
+      "id": "en-search",
+      "lang": "en",
+      "text": "search for the weather in Berlin",
+      "expected": "web_search",
+      "tag": "canonical"
+    },
+    {
+      "id": "en-recall",
+      "lang": "en",
+      "text": "what do you know about me",
+      "expected": "active_recall",
+      "tag": "canonical"
+    },
+    {
+      "id": "en-recall-not-remind",
+      "lang": "en",
+      "text": "remind me what I told you about coffee",
+      "expected": "active_recall",
+      "tag": "collision"
+    },
+    {
+      "id": "en-search-not-agenda",
+      "lang": "en",
+      "text": "search for weather today",
+      "expected": "web_search",
+      "tag": "collision"
+    },
+    {
+      "id": "en-chat-today",
+      "lang": "en",
+      "text": "how are you today?",
+      "expected": "llm",
+      "tag": "collision"
+    },
+    {
+      "id": "en-personal-fact",
+      "lang": "en",
+      "text": "my name is Tony and I like espresso",
+      "expected": "llm",
+      "tag": "canonical"
+    },
+    {
+      "id": "de-remind-create",
+      "lang": "de",
+      "text": "erinner mich morgen um 10 an den Zahnarzt",
+      "expected": "reminders",
+      "tag": "canonical"
+    },
+    {
+      "id": "de-remind-erinnere-an",
+      "lang": "de",
+      "text": "Erinnere mich an den Zahnarzt morgen",
+      "expected": "reminders",
+      "tag": "collision"
+    },
+    {
+      "id": "de-remind-list",
+      "lang": "de",
+      "text": "meine Erinnerungen",
+      "expected": "reminders",
+      "tag": "canonical"
+    },
+    {
+      "id": "de-remind-agenda",
+      "lang": "de",
+      "text": "was steht heute an",
+      "expected": "reminders",
+      "tag": "canonical"
+    },
+    {
+      "id": "de-notes-create",
+      "lang": "de",
+      "text": "merk dir das: Milch kaufen",
+      "expected": "notes",
+      "tag": "canonical"
+    },
+    {
+      "id": "de-notes-list",
+      "lang": "de",
+      "text": "meine Notizen",
+      "expected": "notes",
+      "tag": "canonical"
+    },
+    {
+      "id": "de-search",
+      "lang": "de",
+      "text": "suche nach dem Wetter in Berlin",
+      "expected": "web_search",
+      "tag": "canonical"
+    },
+    {
+      "id": "de-recall",
+      "lang": "de",
+      "text": "was weißt du über mich",
+      "expected": "active_recall",
+      "tag": "canonical"
+    },
+    {
+      "id": "de-recall-erinnerst",
+      "lang": "de",
+      "text": "was erinnerst du dich an meine Vorlieben",
+      "expected": "active_recall",
+      "tag": "canonical"
+    },
+    {
+      "id": "de-personal-fact",
+      "lang": "de",
+      "text": "ich heiße Anna und ich mag Espresso",
+      "expected": "llm",
+      "tag": "canonical"
+    },
+    {
+      "id": "hu-remind-create",
+      "lang": "hu",
+      "text": "emlékeztess holnap a fogorvosra",
+      "expected": "reminders",
+      "tag": "canonical"
+    },
+    {
+      "id": "hu-remind-list",
+      "lang": "hu",
+      "text": "listázd az emlékeztetőket",
+      "expected": "reminders",
+      "tag": "canonical"
+    },
+    {
+      "id": "hu-remind-agenda-today",
+      "lang": "hu",
+      "text": "mi van ma a naptáramban",
+      "expected": "reminders",
+      "tag": "canonical"
+    },
+    {
+      "id": "hu-remind-agenda-week",
+      "lang": "hu",
+      "text": "mi van a héten",
+      "expected": "reminders",
+      "tag": "canonical"
+    },
+    {
+      "id": "hu-notes-create",
+      "lang": "hu",
+      "text": "jegyzeteld: tej",
+      "expected": "notes",
+      "tag": "canonical"
+    },
+    {
+      "id": "hu-notes-list",
+      "lang": "hu",
+      "text": "listázd a jegyzeteket",
+      "expected": "notes",
+      "tag": "canonical"
+    },
+    {
+      "id": "hu-search",
+      "lang": "hu",
+      "text": "keress rá a berlini időjárásra",
+      "expected": "web_search",
+      "tag": "canonical"
+    },
+    {
+      "id": "hu-recall",
+      "lang": "hu",
+      "text": "mit tudsz rólam",
+      "expected": "active_recall",
+      "tag": "canonical"
+    },
+    {
+      "id": "hu-recall-not-remind",
+      "lang": "hu",
+      "text": "mire emlékszel",
+      "expected": "active_recall",
+      "tag": "collision"
+    },
+    {
+      "id": "hu-personal-fact",
+      "lang": "hu",
+      "text": "a nevem Ákos és szeretek eszpresszót",
+      "expected": "llm",
+      "tag": "canonical"
+    },
+    {
+      "id": "hu-remind-inflected-conditional",
+      "lang": "hu",
+      "text": "emlékeztetnél holnap a fogorvosra",
+      "expected": "reminders",
+      "tag": "inflected",
+      "xfail": true,
+      "reason": "agglutinating suffix on emlékeztet; exact phrase is emlékeztess"
+    },
+    {
+      "id": "hu-remind-gappy-create",
+      "lang": "hu",
+      "text": "állíts be kérlek egy emlékeztetőt a fogorvosra",
+      "expected": "reminders",
+      "tag": "gappy",
+      "xfail": true,
+      "reason": "insertions between állíts be and emlékeztetőt"
+    },
+    {
+      "id": "hu-remind-list-possessive",
+      "lang": "hu",
+      "text": "mutasd az emlékeztetőimet",
+      "expected": "reminders",
+      "tag": "inflected",
+      "xfail": true,
+      "reason": "possessive plural emlékeztetőimet vs catalog emlékeztetőket"
+    },
+    {
+      "id": "hu-notes-inflected",
+      "lang": "hu",
+      "text": "jegyzeteld le kérem a tejet",
+      "expected": "notes",
+      "tag": "gappy"
+    },
+    {
+      "id": "en-remind-gappy-please",
+      "lang": "en",
+      "text": "could you please set a reminder to drink water",
+      "expected": "reminders",
+      "tag": "gappy"
+    },
+    {
+      "id": "de-remind-gappy-bitte",
+      "lang": "de",
+      "text": "erinner mich bitte morgen an den Zahnarzt",
+      "expected": "reminders",
+      "tag": "gappy"
+    }
+  ]
+}

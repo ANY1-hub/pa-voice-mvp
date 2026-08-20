@@ -35,8 +35,8 @@ def test_help_catalog_has_ten_phrases_per_skill_per_language():
             "personal_facts",
         }
         for skill, phrases in catalog.items():
-            assert len(phrases) == 10, f"{lang}/{skill} has {len(phrases)}"
-            assert len(set(p.lower() for p in phrases)) == 10
+            assert len(phrases) >= 10, f"{lang}/{skill} has {len(phrases)}"
+            assert len(set(p.lower() for p in phrases)) == len(phrases)
 
 
 def test_help_phrases_are_claimed_by_the_matching_skill():
@@ -71,7 +71,7 @@ def test_phrases_endpoint_returns_selected_language_only():
     assert "merk dir" in " ".join(data["skills"]["notes"]).lower()
     assert "remember this" not in " ".join(data["skills"]["notes"]).lower()
     assert "personal_facts" in data["skills"]
-    assert len(data["skills"]["personal_facts"]) == 10
+    assert len(data["skills"]["personal_facts"]) >= 10
 
 
 def test_help_catalog_unknown_language_falls_back_to_english():

@@ -5,9 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] 2026-08-19
+## [Unreleased] 2026-08-20
 
 ### Added
+- Routing gold set (`tests/eval/routing_gold.json`) for EN/DE/HU skill vs LLM fallthrough
+- Reminder create parses relative waits: `in 2 minutes`, `in 5 Minuten`, `2 perc múlva`
+- Turn measurement on `ChatResult`: path, skill name, language, duration_ms (structured log)
+- Mongo task probes: note/reminder persist, recall reads a seeded fact, search returns a mocked hit
 - Change-password returns a fresh JWT so the session stays valid after `token_version` rotation
 - Notes, Active Recall and Web Search reply in EN / DE / HU (same pattern as Reminders)
 - Chat text and voice send the Help-panel language flag as an STT/TTS hint
