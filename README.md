@@ -111,6 +111,7 @@ source .venv/bin/activate   # or .venv\Scripts\activate on Windows
 
 # Install dependencies
 uv pip install -e ".[dev]"
+playwright install chromium   # default Voice UI engine (firefox / webkit optional)
 
 # Copy env and set MONGODB_URI (local Docker or NAS)
 cp .env.example .env
@@ -121,20 +122,17 @@ uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 
 ### Frontend (Voice UI)
 
-```bash
-# Terminal 2 – from project root
-cd frontend
-python -m http.server 5500
-```
+The backend serves the Voice UI from `frontend/` at the same origin as the API.
 
-Open http://localhost:5500
+Open http://localhost:8000
 
-- Empty DB → Bootstrap screen (Create SuperUser)
+- Empty users collection → **Create SuperUser** form (not Sign in)
 - Otherwise → Login; if `must_change_password` → forced password change; then preferred name; then chat
 - SuperUser sees Admin button (user list / create / toggle active & super)
 
-Backend must be running on port 8000.
 Piper voice models must be present (see [docs/piper-voice-setup.md](docs/piper-voice-setup.md)).
+
+Voice UI bootstrap is tested with a headless browser (Playwright). `pip install playwright` does **not** download an engine; run `playwright install chromium` (default). If that binary is missing, the chromium family falls back to installed Chrome or Edge. Another engine: `playwright install firefox` then `JARVIS_E2E_BROWSER=firefox pytest tests/test_voice_ui_bootstrap.py`.
 
 ### MongoDB
 

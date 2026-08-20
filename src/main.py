@@ -1,9 +1,11 @@
 """FastAPI application entrypoint."""
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from src.api.routes.admin import router as admin_router
 from src.api.routes.auth import router as auth_router
@@ -56,3 +58,13 @@ async def health_check():
         Dict with ``status`` and a short message.
     """
     return {"status": "ok", "message": "Jarvis backend is running"}
+
+
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
+# Last: API routes stay in front. Same origin as /api/v1 — empty DB bootstrap
+# does not depend on a second static server.
+app.mount(
+    "/",
+    StaticFiles(directory=FRONTEND_DIR, html=True),
+    name="frontend",
+)

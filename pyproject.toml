@@ -40,6 +40,7 @@ dev = [
     "pytest-cov",
     "pytest-asyncio",
     "pre-commit",
+    "playwright",
 ]
 test = [
     "pytest",
@@ -47,6 +48,7 @@ test = [
     "httpx2",
     "pytest-cov",
     "pytest-asyncio",
+    "playwright",
 ]
 
 [tool.hatch.build.targets.wheel]

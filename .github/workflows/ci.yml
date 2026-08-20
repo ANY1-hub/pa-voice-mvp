@@ -47,11 +47,15 @@ jobs:
       - name: Black
         run: black --check src tests
 
+      - name: Playwright browser (default engine)
+        run: playwright install chromium --with-deps
+
       - name: Pytest
         env:
           SECRET_KEY: "ci-test-secret-key-do-not-use-in-prod!"
           MONGODB_URI: "mongodb://localhost:27017"
           MONGODB_DB_NAME: "jarvis_test"
+          JARVIS_E2E_BROWSER: chromium
         # --cov-fail-under enforces a minimum total coverage (currently ~86%+).
         # STT/ffmpeg paths stay low on purpose; overall floor keeps regressions in check.
         run: pytest --cov=src --cov-report=term-missing --cov-fail-under=80
