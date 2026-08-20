@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Forced password change no longer keeps a dead JWT (admin-created users were dumped back to login)
 - German “Erinnere mich an …” creates a reminder instead of being stolen by Active Recall
 - Language heuristic: German `mit` / English `van` no longer select the Hungarian TTS voice
+- Hungarian text with ö/ü or áéíóú is no longer classified as German (ő/ű-only check was too strict)
 - Hungarian agenda phrases (“mi van a héten”, “mi van ma”) use the matching date window instead of always today
 - Reminders: "remind me today …" creates a reminder instead of listing the agenda; agenda no longer claims bare "today"/"this week" chat
 - Reminders: time-of-day without a date token now sets due_at (today, or tomorrow if already past); `erinner(e)? mich` matches German create

@@ -79,3 +79,21 @@ def test_hint_wins_over_a_single_function_word():
     """A UI/STT hint must beat one ambiguous function word without unique letters."""
     assert detect_response_language("ok mit", hint="de") == "de"
     assert detect_response_language("ok", hint="hu") == "hu"
+
+
+def test_hungarian_with_shared_umlauts_is_not_german():
+    """ö/ü exist in both languages; Hungarian text must not become German."""
+    assert detect_response_language("Köszönöm") == "hu"
+    assert detect_response_language("Köszönöm", hint="hu") == "hu"
+    assert detect_response_language("Köszönöm", hint="en") == "hu"
+
+
+def test_hungarian_acute_accents_select_hungarian():
+    """áéíóú are Hungarian in this trio and must select hu without ő/ű."""
+    assert detect_response_language("Emlékeztess holnap a fogorvosra") == "hu"
+    assert detect_response_language("jegyzeteld: tej", hint="en") == "hu"
+
+
+def test_hungarian_hint_survives_shared_umlauts():
+    """A Hungarian UI/STT hint must win when the only special letters are ö/ü."""
+    assert detect_response_language("örülök", hint="hu") == "hu"
