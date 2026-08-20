@@ -231,27 +231,21 @@
       "lang": "hu",
       "text": "emlékeztetnél holnap a fogorvosra",
       "expected": "reminders",
-      "tag": "inflected",
-      "xfail": true,
-      "reason": "agglutinating suffix on emlékeztet; exact phrase is emlékeztess"
+      "tag": "inflected"
     },
     {
       "id": "hu-remind-gappy-create",
       "lang": "hu",
       "text": "állíts be kérlek egy emlékeztetőt a fogorvosra",
       "expected": "reminders",
-      "tag": "gappy",
-      "xfail": true,
-      "reason": "insertions between állíts be and emlékeztetőt"
+      "tag": "gappy"
     },
     {
       "id": "hu-remind-list-possessive",
       "lang": "hu",
       "text": "mutasd az emlékeztetőimet",
       "expected": "reminders",
-      "tag": "inflected",
-      "xfail": true,
-      "reason": "possessive plural emlékeztetőimet vs catalog emlékeztetőket"
+      "tag": "inflected"
     },
     {
       "id": "hu-notes-inflected",

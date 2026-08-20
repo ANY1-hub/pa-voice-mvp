@@ -9,6 +9,7 @@ the selected language only.
 from __future__ import annotations
 
 import re
+import unicodedata
 
 # ---------------------------------------------------------------------------
 # Notes
@@ -331,13 +332,95 @@ def _flatten(
     return uniq
 
 
+def _fold_char(ch: str) -> str:
+    """Casefold one character and strip combining marks (ő→o, ß→ss)."""
+    nfd = unicodedata.normalize("NFD", ch.casefold())
+    return "".join(c for c in nfd if unicodedata.category(c) != "Mn")
+
+
+def fold_text(text: str) -> str:
+    """Accent-insensitive, case-insensitive form for matching."""
+    return "".join(_fold_char(ch) for ch in text)
+
+
+def _fold_with_map(text: str) -> tuple[str, list[int]]:
+    """Folded string plus map from folded index to original index."""
+    folded: list[str] = []
+    mapping: list[int] = []
+    for i, ch in enumerate(text):
+        for piece in _fold_char(ch):
+            folded.append(piece)
+            mapping.append(i)
+    return "".join(folded), mapping
+
+
+def _token_pattern(token: str) -> str:
+    """Allow an inflection tail on long or non-ASCII (HU/DE) tokens.
+
+    ASCII keywords such as ``reminder`` stay exact so ``show reminders``
+    is not stolen by the create extra ``reminder``.
+    """
+    inflect = len(token) >= 11 or (len(token) >= 6 and not token.isascii())
+    if inflect:
+        stem_len = max(6, len(token) - 3)
+        return re.escape(token[:stem_len]) + r"\w*"
+    return re.escape(token)
+
+
+def _phrase_pattern(phrase: str) -> str:
+    """Tokens in order with up to two filler words between them."""
+    tokens = phrase.split()
+    if not tokens:
+        return ""
+    parts = [_token_pattern(tokens[0])]
+    for tok in tokens[1:]:
+        parts.append(r"(?:\s+\S+){0,2}\s+")
+        parts.append(_token_pattern(tok))
+    return "".join(parts)
+
+
+class PhraseMatcher:
+    """Search/sub on accent-folded text; spans map back to the original."""
+
+    def __init__(self, pattern: re.Pattern[str]) -> None:
+        self._pattern = pattern
+
+    def search(self, text: str) -> re.Match[str] | None:
+        """Return a match against the folded utterance, or None."""
+        folded, _ = _fold_with_map(text)
+        return self._pattern.search(folded)
+
+    def sub(self, repl: str, text: str, count: int = 0) -> str:
+        """Replace matches in the original string (folded matching)."""
+        folded, mapping = _fold_with_map(text)
+        limit = 0 if count == 0 else count
+        out = text
+        offset = 0
+        for n, m in enumerate(self._pattern.finditer(folded), start=1):
+            orig_start = mapping[m.start()] if m.start() < len(mapping) else len(text)
+            orig_end = mapping[m.end()] if m.end() < len(mapping) else len(text)
+            orig_start += offset
+            orig_end += offset
+            out = out[:orig_start] + repl + out[orig_end:]
+            offset += len(repl) - (orig_end - orig_start)
+            if limit and n >= limit:
+                break
+        return out
+
+
 def compile_phrase_regex(
     *groups: dict[str, list[str]], extra: list[str] | None = None
-) -> re.Pattern[str]:
-    """Case-insensitive matcher for a set of spoken phrases."""
+) -> PhraseMatcher:
+    """Matcher for spoken phrases: order-preserving, gappy, stem-tolerant.
+
+    Accents are folded so STT without diacritics still hits. Tokens of
+    length 6+ allow an inflection tail. Up to two words may appear between
+    tokens (please / kérlek / ein).
+    """
     phrases = _flatten(*groups, extra=extra)
-    escaped = [re.escape(p) for p in phrases]
-    return re.compile(r"(?i)(?<!\w)(?:" + "|".join(escaped) + r")(?!\w)")
+    parts = [_phrase_pattern(fold_text(p)) for p in phrases if p.strip()]
+    combined = r"(?i)(?<!\w)(?:" + "|".join(parts) + r")(?!\w)"
+    return PhraseMatcher(re.compile(combined))
 
 
 def help_catalog(lang: str) -> dict[str, list[str]]:

@@ -80,6 +80,20 @@ def test_help_catalog_unknown_language_falls_back_to_english():
     assert catalog["notes"][0].lower() == help_catalog("en")["notes"][0].lower()
 
 
+def test_hungarian_inflected_and_gappy_reminders_route():
+    """Agglutinating / gappy HU reminder utterances must still hit reminders."""
+    registry = _registry()
+    for text in (
+        "emlékeztetnél holnap a fogorvosra",
+        "állíts be kérlek egy emlékeztetőt a fogorvosra",
+        "mutasd az emlékeztetőimet",
+        "emlekeztess holnap",
+    ):
+        found = registry.find_handler(text)
+        assert found is not None, text
+        assert found.name == "reminders", text
+
+
 def test_german_reminder_create_is_not_stolen_by_recall():
     """'Erinnere mich an …' must create a reminder, not run Active Recall."""
     registry = _registry()
