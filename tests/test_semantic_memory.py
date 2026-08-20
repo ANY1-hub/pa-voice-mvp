@@ -96,6 +96,7 @@ async def test_add_fact_with_embeddings_and_persist():
     dumped = collection.insert_one.await_args.args[0]
     UUID(dumped["id"])
     assert dumped["id"] == fact.id
+    assert dumped["_id"] == fact.id
 
 
 @pytest.mark.asyncio

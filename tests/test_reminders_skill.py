@@ -53,6 +53,8 @@ async def test_repository_create_calls_insert():
     dumped = mock_coll.insert_one.call_args[0][0]
     assert dumped["user_id"] == "u1"
     assert dumped["status"] == "pending"
+    assert dumped["_id"] == r.id
+    assert dumped["id"] == r.id
 
 
 @pytest.mark.asyncio

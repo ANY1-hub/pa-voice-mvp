@@ -77,6 +77,7 @@ async def test_add_persists_when_collection_present():
     assert dumped["expires_at"] == item.expires_at
     UUID(dumped["id"])
     assert dumped["id"] == item.id
+    assert dumped["_id"] == item.id
 
 
 @pytest.mark.asyncio

@@ -11,7 +11,7 @@ Zwei Memory-Ebenen:
 
 - Session-Kontext und letzte Interaktionen
 - Felder pro Eintrag:
-  - `id` (UUID v4, unique index; primary application key)
+  - `id` / Mongo ``_id`` (same UUID v4; unique index)
   - `user_id` (UUID-String)
   - `content`
   - `importance_score` (0.0 – 1.0)
@@ -28,7 +28,7 @@ Zwei Memory-Ebenen:
 
 - Dauerhafte User-Erkenntnisse: Präferenzen, Fakten, Muster, Wissensstand
 - Felder pro Eintrag:
-  - `id` (UUID v4, unique index; primary application key)
+  - `id` / Mongo ``_id`` (same UUID v4; unique index)
   - `user_id` (UUID-String)
   - `content`
   - `importance_score` (0.0 – 1.0)

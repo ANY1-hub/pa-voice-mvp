@@ -2,7 +2,12 @@
 
 import re
 
-from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
+from motor.motor_asyncio import (
+    AsyncIOMotorClient,
+    AsyncIOMotorCollection,
+    AsyncIOMotorDatabase,
+)
+from pydantic import BaseModel
 
 from src.core.config import get_settings
 
@@ -14,6 +19,36 @@ def contains_regex(query: str) -> dict[str, str]:
     regular expression (ReDoS / over-matching).
     """
     return {"$regex": re.escape(query), "$options": "i"}
+
+
+def mongo_document(model: BaseModel, extra: dict | None = None) -> dict:
+    """Dump a model for insert so Mongo ``_id`` is the application UUID.
+
+    Empty-database / greenfield: one identifier, no ObjectId leak.
+    """
+    doc = model.model_dump(mode="json")
+    app_id = doc.get("id")
+    if app_id:
+        doc["_id"] = app_id
+    if extra:
+        doc.update(extra)
+    return doc
+
+
+async def _ensure_unique_id_index(collection: AsyncIOMotorCollection) -> None:
+    """Unique, non-sparse index on application ``id``.
+
+    Recreates the index once if it was sparse or missing. Documents without
+    ``id`` are dropped (greenfield: no production data to keep).
+    """
+    indexes = await collection.index_information()
+    existing = indexes.get("id_1")
+    if existing and existing.get("unique") and not existing.get("sparse"):
+        return
+    await collection.delete_many({"$or": [{"id": {"$exists": False}}, {"id": None}]})
+    if existing:
+        await collection.drop_index("id_1")
+    await collection.create_index("id", unique=True)
 
 
 class MongoDB:
@@ -52,10 +87,14 @@ async def connect_to_mongo() -> None:
     await db_client.db["working_memory"].create_index(
         "expires_at", expireAfterSeconds=0
     )
-    # Application UUIDs. Sparse so leftover rows without ``id`` (old tests /
-    # pre-UUID writes) do not collide on null; every new write has an id.
-    for coll in ("working_memory", "semantic_memory", "notes", "reminders"):
-        await db_client.db[coll].create_index("id", unique=True, sparse=True)
+    for coll in (
+        "users",
+        "working_memory",
+        "semantic_memory",
+        "notes",
+        "reminders",
+    ):
+        await _ensure_unique_id_index(db_client.db[coll])
 
     # Vector search indexes will be initialized here in later phases
 

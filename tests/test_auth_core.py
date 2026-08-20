@@ -148,6 +148,8 @@ async def test_repo_create_inserts():
     collection.insert_one.assert_awaited_once()
     dumped = collection.insert_one.await_args.args[0]
     assert dumped["email"] == "Test@example.com"
+    assert dumped["_id"] == user.id
+    assert dumped["id"] == user.id
 
 
 @pytest.mark.asyncio

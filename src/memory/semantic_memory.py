@@ -6,7 +6,7 @@ from datetime import UTC, datetime, timedelta
 
 from motor.motor_asyncio import AsyncIOMotorCollection
 
-from src.db.mongodb import contains_regex
+from src.db.mongodb import contains_regex, mongo_document
 from src.models.memory import SemanticMemoryFact, assign_stable_id
 from src.security.guardrails import validate_memory_write
 from src.services.embeddings.base import EmbeddingsAdapter
@@ -109,7 +109,7 @@ class SemanticMemory:
 
         # 4. Persistence
         if self.collection is not None:
-            await self.collection.insert_one(memory_fact.model_dump(mode="json"))
+            await self.collection.insert_one(mongo_document(memory_fact))
 
         return memory_fact
 

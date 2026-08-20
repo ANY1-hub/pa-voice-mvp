@@ -2,6 +2,7 @@
 
 from motor.motor_asyncio import AsyncIOMotorCollection
 
+from src.db.mongodb import mongo_document
 from src.models.user import User
 
 
@@ -34,10 +35,7 @@ class UserRepository:
         """
         if self.collection is None:
             raise RuntimeError("Database not connected")
-        doc = user.model_dump(mode="json")
-        if extra:
-            doc.update(extra)
-        await self.collection.insert_one(doc)
+        await self.collection.insert_one(mongo_document(user, extra=extra))
         return user
 
     async def get_by_email(self, email: str) -> User | None:

@@ -76,6 +76,8 @@ async def test_repository_create_calls_insert():
     assert dumped["user_id"] == "u1"
     assert dumped["content"] == "Persisted note"
     assert dumped["title"] == "T1"
+    assert dumped["_id"] == note.id
+    assert dumped["id"] == note.id
 
 
 # ---------------------------------------------------------------------------

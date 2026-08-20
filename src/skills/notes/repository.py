@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 
 from motor.motor_asyncio import AsyncIOMotorCollection
 
-from src.db.mongodb import contains_regex
+from src.db.mongodb import contains_regex, mongo_document
 from src.models.note import Note
 from src.security.guardrails import validate_memory_write
 
@@ -64,7 +64,7 @@ class NoteRepository:
         )
 
         if self.collection is not None:
-            await self.collection.insert_one(note.model_dump(mode="json"))
+            await self.collection.insert_one(mongo_document(note))
 
         return note
 

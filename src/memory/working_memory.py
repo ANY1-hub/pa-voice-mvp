@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 
 from motor.motor_asyncio import AsyncIOMotorCollection
 
-from src.db.mongodb import contains_regex
+from src.db.mongodb import contains_regex, mongo_document
 from src.models.memory import WorkingMemoryItem, assign_stable_id
 from src.security.guardrails import validate_memory_write
 
@@ -68,7 +68,7 @@ class WorkingMemory:
 
         # 3. Persistence
         if self.collection is not None:
-            doc = item.model_dump(mode="json")
+            doc = mongo_document(item)
             # BSON Date so Mongo can TTL-expire the document.
             doc["expires_at"] = item.expires_at
             await self.collection.insert_one(doc)

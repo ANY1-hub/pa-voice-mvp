@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 
 from motor.motor_asyncio import AsyncIOMotorCollection
 
-from src.db.mongodb import contains_regex
+from src.db.mongodb import contains_regex, mongo_document
 from src.models.reminder import Reminder
 from src.security.guardrails import validate_memory_write
 
@@ -44,7 +44,7 @@ class ReminderRepository:
         )
 
         if self.collection is not None:
-            await self.collection.insert_one(reminder.model_dump(mode="json"))
+            await self.collection.insert_one(mongo_document(reminder))
 
         return reminder
 
