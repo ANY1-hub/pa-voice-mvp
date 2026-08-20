@@ -275,7 +275,7 @@ async def test_search_touches_last_accessed_and_boosts_importance():
     assert len(results) == 1
     collection.update_one.assert_awaited_once()
     filter_arg, update_arg = collection.update_one.call_args[0]
-    assert filter_arg == {"_id": "fact-1", "user_id": USER_ID}
+    assert filter_arg == {"id": "fact-1", "user_id": USER_ID}
     assert "$set" in update_arg
     assert "last_accessed" in update_arg["$set"]
     assert update_arg["$set"]["importance_score"] == pytest.approx(0.65)

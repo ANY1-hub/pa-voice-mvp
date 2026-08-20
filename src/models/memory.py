@@ -19,11 +19,11 @@ def now_utc() -> datetime:
 
 
 def assign_stable_id(doc: dict[str, Any]) -> dict[str, Any]:
-    """Ensure a memory document has an application ``id`` (UUID v4).
+    """Ensure a memory document has an application ``id``.
 
-    New writes already store ``id``. Legacy rows only have Mongo ``_id``;
-    we surface that as ``id`` so reads stay addressable without minting a
-    different UUID on every retrieve. Callers must ``pop`` ``_id`` after.
+    New writes store a UUID v4. Callers must ``pop`` ``_id`` after. On an
+    empty database every row already has ``id``; the Mongo ``_id`` copy is
+    only a read fallback for fixtures or unexpected legacy docs.
     """
     mongo_id = doc.get("_id")
     if not doc.get("id") and mongo_id is not None:

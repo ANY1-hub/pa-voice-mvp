@@ -52,6 +52,10 @@ async def connect_to_mongo() -> None:
     await db_client.db["working_memory"].create_index(
         "expires_at", expireAfterSeconds=0
     )
+    # Application UUIDs. Sparse so leftover rows without ``id`` (old tests /
+    # pre-UUID writes) do not collide on null; every new write has an id.
+    for coll in ("working_memory", "semantic_memory", "notes", "reminders"):
+        await db_client.db[coll].create_index("id", unique=True, sparse=True)
 
     # Vector search indexes will be initialized here in later phases
 

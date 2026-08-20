@@ -173,26 +173,26 @@ class SemanticMemory:
             return []
 
         needle = query.strip().lower()
-        vector_hits: list[tuple[float, SemanticMemoryFact, object]] = []
-        text_hits: list[tuple[float, SemanticMemoryFact, object]] = []
+        vector_hits: list[tuple[float, SemanticMemoryFact]] = []
+        text_hits: list[tuple[float, SemanticMemoryFact]] = []
 
         cursor = self.collection.find({"user_id": self.user_id})
         async for doc in cursor:
             assign_stable_id(doc)
-            doc_id = doc.pop("_id", None)
+            doc.pop("_id", None)
             fact = SemanticMemoryFact.model_validate(doc)
             if fact.embedding:
                 score = _cosine_similarity(query_embedding, fact.embedding)
                 if score >= MIN_COSINE_SIMILARITY:
-                    vector_hits.append((score, fact, doc_id))
+                    vector_hits.append((score, fact))
                     continue
             if needle and needle in fact.content.lower():
-                text_hits.append((fact.importance_score, fact, doc_id))
+                text_hits.append((fact.importance_score, fact))
 
         vector_hits.sort(key=lambda pair: pair[0], reverse=True)
         text_hits.sort(key=lambda pair: pair[0], reverse=True)
 
-        selected: list[tuple[float, SemanticMemoryFact, object]] = []
+        selected: list[tuple[float, SemanticMemoryFact]] = []
         for item in vector_hits:
             if len(selected) >= limit:
                 break
@@ -206,8 +206,8 @@ class SemanticMemory:
                 continue
             selected.append(item)
 
-        await self._touch_facts([(fact, doc_id) for _, fact, doc_id in selected])
-        return [fact for _, fact, _ in selected]
+        await self._touch_facts([fact for _, fact in selected])
+        return [fact for _, fact in selected]
 
     async def _top_facts(self, limit: int) -> list[SemanticMemoryFact]:
         """Return the highest-importance facts (used for 'about me' recall)."""
@@ -218,13 +218,13 @@ class SemanticMemory:
             .sort("importance_score", -1)
             .limit(limit)
         )
-        results: list[tuple[SemanticMemoryFact, object]] = []
+        results: list[SemanticMemoryFact] = []
         async for doc in cursor:
             assign_stable_id(doc)
-            doc_id = doc.pop("_id", None)
-            results.append((SemanticMemoryFact.model_validate(doc), doc_id))
+            doc.pop("_id", None)
+            results.append(SemanticMemoryFact.model_validate(doc))
         await self._touch_facts(results)
-        return [fact for fact, _ in results]
+        return results
 
     async def _text_search(self, query: str, limit: int) -> list[SemanticMemoryFact]:
         """Case-insensitive substring search (escaped) ranked by importance."""
@@ -241,30 +241,27 @@ class SemanticMemory:
             .sort("importance_score", -1)
             .limit(limit)
         )
-        results: list[tuple[SemanticMemoryFact, object]] = []
+        results: list[SemanticMemoryFact] = []
         async for doc in cursor:
             assign_stable_id(doc)
-            doc_id = doc.pop("_id", None)
-            fact = SemanticMemoryFact.model_validate(doc)
-            results.append((fact, doc_id))
+            doc.pop("_id", None)
+            results.append(SemanticMemoryFact.model_validate(doc))
 
         await self._touch_facts(results)
-        return [fact for fact, _ in results]
+        return results
 
-    async def _touch_facts(
-        self, items: list[tuple[SemanticMemoryFact, object]]
-    ) -> None:
+    async def _touch_facts(self, facts: list[SemanticMemoryFact]) -> None:
         """Update last_accessed and apply a small importance boost for accessed facts."""
-        if self.collection is None or not items:
+        if self.collection is None or not facts:
             return
 
         now_iso = datetime.now(UTC).isoformat()
-        for fact, doc_id in items:
-            if doc_id is None:
+        for fact in facts:
+            if not fact.id:
                 continue
             new_importance = min(1.0, fact.importance_score + 0.05)
             await self.collection.update_one(
-                {"_id": doc_id, "user_id": self.user_id},
+                {"id": fact.id, "user_id": self.user_id},
                 {
                     "$set": {
                         "last_accessed": now_iso,
@@ -347,11 +344,10 @@ class SemanticMemory:
                 return (has_emb, imp, accessed)
 
             docs.sort(key=sort_key, reverse=True)
-            # Keep first, delete the rest
-            to_delete_ids = [d["_id"] for d in docs[1:]]
+            to_delete_ids = [d["id"] for d in docs[1:] if d.get("id")]
             if to_delete_ids:
                 result = await self.collection.delete_many(
-                    {"_id": {"$in": to_delete_ids}}
+                    {"user_id": self.user_id, "id": {"$in": to_delete_ids}}
                 )
                 deleted_total += result.deleted_count
 

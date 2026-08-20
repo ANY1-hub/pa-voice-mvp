@@ -75,6 +75,7 @@ async def test_deduplicate_removes_duplicates(mock_collection):
     docs = [
         {
             "_id": "id1",
+            "id": "id1",
             "user_id": "550e8400-e29b-41d4-a716-446655440000",
             "content": "I like dark mode",
             "importance_score": 0.6,
@@ -82,6 +83,7 @@ async def test_deduplicate_removes_duplicates(mock_collection):
         },
         {
             "_id": "id2",
+            "id": "id2",
             "user_id": "550e8400-e29b-41d4-a716-446655440000",
             "content": "I like dark mode",
             "importance_score": 0.9,
@@ -89,6 +91,7 @@ async def test_deduplicate_removes_duplicates(mock_collection):
         },
         {
             "_id": "id3",
+            "id": "id3",
             "user_id": "550e8400-e29b-41d4-a716-446655440000",
             "content": "Completely different fact",
             "importance_score": 0.7,
@@ -107,11 +110,11 @@ async def test_deduplicate_removes_duplicates(mock_collection):
     # Should have called delete_many once for the lower-importance duplicate
     mock_collection.delete_many.assert_awaited()
     call_args = mock_collection.delete_many.call_args[0][0]
-    assert "_id" in call_args
-    assert "$in" in call_args["_id"]
+    assert "id" in call_args
+    assert "$in" in call_args["id"]
     # The kept one is id2 (higher importance), so id1 should be deleted
-    assert "id1" in call_args["_id"]["$in"]
-    assert "id2" not in call_args["_id"]["$in"]
+    assert "id1" in call_args["id"]["$in"]
+    assert "id2" not in call_args["id"]["$in"]
 
 
 @pytest.mark.asyncio
