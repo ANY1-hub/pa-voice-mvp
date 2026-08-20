@@ -94,6 +94,36 @@ def test_display_name_writes_semantic_fact(client):
     assert any("Pepper" in (item.get("content") or "") for item in facts)
 
 
+def test_display_name_fact_is_not_duplicated(client):
+    """Setting the same preferred name twice must leave a single semantic fact."""
+    headers, _email = _register_and_login(client)
+    payload = {"display_name": "Akosh"}
+    assert (
+        client.post(
+            "/api/v1/auth/display-name", headers=headers, json=payload
+        ).status_code
+        == 200
+    )
+    assert (
+        client.post(
+            "/api/v1/auth/display-name", headers=headers, json=payload
+        ).status_code
+        == 200
+    )
+    search = client.get(
+        "/api/v1/memory/semantic",
+        headers=headers,
+        params={"query": "Akosh"},
+    )
+    assert search.status_code == 200
+    facts = [
+        item
+        for item in search.json()["data"]
+        if "prefers to be addressed as Akosh" in (item.get("content") or "")
+    ]
+    assert len(facts) == 1
+
+
 def test_display_name_empty_rejected(client):
     """Whitespace-only names must be rejected."""
     headers, _email = _register_and_login(client)

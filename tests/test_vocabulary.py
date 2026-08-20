@@ -39,6 +39,23 @@ def test_help_catalog_has_ten_phrases_per_skill_per_language():
             assert len(set(p.lower() for p in phrases)) == len(phrases)
 
 
+def test_name_questions_route_to_recall_not_web_search():
+    """Identity questions must not be stolen by the 'what is' web-search trigger."""
+    registry = _registry()
+    for text in (
+        "What is my name?",
+        "what's my name",
+        "I have asked what my name is",
+        "Wie heiße ich?",
+        "wie ist mein Name",
+        "Mi a nevem?",
+        "hogy hívnak",
+    ):
+        found = registry.find_handler(text)
+        assert found is not None, text
+        assert found.name == "active_recall", f"{text!r} went to {found.name}"
+
+
 def test_help_phrases_are_claimed_by_the_matching_skill():
     """Every catalog phrase must route to the skill it is listed under."""
     registry = _registry()

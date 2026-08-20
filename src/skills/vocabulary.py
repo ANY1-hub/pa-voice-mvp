@@ -235,6 +235,8 @@ ACTIVE_RECALL: dict[str, list[str]] = {
         "what do you remember",
         "what have I told you",
         "recall what you know about",
+        "what is my name",
+        "what's my name",
     ],
     "de": [
         "was weißt du über mich",
@@ -247,6 +249,8 @@ ACTIVE_RECALL: dict[str, list[str]] = {
         "was weißt du von mir",
         "meine präferenzen",
         "was weißt du",
+        "wie heiße ich",
+        "wie ist mein name",
     ],
     "hu": [
         "mit tudsz rólam",
@@ -259,13 +263,32 @@ ACTIVE_RECALL: dict[str, list[str]] = {
         "mire emlékszel, mit mondtam",
         "mit tudsz",
         "milyen vagyok",
+        "mi a nevem",
+        "hogy hívnak",
     ],
 }
+
+NAME_RECALL_PHRASES = [
+    "what is my name",
+    "what's my name",
+    "whats my name",
+    "what my name is",
+    "do you know my name",
+    "wie heiße ich",
+    "wie heisse ich",
+    "wie ist mein name",
+    "was ist mein name",
+    "wie lautet mein name",
+    "mi a nevem",
+    "hogy hívnak",
+    "hogy hivnak",
+]
 
 ACTIVE_RECALL_EXTRA = [
     "what do you know",
     "was weißt du noch über",
     "was weißt du noch von",
+    *NAME_RECALL_PHRASES,
 ]
 
 # ---------------------------------------------------------------------------

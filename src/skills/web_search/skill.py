@@ -9,12 +9,20 @@ from typing import Any
 from src.memory.semantic_memory import SemanticMemory
 from src.skills.base import Skill, SkillResult
 from src.skills.replies import reply_language, t
-from src.skills.vocabulary import WEB_SEARCH, WEB_SEARCH_EXTRA, compile_phrase_regex
+from src.skills.vocabulary import (
+    NAME_RECALL_PHRASES,
+    WEB_SEARCH,
+    WEB_SEARCH_EXTRA,
+    compile_phrase_regex,
+)
 from src.skills.web_search.client import DuckDuckGoClient, SearchClient
 
 logger = logging.getLogger(__name__)
 
 _SEARCH_PATTERNS = compile_phrase_regex(WEB_SEARCH, extra=WEB_SEARCH_EXTRA)
+
+# "what is" / "was ist" / "mi az" must not steal identity questions from recall.
+_PERSONAL_IDENTITY = compile_phrase_regex(extra=NAME_RECALL_PHRASES)
 
 _STRIP_PHRASES = sorted(
     {p for items in WEB_SEARCH.values() for p in items} | set(WEB_SEARCH_EXTRA),
@@ -65,6 +73,8 @@ class WebSearchSkill(Skill):
         text = user_text.strip()
         if not text:
             return False
+        if _PERSONAL_IDENTITY.search(text):
+            return False
         return bool(_SEARCH_PATTERNS.search(text))
 
     async def execute(
@@ -108,13 +118,7 @@ class WebSearchSkill(Skill):
             )
 
         response_text = self._format_response(query, personal_bits, results, lang)
-        summary = await self._maybe_write_summary(query, results)
-
-        return SkillResult(
-            response_text=response_text,
-            handled=True,
-            memory_writes=[{"content": summary, "importance": 0.45}] if summary else [],
-        )
+        return SkillResult(response_text=response_text, handled=True)
 
     async def _fetch_personal_context(self, query: str) -> list[str]:
         if self.semantic_memory is None:
@@ -159,22 +163,3 @@ class WebSearchSkill(Skill):
                 entry += f" ({href})"
             lines.append(entry)
         return "\n".join(lines)
-
-    async def _maybe_write_summary(
-        self,
-        query: str,
-        results: list[dict[str, str]],
-    ) -> str | None:
-        top_title = results[0].get("title") or query
-        summary = f"User searched for “{query}”. Top result: {top_title[:120]}"
-        if self.semantic_memory is None:
-            return summary
-        try:
-            await self.semantic_memory.add_fact(
-                fact=summary,
-                importance=0.45,
-                entities=["web_search", "search"],
-            )
-        except Exception:
-            logger.exception("Failed to write search summary to semantic memory")
-        return summary

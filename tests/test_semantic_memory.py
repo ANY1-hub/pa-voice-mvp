@@ -1,5 +1,6 @@
 """Unit tests for SemanticMemory (add, search, cosine)."""
 
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID
 
@@ -97,6 +98,28 @@ async def test_add_fact_with_embeddings_and_persist():
     UUID(dumped["id"])
     assert dumped["id"] == fact.id
     assert dumped["_id"] == fact.id
+
+
+@pytest.mark.asyncio
+async def test_add_fact_skips_insert_when_content_already_stored():
+    """The same fact text for one user must not be inserted twice."""
+    existing = {
+        "id": "already",
+        "user_id": USER_ID,
+        "content": "The user prefers to be addressed as Akosh.",
+        "importance_score": 0.75,
+        "entities_involved": ["Akosh"],
+        "created_at": datetime.now(UTC),
+        "last_accessed": datetime.now(UTC),
+        "embedding": None,
+        "language": None,
+    }
+    collection = AsyncMock()
+    collection.find_one = AsyncMock(return_value=dict(existing))
+    mem = SemanticMemory(user_id=USER_ID, collection=collection)
+    fact = await mem.add_fact(existing["content"], importance=0.75)
+    assert fact.content == existing["content"]
+    collection.insert_one.assert_not_awaited()
 
 
 @pytest.mark.asyncio

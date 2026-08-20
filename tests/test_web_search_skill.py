@@ -53,6 +53,9 @@ def test_can_handle_search_intents():
     assert skill.can_handle("keress rá a Python dokumentációra") is True
     assert skill.can_handle("just chatting about the weather") is False
     assert skill.can_handle("note: buy milk") is False
+    assert skill.can_handle("What is my name?") is False
+    assert skill.can_handle("Wie heiße ich?") is False
+    assert skill.can_handle("Mi a nevem?") is False
 
 
 # ---------------------------------------------------------------------------
@@ -162,8 +165,8 @@ async def test_execute_german_search_replies_in_german():
 
 
 @pytest.mark.asyncio
-async def test_execute_writes_summary_to_semantic_memory():
-    """After a successful search a short summary fact must be written to Semantic Memory."""
+async def test_execute_does_not_write_search_log_to_semantic_memory():
+    """Search transcripts are not personal facts and must not enter Semantic Memory."""
     client = FakeSearchClient()
     mock_sem = MagicMock()
     mock_sem.search = AsyncMock(return_value=[])
@@ -177,12 +180,8 @@ async def test_execute_writes_summary_to_semantic_memory():
     )
 
     assert result.handled is True
-    mock_sem.add_fact.assert_awaited_once()
-    call_kwargs = mock_sem.add_fact.call_args.kwargs
-    assert (
-        "search" in call_kwargs["fact"].lower()
-        or "python" in call_kwargs["fact"].lower()
-    )
+    mock_sem.add_fact.assert_not_awaited()
+    assert result.memory_writes == []
 
 
 # ---------------------------------------------------------------------------
@@ -249,28 +248,6 @@ async def test_execute_continues_when_semantic_search_fails():
         "Example Result" in result.response_text
         or "example.com" in result.response_text
     )
-
-
-@pytest.mark.asyncio
-async def test_execute_continues_when_add_fact_fails():
-    """If writing the search summary to memory fails, the user must still see the web results."""
-    client = FakeSearchClient()
-    mock_sem = MagicMock()
-    mock_sem.search = AsyncMock(return_value=[])
-    mock_sem.add_fact = AsyncMock(side_effect=RuntimeError("write denied"))
-
-    skill = WebSearchSkill(client=client, semantic_memory=mock_sem)
-    result = await skill.execute(
-        user_text="search for Python asyncio",
-        user_id="u1",
-    )
-
-    assert result.handled is True
-    assert (
-        "Example Result" in result.response_text
-        or "example.com" in result.response_text
-    )
-    mock_sem.add_fact.assert_awaited_once()
 
 
 # ---------------------------------------------------------------------------

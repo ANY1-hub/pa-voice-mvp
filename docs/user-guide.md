@@ -80,10 +80,12 @@ These are **not** a routed skill. Say them in a normal sentence; Jarvis extracts
 
 | Intent | English | German | Hungarian |
 |--------|---------|--------|-----------|
-| Recall | what do you know about…, what do you remember about…, recall what you know about…, my preferences | was weißt du über…, was erinnerst du dich an…, meine vorlieben | mit tudsz rólam, mire emlékszel |
+| Recall | what do you know about…, what is my name, what do you remember about…, my preferences | was weißt du über…, wie heiße ich, wie ist mein Name, meine vorlieben | mit tudsz rólam, mi a nevem, hogy hívnak, mire emlékszel |
 
 **Example**  
 - “What do you know about me?”  
+- “What is my name?”  
+- “Wie heiße ich?”  
 - “Was weißt du über meine Vorlieben?”  
 - “Recall what I told you about allergies”
 

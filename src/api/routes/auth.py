@@ -26,7 +26,7 @@ from src.models.user import (
     UserPublic,
 )
 from src.services.embeddings.openai import OpenAIEmbeddingsAdapter
-from src.services.memory_facts import FACT_IMPORTANCE
+from src.services.memory_facts import ADDRESS_FACT_PREFIX, FACT_IMPORTANCE
 
 logger = logging.getLogger(__name__)
 
@@ -216,8 +216,9 @@ async def set_display_name(
             collection=semantic_collection,
             embeddings_adapter=embeddings,
         )
+        await memory.delete_facts_with_prefix(ADDRESS_FACT_PREFIX)
         await memory.add_fact(
-            fact=f"The user prefers to be addressed as {payload.display_name}.",
+            fact=f"{ADDRESS_FACT_PREFIX} {payload.display_name}.",
             importance=FACT_IMPORTANCE,
             entities=[payload.display_name],
         )

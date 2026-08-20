@@ -14,6 +14,7 @@ from src.skills.vocabulary import PERSONAL_FACTS, compile_phrase_regex
 logger = logging.getLogger(__name__)
 
 FACT_IMPORTANCE = 0.75
+ADDRESS_FACT_PREFIX = "The user prefers to be addressed as"
 
 # Cheap gate so greetings do not pay a second LLM call.
 _PERSONAL_CUE = re.compile(

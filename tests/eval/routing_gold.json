@@ -274,6 +274,41 @@
       "text": "erinner mich bitte morgen an den Zahnarzt",
       "expected": "reminders",
       "tag": "gappy"
+    },
+    {
+      "id": "en-recall-my-name",
+      "lang": "en",
+      "text": "What is my name?",
+      "expected": "active_recall",
+      "tag": "collision"
+    },
+    {
+      "id": "en-recall-what-my-name-is",
+      "lang": "en",
+      "text": "I have asked what my name is",
+      "expected": "active_recall",
+      "tag": "collision"
+    },
+    {
+      "id": "en-search-what-is-capital",
+      "lang": "en",
+      "text": "what is the capital of France",
+      "expected": "web_search",
+      "tag": "canonical"
+    },
+    {
+      "id": "de-recall-my-name",
+      "lang": "de",
+      "text": "Wie heiße ich?",
+      "expected": "active_recall",
+      "tag": "collision"
+    },
+    {
+      "id": "hu-recall-my-name",
+      "lang": "hu",
+      "text": "Mi a nevem?",
+      "expected": "active_recall",
+      "tag": "collision"
     }
   ]
 }

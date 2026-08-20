@@ -38,6 +38,8 @@ def test_can_handle_english_recall_intents():
     assert skill.can_handle("What are my preferences?") is True
     assert skill.can_handle("just chatting about the weather") is False
     assert skill.can_handle("I don't recall his name") is False
+    assert skill.can_handle("What is my name?") is True
+    assert skill.can_handle("I have asked what my name is") is True
 
 
 def test_can_handle_german_recall_intents():
@@ -48,6 +50,7 @@ def test_can_handle_german_recall_intents():
     assert skill.can_handle("Was weißt du über mich?") is True
     assert skill.can_handle("Hallo, wie geht's?") is False
     assert skill.can_handle("Erinnere mich an den Zahnarzt") is False
+    assert skill.can_handle("Wie heiße ich?") is True
 
 
 # ---------------------------------------------------------------------------
@@ -76,6 +79,21 @@ async def test_execute_returns_facts_for_topic():
     assert "allergic to shellfish" in result.response_text.lower()
     assert "oat milk" in result.response_text.lower()
     mock_sem.search.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_execute_name_question_searches_about_the_user():
+    """A name question must look up personal facts, not a leftover topic string."""
+    mock_sem = MagicMock()
+    mock_sem.search = AsyncMock(
+        return_value=[_fact("The user prefers to be addressed as Akosh.")]
+    )
+    skill = ActiveRecallSkill(semantic_memory=mock_sem)
+    result = await skill.execute(user_text="What is my name?", user_id="u1")
+    assert result.handled is True
+    assert "Akosh" in result.response_text
+    mock_sem.search.assert_awaited()
+    assert mock_sem.search.await_args.kwargs["query"] == ""
 
 
 @pytest.mark.asyncio

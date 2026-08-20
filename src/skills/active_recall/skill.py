@@ -13,12 +13,14 @@ from src.skills.replies import reply_language, t
 from src.skills.vocabulary import (
     ACTIVE_RECALL,
     ACTIVE_RECALL_EXTRA,
+    NAME_RECALL_PHRASES,
     compile_phrase_regex,
 )
 
 logger = logging.getLogger(__name__)
 
 _TRIGGER_RE = compile_phrase_regex(ACTIVE_RECALL, extra=ACTIVE_RECALL_EXTRA)
+_NAME_RE = compile_phrase_regex(extra=NAME_RECALL_PHRASES)
 
 _FILLER_RE = re.compile(
     r"^(about|über|an|zu|von|regarding|concerning)\s+",
@@ -99,6 +101,8 @@ class ActiveRecallSkill(Skill):
 
     def _extract_query(self, user_text: str) -> str:
         """Strip trigger phrases and light fillers; return the topic."""
+        if _NAME_RE.search(user_text):
+            return ""
         text = user_text.strip()
         # Remove the first matching trigger phrase
         text = _TRIGGER_RE.sub("", text, count=1).strip(" :?,-").strip()

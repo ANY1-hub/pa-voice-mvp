@@ -2,6 +2,7 @@
 
 import logging
 import math
+import re
 from datetime import UTC, datetime, timedelta
 
 from motor.motor_asyncio import AsyncIOMotorCollection
@@ -107,11 +108,37 @@ class SemanticMemory:
             language=language,
         )
 
-        # 4. Persistence
+        # 4. Persistence (skip insert if this user already has the same text)
         if self.collection is not None:
+            existing = await self.collection.find_one(
+                {"user_id": self.user_id, "content": fact}
+            )
+            if isinstance(existing, dict):
+                assign_stable_id(existing)
+                existing.pop("_id", None)
+                return SemanticMemoryFact.model_validate(existing)
             await self.collection.insert_one(mongo_document(memory_fact))
 
         return memory_fact
+
+    async def delete_facts_with_prefix(self, prefix: str) -> int:
+        """Delete this user's facts whose content starts with ``prefix``.
+
+        Args:
+            prefix: Literal start of ``content`` (not a regex).
+
+        Returns:
+            Number of deleted documents, or 0 when no collection is configured.
+        """
+        if self.collection is None or not prefix:
+            return 0
+        result = await self.collection.delete_many(
+            {
+                "user_id": self.user_id,
+                "content": {"$regex": f"^{re.escape(prefix)}"},
+            }
+        )
+        return int(result.deleted_count)
 
     async def search(
         self,
