@@ -9,6 +9,7 @@ from src.api.routes.admin import router as admin_router
 from src.api.routes.auth import router as auth_router
 from src.api.routes.chat import router as chat_router
 from src.api.routes.memory import router as memory_router
+from src.api.routes.reminders import router as reminders_router
 from src.api.routes.skills import router as skills_router
 from src.db.mongodb import close_mongo_connection, connect_to_mongo
 from src.tasks.scheduler import start_scheduler, stop_scheduler
@@ -44,6 +45,7 @@ app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
 app.include_router(memory_router, prefix="/api/v1/memory", tags=["memory"])
 app.include_router(chat_router, prefix="/api/v1/chat", tags=["chat"])
 app.include_router(skills_router, prefix="/api/v1/skills", tags=["skills"])
+app.include_router(reminders_router, prefix="/api/v1/reminders", tags=["reminders"])
 
 
 @app.get("/health")

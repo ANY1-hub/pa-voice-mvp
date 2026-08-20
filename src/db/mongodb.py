@@ -87,6 +87,9 @@ async def connect_to_mongo() -> None:
     await db_client.db["working_memory"].create_index(
         "expires_at", expireAfterSeconds=0
     )
+    await db_client.db["reminders"].create_index(
+        [("status", 1), ("fired_at", 1), ("due_at", 1)]
+    )
     for coll in (
         "users",
         "working_memory",

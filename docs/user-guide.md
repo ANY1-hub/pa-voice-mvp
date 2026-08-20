@@ -31,6 +31,8 @@ The Help panel (`?`) lists **ten everyday phrases per skill** for the language y
 
 Skill replies (Reminders, Notes, Active Recall, Web Search) match the user's language (EN / DE / HU) so TTS is not English-on-German. The Help-panel flag is sent with voice and text turns as the STT/TTS hint.
 
+When a reminder's time is reached and the app tab is open, Jarvis speaks it (no extra question). Leave the tab open for the demo (“in 2 minutes”).
+
 **Example**  
 - “Remind me tomorrow at 10 to call the dentist”  
 - “Erinner mich morgen um 14 Uhr an den Zahnarzt”  

@@ -5,7 +5,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from src.tasks import scheduler as sched_mod
-from src.tasks.scheduler import consolidation_job, start_scheduler, stop_scheduler
+from src.tasks.scheduler import (
+    consolidation_job,
+    due_reminder_job,
+    start_scheduler,
+    stop_scheduler,
+)
 
 
 class AsyncCursor:
@@ -162,13 +167,13 @@ def test_start_scheduler_idempotent():
 
     with patch.object(sched_mod, "scheduler", fake):
         start_scheduler()
-        fake.add_job.assert_called_once()
+        assert fake.add_job.call_count == 2
         fake.start.assert_called_once()
 
         # second call while "running"
         fake.running = True
         start_scheduler()
-        assert fake.add_job.call_count == 1
+        assert fake.add_job.call_count == 2
         assert fake.start.call_count == 1
 
 
@@ -194,11 +199,12 @@ def test_start_scheduler_registers_stable_job():
     with patch.object(sched_mod, "scheduler", fake):
         start_scheduler()
 
-    kwargs = fake.add_job.call_args.kwargs
-    assert kwargs.get("id") == "memory_consolidation"
-    assert kwargs.get("replace_existing") is True
-    assert kwargs.get("max_instances") == 1
-    assert kwargs.get("coalesce") is True
+    job_ids = {call.kwargs.get("id") for call in fake.add_job.call_args_list}
+    assert job_ids == {"memory_consolidation", "due_reminders"}
+    for call in fake.add_job.call_args_list:
+        assert call.kwargs.get("replace_existing") is True
+        assert call.kwargs.get("max_instances") == 1
+        assert call.kwargs.get("coalesce") is True
 
 
 @pytest.mark.asyncio
@@ -235,3 +241,31 @@ async def test_consolidation_continues_on_user_error():
 
     bad_sm.consolidate.assert_awaited_once()
     good_sm.consolidate.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_due_reminder_job_skips_when_db_none():
+    """Due-reminder job must no-op when DB is not connected."""
+    with patch.object(sched_mod.db_client, "db", None):
+        await due_reminder_job()
+
+
+@pytest.mark.asyncio
+async def test_due_reminder_job_claims():
+    """Due-reminder job must claim due reminders on the reminders collection."""
+    reminders_coll = MagicMock()
+    db = MagicMock()
+    db.__getitem__ = MagicMock(return_value=reminders_coll)
+
+    with (
+        patch.object(sched_mod.db_client, "db", db),
+        patch(
+            "src.tasks.scheduler.claim_due_reminders",
+            new_callable=AsyncMock,
+            return_value=[MagicMock()],
+        ) as claim,
+    ):
+        await due_reminder_job()
+
+    claim.assert_awaited_once()
+    assert claim.await_args.args[0] is reminders_coll

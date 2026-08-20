@@ -11,9 +11,10 @@ import {
     adminListUsers,
     adminCreateUser,
     adminUpdateUser,
+    api,
 } from "./auth.js";
-import { sendText, sendVoice, setStatus, resetChatTimestamps } from "./chat.js";
-import { startRecordingSession, setSpeakingHandlers, stopTts } from "./audio.js";
+import { sendText, sendVoice, setStatus, resetChatTimestamps, appendMessage } from "./chat.js";
+import { startRecordingSession, setSpeakingHandlers, stopTts, playBase64Audio } from "./audio.js";
 import { applyI18n, getLang, setLang, t } from "./i18n.js";
 import { API_BASE } from "./config.js";
 
@@ -52,6 +53,8 @@ let isRecording = false;
 let isProcessing = false;
 let isStarting = false;
 let currentStop = null;
+let dueTimer = null;
+const DUE_POLL_MS = 15000;
 
 setSpeakingHandlers({
     onStart: () => speakingIndicator?.classList.remove("hidden"),
@@ -69,7 +72,37 @@ function hideAllScreens() {
     helpPanel.classList.add("hidden");
 }
 
+function stopDuePoll() {
+    if (dueTimer) {
+        clearInterval(dueTimer);
+        dueTimer = null;
+    }
+}
+
+async function tickDueReminders() {
+    if (isRecording || isProcessing) return;
+    try {
+        const res = await api("/api/v1/reminders/due");
+        if (!res.ok) return;
+        const data = await res.json();
+        for (const item of data.reminders || []) {
+            appendMessage("jarvis", item.text);
+            playBase64Audio(item.audio_base64);
+            await api(`/api/v1/reminders/${item.id}/ack`, { method: "POST" });
+        }
+    } catch (_) {
+        /* 401 is handled by api() */
+    }
+}
+
+function startDuePoll() {
+    stopDuePoll();
+    tickDueReminders();
+    dueTimer = setInterval(tickDueReminders, DUE_POLL_MS);
+}
+
 function showAuth({ bootstrap = false } = {}) {
+    stopDuePoll();
     hideAllScreens();
     authScreen.classList.remove("hidden");
     authError.classList.add("hidden");
@@ -85,6 +118,7 @@ function showAuth({ bootstrap = false } = {}) {
 }
 
 function showChangePassword() {
+    stopDuePoll();
     hideAllScreens();
     changePasswordScreen.classList.remove("hidden");
     changePasswordError.classList.add("hidden");
@@ -94,6 +128,7 @@ function showChangePassword() {
 function showApp() {
     hideAllScreens();
     appScreen.classList.remove("hidden");
+    startDuePoll();
     const user = getStoredUser();
     userLabel.textContent = user.email || "User";
     if (user.is_superuser) {

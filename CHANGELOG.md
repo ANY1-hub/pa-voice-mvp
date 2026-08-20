@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] 2026-08-20
 
 ### Added
+- Due reminder delivery: scheduler claims at ``due_at``, ``GET /api/v1/reminders/due`` + TTS, ``POST /ack``, frontend poll while the tab is open
 - Working principle: prefer the end-state design (`docs/decisions/002-prefer-end-state-design.md`)
 - Mongo ``_id`` is the application UUID for users, memory, notes, and reminders; unique ``id`` index (greenfield, no ObjectId)
 - Chat-turn ``correlation_id`` (UUID v4) on ``ChatResult``, API responses, logs, and Working Memory writes

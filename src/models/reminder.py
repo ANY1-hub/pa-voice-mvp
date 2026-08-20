@@ -19,6 +19,8 @@ class Reminder(BaseModel):
         user_id: Owner of the reminder.
         content: Main reminder text (required).
         due_at: Optional due datetime (UTC). None = no specific time.
+        fired_at: Set once when the reminder becomes due (UTC).
+        language: Reply language for TTS when the reminder fires.
         status: pending | done | cancelled.
         created_at: Creation timestamp (UTC).
         last_accessed: Last access / update timestamp (UTC).
@@ -28,6 +30,8 @@ class Reminder(BaseModel):
     user_id: str
     content: str
     due_at: datetime | None = None
+    fired_at: datetime | None = None
+    language: str | None = None
     status: str = "pending"
     created_at: datetime = Field(default_factory=now_utc)
     last_accessed: datetime = Field(default_factory=now_utc)

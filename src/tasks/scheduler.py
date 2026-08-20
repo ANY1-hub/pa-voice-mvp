@@ -1,6 +1,7 @@
 """Background tasks scheduler (APScheduler)."""
 
 import logging
+from datetime import UTC, datetime
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -8,6 +9,7 @@ from src.core.config import get_settings
 from src.db.mongodb import db_client
 from src.memory.semantic_memory import SemanticMemory
 from src.services.embeddings.openai import OpenAIEmbeddingsAdapter
+from src.skills.reminders.repository import claim_due_reminders
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +78,25 @@ async def consolidation_job() -> None:
         logger.error("Error during memory consolidation: %s", e)
 
 
+async def due_reminder_job() -> None:
+    """Mark pending reminders as fired when due_at has passed.
+
+    Delivery to the open tab is the frontend poll of GET /reminders/due.
+    This job only claims so fired_at is set even if no client is polling.
+    """
+    if db_client.db is None:
+        logger.warning("DB not connected, skipping due reminders.")
+        return
+    try:
+        claimed = await claim_due_reminders(
+            db_client.db["reminders"], datetime.now(UTC)
+        )
+        if claimed:
+            logger.info("Claimed %s due reminder(s)", len(claimed))
+    except Exception:
+        logger.exception("Due reminder job failed")
+
+
 def start_scheduler() -> None:
     """Start the background scheduler (idempotent).
 
@@ -93,8 +114,17 @@ def start_scheduler() -> None:
         max_instances=1,
         coalesce=True,
     )
+    scheduler.add_job(
+        due_reminder_job,
+        "interval",
+        seconds=30,
+        id="due_reminders",
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
     scheduler.start()
-    logger.info("APScheduler started (consolidation runs every 60m).")
+    logger.info("APScheduler started (consolidation 60m, due reminders 30s).")
 
 
 def stop_scheduler() -> None:

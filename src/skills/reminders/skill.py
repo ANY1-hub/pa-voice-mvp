@@ -295,6 +295,7 @@ _REPLIES: dict[str, dict[str, str]] = {
         "lookup_empty": "I couldn't find a reminder matching '{keyword}'.",
         "lookup_header": "Here's what I found:",
         "no_date": "no date set",
+        "due_now": "Reminder: {content}",
     },
     "de": {
         "need_content": "Ich brauche etwas mehr Inhalt für die Erinnerung.",
@@ -311,6 +312,7 @@ _REPLIES: dict[str, dict[str, str]] = {
         "lookup_empty": "Ich habe keine Erinnerung zu '{keyword}' gefunden.",
         "lookup_header": "Das habe ich gefunden:",
         "no_date": "kein Datum",
+        "due_now": "Erinnerung: {content}",
     },
     "hu": {
         "need_content": "Kicsit több tartalom kell az emlékeztetőhöz.",
@@ -327,6 +329,7 @@ _REPLIES: dict[str, dict[str, str]] = {
         "lookup_empty": "Nem találtam emlékeztetőt erre: '{keyword}'.",
         "lookup_header": "Ezt találtam:",
         "no_date": "nincs dátum",
+        "due_now": "Emlékeztető: {content}",
     },
 }
 
@@ -336,6 +339,11 @@ def _t(lang: str, key: str, **kwargs: str) -> str:
     table = _REPLIES.get(lang) or _REPLIES["en"]
     template = table.get(key) or _REPLIES["en"][key]
     return template.format(**kwargs) if kwargs else template
+
+
+def fire_speech(content: str, language: str | None) -> str:
+    """Spoken line when a reminder becomes due."""
+    return _t(language or "en", "due_now", content=content)
 
 
 class RemindersSkill(Skill):
@@ -427,7 +435,9 @@ class RemindersSkill(Skill):
             )
 
         try:
-            reminder = await self.repository.create(content=content, due_at=due_at)
+            reminder = await self.repository.create(
+                content=content, due_at=due_at, language=lang
+            )
         except Exception:
             logger.exception("Failed to create reminder")
             return SkillResult(
