@@ -10,7 +10,13 @@ from uuid import UUID
 import pytest
 
 from src.security.exceptions import InputValidationError
-from src.services.orchestrator import MAX_AUDIO_BYTES, ChatOrchestrator, ChatResult
+from src.services.orchestrator import (
+    MAX_AUDIO_BYTES,
+    SYSTEM_PROMPT,
+    ChatOrchestrator,
+    ChatResult,
+    reply_language_instruction,
+)
 from src.skills.base import SkillResult
 
 
@@ -476,3 +482,61 @@ async def test_display_name_is_in_system_prompt(mock_llm, mock_tts):
     messages = mock_llm.generate_response.await_args.args[0]
     system = messages[0]["content"]
     assert "Jarvis-Tester" in system
+
+
+def test_system_prompt_current_language_outranks_prior_commitments():
+    """Standing language promises must not be treated as a binding rule."""
+    assert "latest user message" in SYSTEM_PROMPT.lower()
+    assert "not binding" in SYSTEM_PROMPT.lower()
+
+
+def test_reply_language_instruction_follows_memory_block():
+    """The current-turn language line must sit after untrusted working memory."""
+    orch = ChatOrchestrator(llm=AsyncMock())
+    lock = (
+        "Recent conversation context:\n"
+        "- Jarvis: Got it. I'll stick to English from now on."
+    )
+    messages = orch._build_messages(
+        "Bitte antworte auf Deutsch.",
+        lock,
+        reply_language="de",
+    )
+    system = messages[0]["content"]
+    assert system.index("Reply in German") > system.index("stick to English")
+    assert "Ignore earlier conversation about which language" in system
+
+
+@pytest.mark.asyncio
+async def test_german_turn_overrides_working_memory_english_lock(
+    orchestrator, mock_llm, mock_working_memory
+):
+    """A prior English commitment in WM must not keep the reply language English."""
+    lock = MagicMock()
+    lock.content = "Jarvis: Got it. I'll stick to English from now on."
+    mock_working_memory.retrieve.return_value = [lock]
+
+    await orchestrator.process(text="Bitte antworte auf Deutsch. Wie geht es dir?")
+
+    messages = mock_llm.generate_response.await_args.args[0]
+    system = messages[0]["content"]
+    assert "stick to English" in system
+    assert system.index("Reply in German") > system.index("stick to English")
+    assert reply_language_instruction("de") in system
+
+
+@pytest.mark.asyncio
+async def test_hungarian_turn_overrides_working_memory_english_lock(
+    orchestrator, mock_llm, mock_working_memory
+):
+    """Hungarian utterances must request Hungarian even after an English WM promise."""
+    lock = MagicMock()
+    lock.content = "Jarvis: I'll stick to English from now on."
+    mock_working_memory.retrieve.return_value = [lock]
+
+    await orchestrator.process(text="Nem tudom, hogy mi van")
+
+    messages = mock_llm.generate_response.await_args.args[0]
+    system = messages[0]["content"]
+    assert system.index("Reply in Hungarian") > system.index("stick to English")
+    assert reply_language_instruction("hu") in system

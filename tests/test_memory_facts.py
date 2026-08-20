@@ -7,6 +7,7 @@ import pytest
 from src.services.memory_facts import (
     FACT_IMPORTANCE,
     extract_personal_facts,
+    is_conversation_language_fact,
     looks_personal,
 )
 
@@ -64,3 +65,26 @@ async def test_extract_ignores_malformed_payloads():
     assert len(facts) == 1
     assert facts[0].content == "User likes tea"
     assert facts[0].entities == []
+
+
+def test_conversation_language_facts_are_detected():
+    """Assistant language locks must be recognized; real preferences must not."""
+    assert is_conversation_language_fact(
+        "User wants Jarvis to speak English from now on"
+    )
+    assert is_conversation_language_fact("User asked to stick to English")
+    assert is_conversation_language_fact("User likes espresso") is False
+
+
+@pytest.mark.asyncio
+async def test_extract_drops_conversation_language_facts():
+    """A language-lock extract must not be stored as a durable personal fact."""
+    llm = AsyncMock()
+    llm.generate_response.return_value = (
+        '{"facts":['
+        '{"content":"User wants Jarvis to speak English","entities":["English"]},'
+        '{"content":"User likes espresso","entities":["espresso"]}'
+        "]}"
+    )
+    facts = await extract_personal_facts(llm, "I like espresso, please speak English")
+    assert [f.content for f in facts] == ["User likes espresso"]
