@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] 2026-08-20
 
 ### Fixed
+- Voice UI: header, microphone, and text input stay on screen when the transcript is long; only the chat area scrolls
 - LLM reply language follows the latest user message: a Working-Memory “I'll stick to English” turn no longer outranks German or Hungarian. The current-language instruction is appended after untrusted memory; conversation-language preferences are not stored as Semantic facts
 - TTS: Hungarian given names with accents (100 male + 100 female in ``src/core/data/hungarian_given_names.json``, plus display name) are ignored when guessing language; áéíóú in real Hungarian words still select the Hungarian voice
 - “What is my name?” / “Wie heiße ich?” / “Mi a nevem?” route to Active Recall, not Web Search; search transcripts are not stored as personal facts; display-name facts are replaced, not duplicated

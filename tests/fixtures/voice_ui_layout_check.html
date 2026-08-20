@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+    <title>layout-check</title>
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+    <div id="authScreen" class="screen hidden"></div>
+    <div id="appScreen" class="screen">
+        <header class="top-bar">
+            <div class="brand">2b J.A.R.V.I.S.</div>
+            <div class="user-area">
+                <button class="btn-ghost">?</button>
+                <span class="user-label">tester@example.com</span>
+                <button id="logoutBtn" class="btn-ghost">Logout</button>
+            </div>
+        </header>
+        <main id="chatContainer" class="chat-area"></main>
+        <footer class="input-area">
+            <div class="speak-wrapper">
+                <button id="speakBtn" class="speak-btn" aria-label="Speak">
+                    <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <line x1="12" y1="19" x2="12" y2="23"/>
+                        <line x1="8" y1="23" x2="16" y2="23"/>
+                    </svg>
+                </button>
+                <span class="speak-hint">Click to speak</span>
+            </div>
+            <div class="text-row">
+                <input type="text" id="textInput" placeholder="Or type a command…">
+                <button id="sendBtn" class="btn-send">Send</button>
+            </div>
+        </footer>
+    </div>
+    <script>
+        const chat = document.getElementById("chatContainer");
+        for (let i = 0; i < 40; i += 1) {
+            const el = document.createElement("div");
+            el.className = i % 2 === 0 ? "msg user" : "msg jarvis";
+            el.innerHTML =
+                '<div class="msg-role"><span>' +
+                (i % 2 === 0 ? "You" : "J.A.R.V.I.S.") +
+                '</span></div><div class="msg-body">Message ' + (i + 1) +
+                " — long transcript must scroll inside the chat pane.</div>";
+            chat.appendChild(el);
+        }
+        chat.scrollTop = chat.scrollHeight;
+        const slack = 2;
+        const viewH = window.innerHeight;
+        const viewW = window.innerWidth;
+        const inView = (el) => {
+            const r = el.getBoundingClientRect();
+            return r.height > 0 && r.top >= -slack && r.bottom <= viewH + slack
+                && r.left >= -slack && r.right <= viewW + slack;
+        };
+        const header = document.querySelector(".top-bar");
+        const footer = document.querySelector(".input-area");
+        const mic = document.getElementById("speakBtn");
+        const input = document.getElementById("textInput");
+        const logout = document.getElementById("logoutBtn");
+        const send = document.getElementById("sendBtn");
+        const last = chat.querySelector(".msg:last-child");
+        const lastR = last.getBoundingClientRect();
+        const chatR = chat.getBoundingClientRect();
+        const ok =
+            inView(header) && inView(footer) && inView(mic) && inView(input)
+            && inView(logout) && inView(send)
+            && chat.scrollHeight > chat.clientHeight + 40
+            && document.documentElement.scrollHeight <= viewH + 8
+            && lastR.bottom <= chatR.bottom + 8
+            && header.getBoundingClientRect().bottom <= chatR.top + slack
+            && chatR.bottom <= footer.getBoundingClientRect().top + slack;
+        document.documentElement.setAttribute("data-layout", ok ? "ok" : "fail");
+        document.documentElement.setAttribute("data-layout-detail", JSON.stringify({
+            viewH, viewW,
+            header: header.getBoundingClientRect(),
+            footer: footer.getBoundingClientRect(),
+            chat: { top: chatR.top, bottom: chatR.bottom, scrollHeight: chat.scrollHeight, clientHeight: chat.clientHeight },
+            lastBottom: lastR.bottom,
+            pageScroll: document.documentElement.scrollHeight,
+        }));
+    </script>
+</body>
+</html>

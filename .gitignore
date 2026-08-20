@@ -17,6 +17,7 @@ env/
 .coverage
 htmlcov/
 .pytest_cache/
+frontend/_layout_check.html
 
 # Environment
 .env
