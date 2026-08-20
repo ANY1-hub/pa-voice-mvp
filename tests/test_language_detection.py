@@ -2,6 +2,7 @@
 
 import pytest
 
+from src.core.language import load_hungarian_given_names
 from src.services.orchestrator import detect_response_language
 
 
@@ -89,11 +90,47 @@ def test_hungarian_with_shared_umlauts_is_not_german():
 
 
 def test_hungarian_acute_accents_select_hungarian():
-    """áéíóú are Hungarian in this trio and must select hu without ő/ű."""
+    """áéíóú in Hungarian words (not names) must select hu without ő/ű."""
     assert detect_response_language("Emlékeztess holnap a fogorvosra") == "hu"
     assert detect_response_language("jegyzeteld: tej", hint="en") == "hu"
+
+
+def test_listed_hungarian_name_does_not_select_hungarian_in_english():
+    """Listed names with áéíóú must not switch an English reply to HU TTS."""
+    reply = "Got it, Ákosh! I'll stick to English from now on."
+    assert detect_response_language(reply, hint="en") == "en"
+    assert detect_response_language(reply) == "en"
+
+
+def test_unlisted_display_name_is_ignored_when_passed():
+    """A display name not on the list must still be strippable via ignore."""
+    assert (
+        detect_response_language(
+            "Hello Áxel, how are you today?",
+            hint="en",
+            ignore="Áxel",
+        )
+        == "en"
+    )
+    assert detect_response_language("Hello Áxel, how are you today?", hint="en") == "hu"
 
 
 def test_hungarian_hint_survives_shared_umlauts():
     """A Hungarian UI/STT hint must win when the only special letters are ö/ü."""
     assert detect_response_language("örülök", hint="hu") == "hu"
+
+
+def test_hungarian_given_name_lists_are_accented_top_100():
+    """Male and female lists must each hold 100 names containing Hungarian accents."""
+    letters = set("áéíóúöüőűÁÉÍÓÚÖÜŐŰ")
+    male, female = load_hungarian_given_names()
+    assert len(male) == 100
+    assert len(female) == 100
+    assert len(set(n.casefold() for n in male)) == 100
+    assert len(set(n.casefold() for n in female)) == 100
+    assert not set(n.casefold() for n in male) & set(n.casefold() for n in female)
+    for name in (*male, *female):
+        assert any(c in letters for c in name), name
+    assert "Ákosh" in male
+    assert "Ákos" in male
+    assert "Mária" in female

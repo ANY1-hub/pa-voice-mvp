@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
+import json
 import re
 import unicodedata
+from functools import lru_cache
+from pathlib import Path
 
 # ő/ű are Hungarian-only. áéíóú are not used in German (except rare loans).
 # ö/ü are shared with German and must not decide the language on their own.
 _HU_CHARS = set("őűŐŰáéíóúÁÉÍÓÚ")
 _DE_ONLY_CHARS = set("äßÄ")
 _SHARED_UMLAUTS = set("öüÖÜ")
+_NAME_ACCENT_CHARS = set("áéíóúöüőűÁÉÍÓÚÖÜŐŰ")
+_NAMES_PATH = Path(__file__).resolve().parent / "data" / "hungarian_given_names.json"
 _HU_WORDS = re.compile(
     r"\b(hogy|nem|egy|és|vagy|ez|az|igen|köszönöm|szia|tudom|rólam|kérem|"
     r"elmentettem|emlékeztess|jegyzeteld)\b",
@@ -19,6 +24,21 @@ _DE_WORDS = re.compile(
     r"\b(und|der|die|das|ich|nicht|ist|ein|eine|mit|für|auf|wir)\b",
     re.IGNORECASE,
 )
+
+
+@lru_cache(maxsize=1)
+def load_hungarian_given_names() -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Load male and female given names whose accents must not pick TTS language."""
+    payload = json.loads(_NAMES_PATH.read_text(encoding="utf-8"))
+    male = tuple(_nfc(n) for n in payload["male"])
+    female = tuple(_nfc(n) for n in payload["female"])
+    return male, female
+
+
+def hungarian_names_with_accents() -> tuple[str, ...]:
+    """All listed given names (male + female) used as TTS language exclusions."""
+    male, female = load_hungarian_given_names()
+    return male + female
 
 
 def _nfc(text: str) -> str:
@@ -43,20 +63,44 @@ def heuristic_language(text: str) -> str | None:
     return None
 
 
-def detect_response_language(text: str, hint: str | None = None) -> str:
+def _names_to_strip(ignore: str | None) -> tuple[str, ...]:
+    extra = _nfc(ignore or "").strip()
+    names = list(hungarian_names_with_accents())
+    if len(extra) >= 2 and extra.casefold() not in {n.casefold() for n in names}:
+        names.append(extra)
+    names.sort(key=len, reverse=True)
+    return tuple(names)
+
+
+def _without_ignored(text: str, ignore: str | None) -> str:
+    """Remove listed / display names so their accents cannot pick the TTS voice."""
+    text = _nfc(text)
+    for name in _names_to_strip(ignore):
+        text = re.sub(rf"(?i)(?<!\w){re.escape(name)}(?!\w)", " ", text)
+    return text
+
+
+def detect_response_language(
+    text: str,
+    hint: str | None = None,
+    *,
+    ignore: str | None = None,
+) -> str:
     """Guess language for TTS / skill replies.
 
-    Hungarian-only letters beat a stale hint. Shared ö/ü do not, so
-    ``Köszönöm`` stays Hungarian when the UI/STT hint is ``hu``.
+    Hungarian letters including áéíóú beat a stale hint. Shared ö/ü do not.
+    Accents inside a listed Hungarian given name or ``ignore`` (display name)
+    are stripped first so they do not pick the voice.
 
     Args:
         text: User or assistant text to inspect.
         hint: Optional language code from STT (``"en"``, ``"de"``, ``"hu"``).
+        ignore: Optional display name whose letters must not affect the guess.
 
     Returns:
         One of ``"en"``, ``"de"``, ``"hu"``.
     """
-    text = _nfc(text)
+    text = _without_ignored(text, ignore)
     hint_code = _hint_code(hint)
 
     if any(c in _HU_CHARS for c in text):

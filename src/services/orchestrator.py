@@ -159,7 +159,11 @@ class ChatOrchestrator:
         sanitized = process_user_message(transcript)
 
         # Language for TTS: explicit caller hint, else STT auto-detect, else text
-        tts_lang = detect_response_language(sanitized, hint=language or detected_lang)
+        tts_lang = detect_response_language(
+            sanitized,
+            hint=language or detected_lang,
+            ignore=self.display_name,
+        )
 
         # 2b. Skill routing (thin – first match wins)
         if self.skill_registry is not None:
@@ -190,7 +194,9 @@ class ChatOrchestrator:
                     if skill_result.handled:
                         response_text = skill_result.response_text.strip()
                         tts_lang = detect_response_language(
-                            response_text, hint=language or detected_lang
+                            response_text,
+                            hint=language or detected_lang,
+                            ignore=self.display_name,
                         )
                         await self._store_turn(sanitized, response_text, correlation_id)
                         audio_b64 = await self._maybe_synthesize(
@@ -227,7 +233,9 @@ class ChatOrchestrator:
             )
 
         # Prefer language of the *reply* if it is clearly de/hu; keep hint otherwise
-        tts_lang = detect_response_language(response_text, hint=tts_lang)
+        tts_lang = detect_response_language(
+            response_text, hint=tts_lang, ignore=self.display_name
+        )
 
         # 5. Persist the turn in Working Memory (active use of memory)
         await self._store_turn(sanitized, response_text, correlation_id)

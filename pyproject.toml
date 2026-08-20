@@ -54,6 +54,9 @@ test = [
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"src/core/data/hungarian_given_names.json" = "src/core/data/hungarian_given_names.json"
+
 [tool.ruff]
 line-length = 88
 target-version = "py311"

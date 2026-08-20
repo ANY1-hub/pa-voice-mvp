@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] 2026-08-20
 
 ### Fixed
+- TTS: Hungarian given names with accents (100 male + 100 female in ``src/core/data/hungarian_given_names.json``, plus display name) are ignored when guessing language; áéíóú in real Hungarian words still select the Hungarian voice
 - “What is my name?” / “Wie heiße ich?” / “Mi a nevem?” route to Active Recall, not Web Search; search transcripts are not stored as personal facts; display-name facts are replaced, not duplicated
 - Empty-DB auth screen: never show Sign in and Create SuperUser together. Dev UI stays on :5500 and calls the API on :8000; if the backend is down the user sees an error. Voice UI JS/HTML is ``Cache-Control: no-store``
 - Empty-DB SuperUser setup: FastAPI serves the Voice UI at ``/`` (same origin as the API). A headless-browser test (Playwright engine via ``JARVIS_E2E_BROWSER``, default chromium; Chrome/Edge if the Playwright build is missing) opens the real page on an empty users collection and fails if Sign-in is shown instead of Create SuperUser
