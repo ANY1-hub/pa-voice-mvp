@@ -255,7 +255,7 @@ ACTIVE_RECALL: dict[str, list[str]] = {
         "a preferenciáim",
         "mit jegyeztél meg",
         "mit tudsz még rólam",
-        "emlékezz rá amit mondtam",
+        "mire emlékszel, mit mondtam",
         "mit tudsz",
         "milyen vagyok",
     ],
@@ -285,6 +285,8 @@ PERSONAL_FACTS: dict[str, list[str]] = {
         "remember that I",
         "I am from",
         "my birthday is",
+        "I was born in",
+        "I was born on the",
     ],
     "de": [
         "ich heiße",
@@ -308,7 +310,9 @@ PERSONAL_FACTS: dict[str, list[str]] = {
         "származom",
         "hívj",
         "a születésnapom",
+        "születtem",
         "imádom",
+        "nagyon szeretem",
     ],
 }
 
