@@ -7,7 +7,7 @@ import {
     setDisplayName,
     clearAuth,
     getStoredUser,
-    getBootstrapStatus,
+    connectApi,
     fetchMe,
     adminListUsers,
     adminCreateUser,
@@ -119,7 +119,7 @@ function startDuePoll() {
     dueTimer = setInterval(tickDueReminders, DUE_POLL_MS);
 }
 
-function showAuth({ bootstrap = false, unknown = false } = {}) {
+function showAuth({ bootstrap = false } = {}) {
     stopDuePoll();
     hideAllScreens();
     showEl(authScreen);
@@ -127,15 +127,6 @@ function showAuth({ bootstrap = false, unknown = false } = {}) {
     hideEl(authSuccess);
     hideEl(authStatusHint);
 
-    if (unknown) {
-        showEl(loginForm);
-        showEl(registerForm);
-        if (authStatusHint) {
-            authStatusHint.textContent = t("bootstrapStatusFailed");
-            showEl(authStatusHint);
-        }
-        return;
-    }
     if (bootstrap) {
         hideEl(loginForm);
         showEl(registerForm);
@@ -521,11 +512,12 @@ async function boot() {
 
     let needsBootstrap = false;
     try {
-        const status = await getBootstrapStatus();
+        const status = await connectApi();
         needsBootstrap = Boolean(status && status.needs_bootstrap);
     } catch (err) {
         console.error("bootstrap-status failed", err);
-        showAuth({ unknown: true });
+        showAuth({ bootstrap: false });
+        showError(authError, t("bootstrapStatusFailed"));
         return;
     }
 

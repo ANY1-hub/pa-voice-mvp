@@ -60,11 +60,26 @@ async def health_check():
     return {"status": "ok", "message": "Jarvis backend is running"}
 
 
+class FrontendStaticFiles(StaticFiles):
+    """Do not cache HTML/JS/CSS; stale Voice UI JS shows the wrong auth form."""
+
+    async def get_response(self, path: str, scope):
+        response = await super().get_response(path, scope)
+        lowered = path.lower()
+        if lowered.endswith((".js", ".css", ".html")) or lowered in {
+            "",
+            ".",
+            "index.html",
+        }:
+            response.headers["Cache-Control"] = "no-store"
+        return response
+
+
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 # Last: API routes stay in front. Same origin as /api/v1 — empty DB bootstrap
 # does not depend on a second static server.
 app.mount(
     "/",
-    StaticFiles(directory=FRONTEND_DIR, html=True),
+    FrontendStaticFiles(directory=FRONTEND_DIR, html=True),
     name="frontend",
 )

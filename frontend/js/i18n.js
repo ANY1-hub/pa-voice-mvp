@@ -40,7 +40,7 @@ const STRINGS = {
         displayNameSubmit: "Continue",
         displayNameRequired: "Please enter a name.",
         displayNameFailed: "Could not save name",
-        bootstrapStatusFailed: "Could not check setup status. Sign in, or create the first SuperUser if this is a new install.",
+        bootstrapStatusFailed: "Backend is not reachable. Start the API and reload this page.",
     },
     de: {
         you: "Du",
@@ -80,7 +80,7 @@ const STRINGS = {
         displayNameSubmit: "Weiter",
         displayNameRequired: "Bitte einen Namen eingeben.",
         displayNameFailed: "Name konnte nicht gespeichert werden",
-        bootstrapStatusFailed: "Setup-Status unbekannt. Anmelden, oder den ersten SuperUser anlegen wenn die Datenbank leer ist.",
+        bootstrapStatusFailed: "Backend nicht erreichbar. API starten und diese Seite neu laden.",
     },
     hu: {
         you: "Te",
@@ -120,7 +120,7 @@ const STRINGS = {
         displayNameSubmit: "Tovább",
         displayNameRequired: "Adj meg egy nevet.",
         displayNameFailed: "A nevet nem sikerült menteni",
-        bootstrapStatusFailed: "A telepítés állapota ismeretlen. Jelentkezz be, vagy hozd létre az első SuperUser-t, ha ez egy új telepítés.",
+        bootstrapStatusFailed: "A backend nem elérhető. Indítsd el az API-t, majd töltsd újra ezt az oldalt.",
     },
 };
 

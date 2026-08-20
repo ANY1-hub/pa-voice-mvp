@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] 2026-08-20
 
 ### Fixed
+- Empty-DB auth screen: never show Sign in and Create SuperUser together. Dev UI stays on :5500 and calls the API on :8000; if the backend is down the user sees an error. Voice UI JS/HTML is ``Cache-Control: no-store``
 - Empty-DB SuperUser setup: FastAPI serves the Voice UI at ``/`` (same origin as the API). A headless-browser test (Playwright engine via ``JARVIS_E2E_BROWSER``, default chromium; Chrome/Edge if the Playwright build is missing) opens the real page on an empty users collection and fails if Sign-in is shown instead of Create SuperUser
 
 ### Added

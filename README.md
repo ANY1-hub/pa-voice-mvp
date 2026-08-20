@@ -122,13 +122,19 @@ uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 
 ### Frontend (Voice UI)
 
-The backend serves the Voice UI from `frontend/` at the same origin as the API.
+```bash
+# Terminal 2 – from project root
+cd frontend
+python -m http.server 5500
+```
 
-Open http://localhost:8000
+Open http://localhost:5500 — the UI calls the API on port **8000**. If the backend is down, the page shows an error (it does not become a second login form).
 
 - Empty users collection → **Create SuperUser** form (not Sign in)
 - Otherwise → Login; if `must_change_password` → forced password change; then preferred name; then chat
 - SuperUser sees Admin button (user list / create / toggle active & super)
+
+Backend must be running on port 8000. FastAPI also serves the same files at http://localhost:8000 (Docker / browser tests); that is not the local two-terminal workflow.
 
 Piper voice models must be present (see [docs/piper-voice-setup.md](docs/piper-voice-setup.md)).
 

@@ -1,9 +1,9 @@
 """Empty Mongo users collection → Voice UI must show SuperUser setup.
 
-Drives a headless browser (Playwright: chromium, firefox, or webkit) against
-a live uvicorn that serves the real frontend and API. Engine name is
-``JARVIS_E2E_BROWSER`` (default ``chromium``). If boot() leaves Sign-in on
-screen, this test fails.
+Local development is UI :5500 + API :8000. This file drives a headless
+browser against one uvicorn that serves both (like Docker), so pytest does
+not need a second static server. Engine: ``JARVIS_E2E_BROWSER`` (default
+``chromium``). If boot() leaves Sign-in on screen, this test fails.
 """
 
 from __future__ import annotations
@@ -131,6 +131,27 @@ def test_backend_serves_voice_ui(client):
     assert response.status_code == 200
     assert "registerForm" in response.text
     assert "Create SuperUser" in response.text
+
+
+def test_served_js_calls_versioned_bootstrap_and_phrases(client):
+    """Stale short paths (/bootstrap-status, /phrases) must not be what the UI fetches."""
+    auth_js = client.get("/js/auth.js")
+    app_js = client.get("/js/app.js")
+    assert auth_js.status_code == 200
+    assert app_js.status_code == 200
+    assert "/api/v1/auth/bootstrap-status" in auth_js.text
+    assert "/api/v1/skills/phrases" in app_js.text
+    assert 'fetch("/bootstrap-status"' not in auth_js.text
+    assert "fetch(`/bootstrap-status`" not in auth_js.text
+    assert 'fetch("/phrases"' not in app_js.text
+
+
+def test_voice_ui_js_is_not_cached(client):
+    """Browsers must revalidate Voice UI JS or they keep both auth forms on screen."""
+    response = client.get("/js/auth.js")
+    assert response.status_code == 200
+    cache = response.headers.get("cache-control", "").lower()
+    assert "no-store" in cache
 
 
 def test_empty_db_shows_superuser_form_and_creates_account():
