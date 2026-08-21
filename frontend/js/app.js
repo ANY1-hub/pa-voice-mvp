@@ -17,7 +17,7 @@ import {
 import { sendText, sendVoice, setStatus, resetChatTimestamps, appendMessage } from "./chat.js";
 import { startRecordingSession, setSpeakingHandlers, stopTts, playBase64Audio } from "./audio.js";
 import { applyI18n, getLang, setLang, t } from "./i18n.js";
-import { API_BASE } from "./config.js";
+import { API_BASE } from "./config.js?v=2026-08-21-signin";
 
 // ------------------------------------------------------------------
 // DOM
@@ -516,7 +516,10 @@ async function boot() {
         needsBootstrap = Boolean(status && status.needs_bootstrap);
     } catch (err) {
         console.error("bootstrap-status failed", err);
-        showAuth({ bootstrap: false });
+        hideAllScreens();
+        showEl(authScreen);
+        hideEl(loginForm);
+        hideEl(registerForm);
         showError(authError, t("bootstrapStatusFailed"));
         return;
     }

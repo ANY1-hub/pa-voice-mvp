@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
     <title>2b J.A.R.V.I.S.</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
@@ -13,8 +14,8 @@
             <div class="logo">2b J.A.R.V.I.S.</div>
             <p class="tagline">will become: Just A Rather Very Intelligent System</p>
 
-            <!-- Login form (default) -->
-            <form id="loginForm">
+            <!-- Neither form until boot() knows bootstrap-status. -->
+            <form id="loginForm" class="hidden">
                 <div class="field">
                     <label for="loginEmail">Email</label>
                     <input type="email" id="loginEmail" required autocomplete="username" placeholder="tony@stark.com">
@@ -224,6 +225,6 @@
         </div>
     </div>
 
-    <script type="module" src="js/app.js?v=2026-08-20-ui5500"></script>
+    <script type="module" src="js/app.js?v=2026-08-21-signin"></script>
 </body>
 </html>

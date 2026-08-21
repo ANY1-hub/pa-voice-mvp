@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] 2026-08-20
 
 ### Fixed
+- Auth screen stays blank (error only) if the API is down — Sign in is not the fallback. ``localhost`` UI talks to ``127.0.0.1:8000`` so Windows IPv6 does not miss uvicorn
+- Dev UI on :5500 talks only to the API on :8000 (same hostname, no same-origin probe). Pytest does not use 5500/8000; it sets ``window.JARVIS_API_BASE`` on its own ephemeral server
+- Voice UI ships a favicon so ``python -m http.server 5500`` no longer logs a 404 for ``/favicon.ico``
 - Voice UI: header, microphone, and text input stay on screen when the transcript is long; only the chat area scrolls
 - LLM reply language follows the latest user message: a Working-Memory “I'll stick to English” turn no longer outranks German or Hungarian. The current-language instruction is appended after untrusted memory; conversation-language preferences are not stored as Semantic facts
 - TTS: Hungarian given names with accents (100 male + 100 female in ``src/core/data/hungarian_given_names.json``, plus display name) are ignored when guessing language; áéíóú in real Hungarian words still select the Hungarian voice

@@ -1,4 +1,10 @@
-import { API_BASE, TOKEN_KEY, USER_KEY, apiBaseCandidates, setApiBase } from "./config.js";
+import {
+    API_BASE,
+    TOKEN_KEY,
+    USER_KEY,
+    defaultApiBase,
+    setApiBase,
+} from "./config.js?v=2026-08-21-signin";
 
 export function getToken() {
     return localStorage.getItem(TOKEN_KEY);
@@ -31,25 +37,17 @@ export async function getBootstrapStatus() {
     return res.json(); // { needs_bootstrap: bool }
 }
 
-/** Find a working API origin and return bootstrap-status from it. */
+/** Call the one configured API origin (dev :8000, or test override). */
 export async function connectApi() {
-    let lastError = new Error("Could not check bootstrap status");
-    for (const base of apiBaseCandidates()) {
-        try {
-            const res = await fetch(`${base}/api/v1/auth/bootstrap-status`, {
-                signal: AbortSignal.timeout(4000),
-            });
-            if (!res.ok) {
-                lastError = new Error(`bootstrap-status ${res.status}`);
-                continue;
-            }
-            setApiBase(base);
-            return await res.json();
-        } catch (err) {
-            lastError = err;
-        }
+    const base = defaultApiBase();
+    const res = await fetch(`${base}/api/v1/auth/bootstrap-status`, {
+        signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) {
+        throw new Error(`bootstrap-status ${res.status}`);
     }
-    throw lastError;
+    setApiBase(base);
+    return await res.json();
 }
 
 /** Bootstrap only – first user becomes SuperUser. */

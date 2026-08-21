@@ -6,6 +6,8 @@ import uuid
 
 # --- Test isolation: never touch the production database name ---
 os.environ["MONGODB_DB_NAME"] = "jarvis_test"
+# Human ports 5500 (UI) and 8000 (API) stay reserved. Browser tests bind
+# an ephemeral port and set window.JARVIS_API_BASE (see test_voice_ui_bootstrap).
 # SECRET_KEY must be set before the app (and Settings) is imported
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-ci-only-32chars!")
 

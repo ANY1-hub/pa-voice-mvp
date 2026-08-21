@@ -1,9 +1,10 @@
 """Empty Mongo users collection → Voice UI must show SuperUser setup.
 
-Local development is UI :5500 + API :8000. This file drives a headless
-browser against one uvicorn that serves both (like Docker), so pytest does
-not need a second static server. Engine: ``JARVIS_E2E_BROWSER`` (default
-``chromium``). If boot() leaves Sign-in on screen, this test fails.
+Human development is UI :5500 + API :8000 — this file must not bind those
+ports. It starts one uvicorn on an ephemeral port (UI+API, like Docker) and
+sets ``window.JARVIS_API_BASE = ''`` so the page talks to that server only.
+Engine: ``JARVIS_E2E_BROWSER`` (default ``chromium``). If boot() leaves
+Sign-in on screen, this test fails.
 """
 
 from __future__ import annotations
@@ -180,6 +181,8 @@ def test_empty_db_shows_superuser_form_and_creates_account():
         with sync_playwright() as playwright:
             browser = _launch_headless(playwright)
             page = browser.new_page()
+            # Do not use human ports 5500/8000. This uvicorn is the API.
+            page.add_init_script("window.JARVIS_API_BASE = '';")
             page.goto(origin + "/", wait_until="domcontentloaded")
 
             expect(page.locator("#registerForm")).to_be_visible(timeout=15_000)
