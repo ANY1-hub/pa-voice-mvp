@@ -51,8 +51,7 @@ def _open_app_with_long_chat(page: Page, origin: str) -> None:
     # boot() always ends on auth (this origin has no API). Wait so it cannot
     # hide #appScreen after we reveal the chat chrome.
     page.wait_for_selector("#authError:not(.hidden)", timeout=10_000)
-    page.evaluate(
-        """() => {
+    page.evaluate("""() => {
             document.getElementById("authScreen").classList.add("hidden");
             document.getElementById("changePasswordScreen").classList.add("hidden");
             document.getElementById("displayNameScreen").classList.add("hidden");
@@ -72,13 +71,11 @@ def _open_app_with_long_chat(page: Page, origin: str) -> None:
                 chat.appendChild(el);
             }
             chat.scrollTop = chat.scrollHeight;
-        }"""
-    )
+        }""")
 
 
 def _assert_chrome_pinned(page: Page) -> None:
-    metrics = page.evaluate(
-        """() => {
+    metrics = page.evaluate("""() => {
             const viewH = window.innerHeight;
             const viewW = window.innerWidth;
             const box = (el) => {
@@ -107,8 +104,7 @@ def _assert_chrome_pinned(page: Page) -> None:
                 },
                 pageScroll: document.documentElement.scrollHeight,
             };
-        }"""
-    )
+        }""")
     view_h = metrics["viewH"]
     view_w = metrics["viewW"]
 
