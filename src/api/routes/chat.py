@@ -30,7 +30,7 @@ class TextChatRequest(BaseModel):
 
     Attributes:
         text: User message (1–4000 characters).
-        language: Optional UI language hint (``en`` / ``de`` / ``hu``).
+        language: Forced chat language (``en`` / ``de`` / ``hu``). Omit for auto-detect.
     """
 
     text: str = Field(..., min_length=1, max_length=4000)
@@ -107,7 +107,7 @@ async def chat_voice(
     Args:
         audio: Uploaded audio file (wav, webm, …).
         orchestrator: Injected chat orchestrator for the current user.
-        language: Optional STT language code (e.g. ``"de"``, ``"en"``, ``"hu"``).
+        language: Forced chat language (``de`` / ``en`` / ``hu``). Omit for auto-detect.
 
     Returns:
         ChatResponse with transcript, reply and optional audio.

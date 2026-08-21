@@ -16,7 +16,7 @@ import {
 } from "./auth.js";
 import { sendText, sendVoice, setStatus, resetChatTimestamps, appendMessage } from "./chat.js";
 import { startRecordingSession, setSpeakingHandlers, stopTts, playBase64Audio } from "./audio.js";
-import { applyI18n, getLang, setLang, t } from "./i18n.js";
+import { applyI18n, getChatLang, getLang, setChatLang, setLang, t } from "./i18n.js";
 import { API_BASE } from "./config.js?v=2026-08-21-signin";
 
 // ------------------------------------------------------------------
@@ -421,11 +421,73 @@ function renderHelpContent() {
 
 function refreshI18n() {
     applyI18n();
+    syncChatLangUi();
     renderHelpContent();
     if (!isRecording) {
         speakHint.textContent = t("speakHint");
     }
 }
+
+const CHAT_LANG_FLAGS = { en: "🇬🇧", de: "🇩🇪", hu: "🇭🇺" };
+const chatLangBtn = document.getElementById("chatLangBtn");
+const chatLangBtnFace = document.getElementById("chatLangBtnFace");
+const chatLangMenu = document.getElementById("chatLangMenu");
+
+function chatLangTooltip(code) {
+    if (code === "auto") return t("chatLangAuto");
+    if (code === "en") return t("chatLangEn");
+    if (code === "de") return t("chatLangDe");
+    if (code === "hu") return t("chatLangHu");
+    return t("chatLangAuto");
+}
+
+function syncChatLangUi() {
+    const current = getChatLang();
+    const isAuto = current === "auto";
+    const tooltip = chatLangTooltip(current);
+    chatLangBtn?.classList.toggle("is-auto", isAuto);
+    if (chatLangBtn) {
+        chatLangBtn.title = tooltip;
+        chatLangBtn.setAttribute("aria-label", `${t("chatLang")}: ${tooltip}`);
+    }
+    if (chatLangBtnFace) {
+        chatLangBtnFace.removeAttribute("data-i18n");
+        chatLangBtnFace.textContent = isAuto ? t("chatLangAuto") : CHAT_LANG_FLAGS[current];
+    }
+    chatLangMenu?.querySelectorAll("[data-chat-lang]").forEach((btn) => {
+        const label = chatLangTooltip(btn.dataset.chatLang);
+        btn.title = label;
+        btn.setAttribute("aria-label", label);
+        btn.classList.toggle("is-selected", btn.dataset.chatLang === current);
+    });
+}
+
+function closeChatLangMenu() {
+    chatLangMenu?.classList.add("hidden");
+    chatLangBtn?.setAttribute("aria-expanded", "false");
+}
+
+function toggleChatLangMenu() {
+    const open = chatLangMenu?.classList.contains("hidden");
+    chatLangMenu?.classList.toggle("hidden", !open);
+    chatLangBtn?.setAttribute("aria-expanded", open ? "true" : "false");
+}
+
+chatLangBtn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleChatLangMenu();
+});
+
+chatLangMenu?.querySelectorAll("[data-chat-lang]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        setChatLang(btn.dataset.chatLang);
+        syncChatLangUi();
+        closeChatLangMenu();
+    });
+});
+
+document.addEventListener("click", () => closeChatLangMenu());
 
 document.querySelectorAll(".lang-flag").forEach((btn) => {
     btn.addEventListener("click", () => {

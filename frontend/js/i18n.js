@@ -1,5 +1,7 @@
 const LANG_KEY = "jarvis_lang";
+const CHAT_LANG_KEY = "jarvis_chat_lang";
 const SUPPORTED = ["en", "de", "hu"];
+const CHAT_LANGS = ["auto", "en", "de", "hu"];
 
 const STRINGS = {
     en: {
@@ -13,7 +15,13 @@ const STRINGS = {
         help: "Skills & triggers",
         helpTitle: "Skills & Triggers",
         helpClose: "Close",
-        helpIntro: "Ten everyday phrases per skill in the selected language. First match wins; otherwise the general assistant answers.",
+        helpIntro: "Ten everyday phrases per skill in the GUI language. First match wins; otherwise the general assistant answers.",
+        helpGuiLang: "These flags change user interface language only. Chat language is set in the chat window (Autodetect or a forced language).",
+        chatLang: "Chat language:",
+        chatLangAuto: "Autodetect",
+        chatLangEn: "English",
+        chatLangDe: "Deutsch",
+        chatLangHu: "Magyar",
         processing: "Processing…",
         transcribing: "Transcribing & thinking…",
         listening: "Listening…",
@@ -53,7 +61,13 @@ const STRINGS = {
         help: "Skills & Trigger",
         helpTitle: "Skills & Trigger",
         helpClose: "Schließen",
-        helpIntro: "Zehn Alltagssätze pro Skill in der gewählten Sprache. Der erste Treffer gewinnt; sonst antwortet der allgemeine Assistent.",
+        helpIntro: "Zehn Alltagssätze pro Skill in der GUI-Sprache. Der erste Treffer gewinnt; sonst antwortet der allgemeine Assistent.",
+        helpGuiLang: "Diese Flaggen ändern nicht die Chat-Sprache selbst, nur die Sprache der Benutzeroberfläche. Die Chatsprache stellst du im Chatfenster ein: Autodetect oder eine feste Sprache.",
+        chatLang: "Chat-Sprache:",
+        chatLangAuto: "Autodetect",
+        chatLangEn: "English",
+        chatLangDe: "Deutsch",
+        chatLangHu: "Magyar",
         processing: "Verarbeite…",
         transcribing: "Transkribiere & denke nach…",
         listening: "Höre zu…",
@@ -93,7 +107,13 @@ const STRINGS = {
         help: "Készségek és kulcsszavak",
         helpTitle: "Készségek és kulcsszavak",
         helpClose: "Bezárás",
-        helpIntro: "Tíz mindennapi kifejezés készségenként a választott nyelven. Az első találat nyer; különben az általános asszisztens válaszol.",
+        helpIntro: "Tíz mindennapi kifejezés készségenként a felület nyelvén. Az első találat nyer; különben az általános asszisztens válaszol.",
+        helpGuiLang: "Ezek a zászlók csak a felhasználói felület nyelvét váltják. A csevegés nyelvét a chat ablakban állítod (autodetect vagy rögzített nyelv).",
+        chatLang: "Csevegés nyelve:",
+        chatLangAuto: "Autodetect",
+        chatLangEn: "English",
+        chatLangDe: "Deutsch",
+        chatLangHu: "Magyar",
         processing: "Feldolgozás…",
         transcribing: "Átírás és gondolkodás…",
         listening: "Hallgatózom…",
@@ -138,6 +158,17 @@ export function setLang(lang) {
     return next;
 }
 
+export function getChatLang() {
+    const stored = localStorage.getItem(CHAT_LANG_KEY);
+    return CHAT_LANGS.includes(stored) ? stored : "auto";
+}
+
+export function setChatLang(lang) {
+    const next = CHAT_LANGS.includes(lang) ? lang : "auto";
+    localStorage.setItem(CHAT_LANG_KEY, next);
+    return next;
+}
+
 export function t(key) {
     const lang = getLang();
     return (STRINGS[lang] && STRINGS[lang][key]) || STRINGS.en[key] || key;
@@ -151,7 +182,9 @@ export function applyI18n(root = document) {
         el.setAttribute("placeholder", t(el.dataset.i18nPlaceholder));
     });
     root.querySelectorAll("[data-i18n-title]").forEach((el) => {
-        el.setAttribute("title", t(el.dataset.i18nTitle));
+        const label = t(el.dataset.i18nTitle);
+        el.setAttribute("title", label);
+        el.setAttribute("aria-label", label);
     });
     document.querySelectorAll(".lang-flag").forEach((btn) => {
         btn.classList.toggle("active", btn.dataset.lang === getLang());
@@ -159,3 +192,4 @@ export function applyI18n(root = document) {
 }
 
 export const LANGS = SUPPORTED;
+export const CHAT_LANGUAGE_OPTIONS = CHAT_LANGS;

@@ -24,6 +24,17 @@ _DE_WORDS = re.compile(
     r"\b(und|der|die|das|ich|nicht|ist|ein|eine|mit|für|auf|wir)\b",
     re.IGNORECASE,
 )
+# Beat a stale English hint. Omit bare die/mit/ist so English is not flipped.
+_DE_STRONG = re.compile(
+    r"\b(ich|nicht|und|wir|eine|für|bitte|danke|bin|haben|keine?|"
+    r"aber|oder|wenn|weil|dass|mein|meine|mir|dir|wie|geht)\b",
+    re.IGNORECASE,
+)
+_EN_STRONG = re.compile(
+    r"\b(the|and|you|what|how|have|this|that|with|your|"
+    r"don't|can't|hello|thanks)\b",
+    re.IGNORECASE,
+)
 
 
 @lru_cache(maxsize=1)
@@ -51,6 +62,11 @@ def _hint_code(hint: str | None) -> str | None:
         return None
     code = hint.lower().strip()[:2]
     return code if code in {"en", "de", "hu"} else None
+
+
+def normalize_language_code(hint: str | None) -> str | None:
+    """Return ``en`` / ``de`` / ``hu``, or ``None`` for auto-detect."""
+    return _hint_code(hint)
 
 
 def heuristic_language(text: str) -> str | None:
@@ -89,8 +105,9 @@ def detect_response_language(
     """Guess language for TTS / skill replies.
 
     Hungarian letters including áéíóú beat a stale hint. Shared ö/ü do not.
-    Accents inside a listed Hungarian given name or ``ignore`` (display name)
-    are stripped first so they do not pick the voice.
+    Strong German or English function words beat a Help-panel / STT hint so
+    the current utterance wins. Accents inside a listed Hungarian given name
+    or ``ignore`` (display name) are stripped first so they do not pick the voice.
 
     Args:
         text: User or assistant text to inspect.
@@ -109,6 +126,10 @@ def detect_response_language(
         return "de"
     if _HU_WORDS.search(text):
         return "hu"
+    if _DE_STRONG.search(text):
+        return "de"
+    if _EN_STRONG.search(text):
+        return "en"
 
     if hint_code in {"de", "hu"}:
         return hint_code

@@ -43,6 +43,17 @@ def test_german_word_markers():
     assert detect_response_language("Ich bin bereit und das ist gut") == "de"
 
 
+def test_german_utterance_beats_english_hint():
+    """Autodetect: clearly German text must not stay English because of a hint."""
+    assert detect_response_language("Ich bin bereit und das ist gut", hint="en") == "de"
+    assert detect_response_language("Wie geht es dir?", hint="en") == "de"
+
+
+def test_english_utterance_beats_german_hint():
+    """Autodetect: clearly English text must not stay German because of a hint."""
+    assert detect_response_language("Hello, how are you today?", hint="de") == "en"
+
+
 def test_hungarian_word_markers():
     """Common Hungarian function words must select 'hu'."""
     assert detect_response_language("Nem tudom, hogy mi van") == "hu"

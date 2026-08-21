@@ -12,7 +12,7 @@ import time
 from dataclasses import dataclass, field
 from uuid import uuid4
 
-from src.core.language import detect_response_language
+from src.core.language import detect_response_language, normalize_language_code
 from src.memory.semantic_memory import SemanticMemory
 from src.memory.working_memory import WorkingMemory
 from src.security.guardrails import process_user_message
@@ -154,8 +154,8 @@ class ChatOrchestrator:
         Args:
             text: Plain-text user message (fallback when no audio).
             audio_bytes: Raw audio payload for STT.
-            language: Optional language code for STT/TTS (e.g. ``"de"``, ``"en"``,
-                ``"hu"``). ``None`` triggers auto-detect.
+            language: Forced chat language (``"de"``, ``"en"``, ``"hu"``).
+                ``None`` means auto-detect from STT and the utterance.
 
         Returns:
             ChatResult with transcript, LLM response and optional base64 audio.
@@ -173,20 +173,16 @@ class ChatOrchestrator:
         started = time.perf_counter()
         correlation_id = str(uuid4())
 
+        forced_lang = normalize_language_code(language)
+
         # 1. Resolve transcript (STT or plain text)
         transcript, detected_lang = await self._resolve_transcript(
-            text, audio_bytes, language
+            text, audio_bytes, forced_lang
         )
 
         # 2a. Input validation / guardrails
         sanitized = process_user_message(transcript)
-
-        # Language for TTS: explicit caller hint, else STT auto-detect, else text
-        tts_lang = detect_response_language(
-            sanitized,
-            hint=language or detected_lang,
-            ignore=self.display_name,
-        )
+        tts_lang = self._turn_language(sanitized, forced_lang, detected_lang)
 
         # 2b. Skill routing (thin – first match wins)
         if self.skill_registry is not None:
@@ -206,7 +202,7 @@ class ChatOrchestrator:
                     skill_result: SkillResult = await skill.execute(
                         user_text=sanitized,
                         user_id=user_id,
-                        language=language or detected_lang,
+                        language=tts_lang,
                         display_name=self.display_name,
                     )
                 except Exception:
@@ -217,10 +213,8 @@ class ChatOrchestrator:
                 else:
                     if skill_result.handled:
                         response_text = skill_result.response_text.strip()
-                        tts_lang = detect_response_language(
-                            response_text,
-                            hint=language or detected_lang,
-                            ignore=self.display_name,
+                        tts_lang = self._turn_language(
+                            response_text, forced_lang, tts_lang
                         )
                         await self._store_turn(sanitized, response_text, correlation_id)
                         audio_b64 = await self._maybe_synthesize(
@@ -258,10 +252,7 @@ class ChatOrchestrator:
                 "Please try again in a moment."
             )
 
-        # Prefer language of the *reply* if it is clearly de/hu; keep hint otherwise
-        tts_lang = detect_response_language(
-            response_text, hint=tts_lang, ignore=self.display_name
-        )
+        tts_lang = self._turn_language(response_text, forced_lang, tts_lang)
 
         # 5. Persist the turn in Working Memory (active use of memory)
         await self._store_turn(sanitized, response_text, correlation_id)
@@ -295,6 +286,17 @@ class ChatOrchestrator:
             result.duration_ms,
         )
         return result
+
+    def _turn_language(
+        self,
+        text: str,
+        forced_lang: str | None,
+        hint: str | None,
+    ) -> str:
+        """Forced chat language, else STT/utterance auto-detect."""
+        if forced_lang:
+            return forced_lang
+        return detect_response_language(text, hint=hint, ignore=self.display_name)
 
     async def _resolve_transcript(
         self,

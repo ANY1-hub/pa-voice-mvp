@@ -540,3 +540,19 @@ async def test_hungarian_turn_overrides_working_memory_english_lock(
     system = messages[0]["content"]
     assert system.index("Reply in Hungarian") > system.index("stick to English")
     assert reply_language_instruction("hu") in system
+
+
+@pytest.mark.asyncio
+async def test_auto_detect_german_text_requests_german_reply(orchestrator, mock_llm):
+    """With no forced language, German function words must request a German reply."""
+    await orchestrator.process(text="Wie geht es dir?")
+    system = mock_llm.generate_response.await_args.args[0][0]["content"]
+    assert reply_language_instruction("de") in system
+
+
+@pytest.mark.asyncio
+async def test_forced_english_overrides_german_utterance(orchestrator, mock_llm):
+    """A forced chat language must pin the LLM even if the user wrote German."""
+    await orchestrator.process(text="Wie geht es dir?", language="en")
+    system = mock_llm.generate_response.await_args.args[0][0]["content"]
+    assert reply_language_instruction("en") in system

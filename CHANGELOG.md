@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] 2026-08-20
 
+### Added
+- Chat language control in the chat window: Autodetect (default) or force English / German / Hungarian. Help-panel flags are GUI-only
+
 ### Fixed
+- Autodetect: Whisper is not pinned to the GUI language; German/English function words beat a stale hint so spoken German is not answered in English
 - Preferred name lives on the user record only. First-login no longer writes (or embeds) a Semantic Memory copy; Active Recall reads ``display_name``. Duplicate address facts are dropped. Semantic memory is unique on ``(user_id, content)``
 - Auth screen stays blank (error only) if the API is down — Sign in is not the fallback. ``localhost`` UI talks to ``127.0.0.1:8000`` so Windows IPv6 does not miss uvicorn
 - Dev UI on :5500 talks only to the API on :8000 (same hostname, no same-origin probe). Pytest does not use 5500/8000; it sets ``window.JARVIS_API_BASE`` on its own ephemeral server
