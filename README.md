@@ -105,11 +105,9 @@ Trigger phrases (EN / DE / HU) for Notes, Reminders, Web Search and Active Recal
 git clone https://github.com/ANY1-hub/pa-voice-mvp.git
 cd pa-voice-mvp
 
-# Create virtual environment (recommended: uv or venv)
+# Create virtual environment and install (uv is the only package manager)
 uv venv .venv
 source .venv/bin/activate   # or .venv\Scripts\activate on Windows
-
-# Install dependencies
 uv pip install -e ".[dev]"
 playwright install chromium   # default Voice UI engine (firefox / webkit optional)
 
@@ -138,7 +136,20 @@ Open http://localhost:5500 — the UI calls the API on port **8000** on the same
 
 Piper voice models must be present (see [docs/piper-voice-setup.md](docs/piper-voice-setup.md)).
 
-Voice UI bootstrap is tested with a headless browser (Playwright). `pip install playwright` does **not** download an engine; run `playwright install chromium` (default). If that binary is missing, the chromium family falls back to installed Chrome or Edge. Another engine: `playwright install firefox` then `JARVIS_E2E_BROWSER=firefox pytest tests/test_voice_ui_bootstrap.py`.
+Voice UI bootstrap is tested with a headless browser (Playwright). The `playwright` extra does **not** download an engine; run `playwright install chromium` (default). If that binary is missing, the chromium family falls back to installed Chrome or Edge. Another engine: `playwright install firefox` then `JARVIS_E2E_BROWSER=firefox pytest tests/test_voice_ui_bootstrap.py`.
+
+### Dependencies (uv only)
+
+`pyproject.toml` + `uv.lock` are the source of truth. `requirements.txt` is a **generated** export for Docker — never edit it by hand.
+
+```bash
+uv add <package>          # or: uv add --dev <package>
+uv remove <package>
+uv lock
+uv export --format requirements-txt --no-hashes -o requirements.txt
+```
+
+See `docs/decisions/003-uv-only-package-manager.md`.
 
 ### MongoDB
 

@@ -19,14 +19,21 @@ bcrypt==4.0.1
     # via
     #   pa-voice-mvp
     #   passlib
+brotli==1.2.0 ; platform_python_implementation == 'CPython'
+    # via httpx
+brotlicffi==1.2.0.1 ; platform_python_implementation != 'CPython'
+    # via httpx
 certifi==2026.7.22
     # via
     #   httpcore
     #   httpx
-cffi==2.1.0 ; platform_python_implementation != 'PyPy'
-    # via cryptography
+cffi==2.1.0
+    # via
+    #   brotlicffi
+    #   cryptography
 click==8.4.2
     # via
+    #   ddgs
     #   huggingface-hub
     #   uvicorn
 colorama==0.4.6 ; sys_platform == 'win32'
@@ -37,6 +44,8 @@ cryptography==49.0.0
     # via python-jose
 ctranslate2==4.8.1
     # via faster-whisper
+ddgs==9.14.4
+    # via pa-voice-mvp
 distro==1.9.0
     # via openai
 dnspython==2.8.0
@@ -47,6 +56,8 @@ ecdsa==0.19.2
     # via python-jose
 email-validator==2.3.0
     # via pa-voice-mvp
+fake-useragent==2.2.0
+    # via ddgs
 fastapi==0.139.2
     # via pa-voice-mvp
 faster-whisper==1.2.1
@@ -61,20 +72,27 @@ h11==0.16.0
     # via
     #   httpcore
     #   uvicorn
+h2==4.4.0
+    # via httpx
 hf-xet==1.5.2 ; platform_machine == 'AMD64' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'arm64' or platform_machine == 'x86_64'
     # via huggingface-hub
+hpack==4.2.0
+    # via h2
 httpcore==1.0.9
     # via httpx
 httptools==0.8.0
     # via uvicorn
 httpx==0.28.1
     # via
+    #   ddgs
     #   huggingface-hub
     #   openai
 huggingface-hub==1.24.0
     # via
     #   faster-whisper
     #   tokenizers
+hyperframe==6.1.0
+    # via h2
 idna==3.18
     # via
     #   anyio
@@ -84,6 +102,8 @@ imageio-ffmpeg==0.6.0
     # via pa-voice-mvp
 jiter==0.16.0
     # via openai
+lxml==6.1.1
+    # via ddgs
 motor==3.7.1
     # via pa-voice-mvp
 numpy==2.4.6 ; python_full_version < '3.12'
@@ -110,13 +130,15 @@ pathvalidate==3.3.1
     # via piper-tts
 piper-tts==1.6.0
     # via pa-voice-mvp
+primp==1.3.1
+    # via ddgs
 protobuf==7.35.1
     # via onnxruntime
 pyasn1==0.6.4
     # via
     #   python-jose
     #   rsa
-pycparser==3.0 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'
+pycparser==3.0 ; implementation_name != 'PyPy'
     # via cffi
 pydantic==2.13.4
     # via
@@ -153,6 +175,8 @@ six==1.17.0
     # via ecdsa
 sniffio==1.3.1
     # via openai
+socksio==1.0.0
+    # via httpx
 starlette==1.3.1
     # via fastapi
 tokenizers==0.23.1

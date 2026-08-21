@@ -41,6 +41,11 @@ jobs:
       - name: Install dependencies
         run: uv pip install --system -e ".[dev]"
 
+      - name: requirements.txt matches uv.lock
+        run: |
+          uv export --format requirements-txt --no-hashes -o /tmp/requirements.export.txt
+          diff -u requirements.txt /tmp/requirements.export.txt
+
       - name: Ruff
         run: ruff check src tests
 

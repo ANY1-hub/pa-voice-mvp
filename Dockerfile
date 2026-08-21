@@ -13,7 +13,7 @@ RUN pip install uv
 
 COPY pyproject.toml requirements.txt ./
 COPY src ./src
-# requirements.txt starts with `-e .`; src must be present for the editable install.
+# requirements.txt is a uv export (not edited by hand). `-e .` needs src/ present.
 RUN uv pip install --system -r requirements.txt
 
 COPY . .
