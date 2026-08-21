@@ -207,6 +207,7 @@ class ChatOrchestrator:
                         user_text=sanitized,
                         user_id=user_id,
                         language=language or detected_lang,
+                        display_name=self.display_name,
                     )
                 except Exception:
                     logger.exception(

@@ -82,18 +82,65 @@ async def test_execute_returns_facts_for_topic():
 
 
 @pytest.mark.asyncio
+async def test_execute_dedupes_identical_fact_lines():
+    """The same stored sentence must appear once in the spoken recap."""
+    same = "User likes oat milk."
+    mock_sem = MagicMock()
+    mock_sem.search = AsyncMock(return_value=[_fact(same), _fact(same), _fact(same)])
+    skill = ActiveRecallSkill(semantic_memory=mock_sem)
+    result = await skill.execute(user_text="What do you know about me?", user_id="u1")
+    assert result.handled is True
+    assert result.response_text.count(same) == 1
+
+
+@pytest.mark.asyncio
 async def test_execute_name_question_searches_about_the_user():
     """A name question must look up personal facts, not a leftover topic string."""
     mock_sem = MagicMock()
-    mock_sem.search = AsyncMock(
-        return_value=[_fact("The user prefers to be addressed as Akosh.")]
-    )
+    mock_sem.search = AsyncMock(return_value=[])
     skill = ActiveRecallSkill(semantic_memory=mock_sem)
-    result = await skill.execute(user_text="What is my name?", user_id="u1")
+    result = await skill.execute(
+        user_text="What is my name?",
+        user_id="u1",
+        display_name="Akosh",
+    )
     assert result.handled is True
     assert "Akosh" in result.response_text
     mock_sem.search.assert_awaited()
     assert mock_sem.search.await_args.kwargs["query"] == ""
+
+
+@pytest.mark.asyncio
+async def test_about_me_uses_display_name_not_copied_memory_fact():
+    """Preferred name comes from the user record; leftover SM copies are skipped."""
+    mock_sem = MagicMock()
+    mock_sem.search = AsyncMock(
+        return_value=[_fact("The user prefers to be addressed as Tony.")]
+    )
+    skill = ActiveRecallSkill(semantic_memory=mock_sem)
+    result = await skill.execute(
+        user_text="What do you know about me?",
+        user_id="u1",
+        display_name="Tony",
+    )
+    assert result.response_text.count("Tony") == 1
+    assert "I address you as Tony" in result.response_text
+    assert "prefers to be addressed" not in result.response_text
+
+
+@pytest.mark.asyncio
+async def test_topic_recall_does_not_inject_display_name():
+    """A topic question must not prepend the preferred name."""
+    mock_sem = MagicMock()
+    mock_sem.search = AsyncMock(return_value=[_fact("User likes oat milk.")])
+    skill = ActiveRecallSkill(semantic_memory=mock_sem)
+    result = await skill.execute(
+        user_text="What do you know about oat milk?",
+        user_id="u1",
+        display_name="Tony",
+    )
+    assert "Tony" not in result.response_text
+    assert "oat milk" in result.response_text.lower()
 
 
 @pytest.mark.asyncio

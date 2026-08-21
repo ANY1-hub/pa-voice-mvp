@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID
 
 import pytest
+from pymongo.errors import DuplicateKeyError
 
 from src.memory.semantic_memory import SemanticMemory, _cosine_similarity
 from src.models.memory import SemanticMemoryFact
@@ -120,6 +121,29 @@ async def test_add_fact_skips_insert_when_content_already_stored():
     fact = await mem.add_fact(existing["content"], importance=0.75)
     assert fact.content == existing["content"]
     collection.insert_one.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_add_fact_handles_duplicate_key_race():
+    """A unique-index race must return the stored fact, not raise."""
+    existing = {
+        "id": "already",
+        "user_id": USER_ID,
+        "content": "User likes espresso",
+        "importance_score": 0.75,
+        "entities_involved": ["espresso"],
+        "created_at": datetime.now(UTC),
+        "last_accessed": datetime.now(UTC),
+        "embedding": None,
+        "language": None,
+    }
+    collection = AsyncMock()
+    collection.find_one = AsyncMock(side_effect=[None, dict(existing)])
+    collection.insert_one = AsyncMock(side_effect=DuplicateKeyError("dup"))
+    mem = SemanticMemory(user_id=USER_ID, collection=collection)
+    fact = await mem.add_fact(existing["content"], importance=0.75)
+    assert fact.content == existing["content"]
+    assert fact.id == "already"
 
 
 @pytest.mark.asyncio

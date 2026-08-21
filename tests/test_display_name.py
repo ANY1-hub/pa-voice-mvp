@@ -1,4 +1,4 @@
-"""First-login preferred name: gate, POST, memory fact."""
+"""First-login preferred name: gate, POST, not copied into Semantic Memory."""
 
 import uuid
 
@@ -73,8 +73,8 @@ def test_set_display_name_unlocks_ready_routes(client):
     assert memory.status_code == 200
 
 
-def test_display_name_writes_semantic_fact(client):
-    """Setting a preferred name must store a high-importance semantic fact."""
+def test_display_name_is_not_copied_into_semantic_memory(client):
+    """Preferred name lives on the user record, not as a semantic fact."""
     headers, _email = _register_and_login(client)
     assert (
         client.post(
@@ -91,37 +91,9 @@ def test_display_name_writes_semantic_fact(client):
     )
     assert search.status_code == 200
     facts = search.json()["data"]
-    assert any("Pepper" in (item.get("content") or "") for item in facts)
-
-
-def test_display_name_fact_is_not_duplicated(client):
-    """Setting the same preferred name twice must leave a single semantic fact."""
-    headers, _email = _register_and_login(client)
-    payload = {"display_name": "Akosh"}
-    assert (
-        client.post(
-            "/api/v1/auth/display-name", headers=headers, json=payload
-        ).status_code
-        == 200
+    assert not any(
+        "prefers to be addressed" in (item.get("content") or "") for item in facts
     )
-    assert (
-        client.post(
-            "/api/v1/auth/display-name", headers=headers, json=payload
-        ).status_code
-        == 200
-    )
-    search = client.get(
-        "/api/v1/memory/semantic",
-        headers=headers,
-        params={"query": "Akosh"},
-    )
-    assert search.status_code == 200
-    facts = [
-        item
-        for item in search.json()["data"]
-        if "prefers to be addressed as Akosh" in (item.get("content") or "")
-    ]
-    assert len(facts) == 1
 
 
 def test_display_name_empty_rejected(client):

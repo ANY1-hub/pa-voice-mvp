@@ -8,7 +8,6 @@ from pymongo.errors import DuplicateKeyError
 
 from src.api.deps import (
     get_current_user,
-    get_embeddings_adapter,
     get_semantic_memory_collection,
     get_user_repository,
 )
@@ -25,8 +24,7 @@ from src.models.user import (
     UserLogin,
     UserPublic,
 )
-from src.services.embeddings.openai import OpenAIEmbeddingsAdapter
-from src.services.memory_facts import ADDRESS_FACT_PREFIX, FACT_IMPORTANCE
+from src.services.memory_facts import ADDRESS_FACT_PREFIX
 
 logger = logging.getLogger(__name__)
 
@@ -188,13 +186,11 @@ async def set_display_name(
     semantic_collection: AsyncIOMotorCollection | None = Depends(  # noqa: B008
         get_semantic_memory_collection
     ),
-    embeddings: OpenAIEmbeddingsAdapter | None = Depends(  # noqa: B008
-        get_embeddings_adapter
-    ),
 ) -> UserPublic:
     """Store how Jarvis should address the user; required after first login.
 
-    Writes a semantic fact so Active Recall can find the name later.
+    Preferred name lives on the user record (source of truth). Leftover
+    address copies in Semantic Memory are dropped; they are not rewritten.
     Password change (if required) must complete first.
     """
     if current_user.must_change_password:
@@ -214,14 +210,8 @@ async def set_display_name(
         memory = SemanticMemory(
             user_id=updated.id,
             collection=semantic_collection,
-            embeddings_adapter=embeddings,
         )
         await memory.delete_facts_with_prefix(ADDRESS_FACT_PREFIX)
-        await memory.add_fact(
-            fact=f"{ADDRESS_FACT_PREFIX} {payload.display_name}.",
-            importance=FACT_IMPORTANCE,
-            entities=[payload.display_name],
-        )
     except Exception:
         logger.exception("Failed to store display-name fact in semantic memory")
 

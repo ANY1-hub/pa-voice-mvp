@@ -6,6 +6,7 @@ import re
 from datetime import UTC, datetime, timedelta
 
 from motor.motor_asyncio import AsyncIOMotorCollection
+from pymongo.errors import DuplicateKeyError
 
 from src.db.mongodb import contains_regex, mongo_document
 from src.models.memory import SemanticMemoryFact, assign_stable_id
@@ -117,7 +118,17 @@ class SemanticMemory:
                 assign_stable_id(existing)
                 existing.pop("_id", None)
                 return SemanticMemoryFact.model_validate(existing)
-            await self.collection.insert_one(mongo_document(memory_fact))
+            try:
+                await self.collection.insert_one(mongo_document(memory_fact))
+            except DuplicateKeyError:
+                raced = await self.collection.find_one(
+                    {"user_id": self.user_id, "content": fact}
+                )
+                if isinstance(raced, dict):
+                    assign_stable_id(raced)
+                    raced.pop("_id", None)
+                    return SemanticMemoryFact.model_validate(raced)
+                raise
 
         return memory_fact
 
@@ -220,17 +231,22 @@ class SemanticMemory:
         text_hits.sort(key=lambda pair: pair[0], reverse=True)
 
         selected: list[tuple[float, SemanticMemoryFact]] = []
+        seen: set[str] = set()
         for item in vector_hits:
             if len(selected) >= limit:
                 break
+            key = item[1].content.strip().casefold()
+            if key in seen:
+                continue
+            seen.add(key)
             selected.append(item)
         for item in text_hits:
             if len(selected) >= limit:
                 break
-            if item[1].content.strip().lower() in {
-                s[1].content.strip().lower() for s in selected
-            }:
+            key = item[1].content.strip().casefold()
+            if key in seen:
                 continue
+            seen.add(key)
             selected.append(item)
 
         await self._touch_facts([fact for _, fact in selected])

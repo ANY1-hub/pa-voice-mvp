@@ -51,6 +51,35 @@ async def _ensure_unique_id_index(collection: AsyncIOMotorCollection) -> None:
     await collection.create_index("id", unique=True)
 
 
+async def _ensure_unique_user_content_index(collection: AsyncIOMotorCollection) -> None:
+    """At most one semantic fact per (user_id, content). Collapse extras first."""
+    pipeline = [
+        {
+            "$group": {
+                "_id": {"user_id": "$user_id", "content": "$content"},
+                "ids": {"$push": "$_id"},
+                "n": {"$sum": 1},
+            }
+        },
+        {"$match": {"n": {"$gt": 1}}},
+    ]
+    async for group in collection.aggregate(pipeline):
+        extras = group["ids"][1:]
+        if extras:
+            await collection.delete_many({"_id": {"$in": extras}})
+    indexes = await collection.index_information()
+    existing = indexes.get("user_id_1_content_1")
+    if existing and existing.get("unique"):
+        return
+    if existing:
+        await collection.drop_index("user_id_1_content_1")
+    await collection.create_index(
+        [("user_id", 1), ("content", 1)],
+        unique=True,
+        name="user_id_1_content_1",
+    )
+
+
 class MongoDB:
     """Simple holder for the global MongoDB client and database.
 
@@ -98,6 +127,7 @@ async def connect_to_mongo() -> None:
         "reminders",
     ):
         await _ensure_unique_id_index(db_client.db[coll])
+    await _ensure_unique_user_content_index(db_client.db["semantic_memory"])
 
     # Vector search indexes will be initialized here in later phases
 

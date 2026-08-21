@@ -8,6 +8,7 @@ from typing import Any
 
 from src.memory.semantic_memory import SemanticMemory
 from src.models.memory import SemanticMemoryFact
+from src.services.memory_facts import ADDRESS_FACT_PREFIX
 from src.skills.base import Skill, SkillResult
 from src.skills.replies import reply_language, t
 from src.skills.vocabulary import (
@@ -35,6 +36,7 @@ _REPLIES: dict[str, dict[str, str]] = {
         "empty_all": "I don't have any personal facts stored yet.",
         "header_topic": "Here's what I know about {query}:",
         "header_you": "Here's what I know about you:",
+        "address_as": "I address you as {name}.",
     },
     "de": {
         "no_memory": "Ich habe gerade kein Langzeitgedächtnis.",
@@ -43,6 +45,7 @@ _REPLIES: dict[str, dict[str, str]] = {
         "empty_all": "Ich habe noch keine persönlichen Fakten gespeichert.",
         "header_topic": "Das weiß ich über {query}:",
         "header_you": "Das weiß ich über dich:",
+        "address_as": "Ich spreche dich mit {name} an.",
     },
     "hu": {
         "no_memory": "Most nincs elérhető hosszú távú memóriám.",
@@ -51,8 +54,11 @@ _REPLIES: dict[str, dict[str, str]] = {
         "empty_all": "Még nincsenek személyes tényeid tárolva.",
         "header_topic": "Ezt tudom erről: {query}:",
         "header_you": "Ezt tudom rólad:",
+        "address_as": "Így szólítalak: {name}.",
     },
 }
+
+_YOU_TOKENS = {"me", "mich", "mir", "rólam", "nekem"}
 
 
 class ActiveRecallSkill(Skill):
@@ -97,7 +103,12 @@ class ActiveRecallSkill(Skill):
                 handled=True,
             )
 
-        return self._format_response(query, facts, lang)
+        return self._format_response(
+            query,
+            facts,
+            lang,
+            display_name=deps.get("display_name"),
+        )
 
     def _extract_query(self, user_text: str) -> str:
         """Strip trigger phrases and light fillers; return the topic."""
@@ -114,22 +125,35 @@ class ActiveRecallSkill(Skill):
         query: str,
         facts: list[SemanticMemoryFact],
         lang: str,
+        display_name: str | None = None,
     ) -> SkillResult:
-        if not facts:
+        about_user = (not query) or query.lower() in _YOU_TOKENS
+        seen: set[str] = set()
+        lines: list[str] = []
+        if about_user and display_name:
+            address = t(_REPLIES, lang, "address_as", name=display_name)
+            seen.add(address.casefold())
+            lines.append(f"- {address}")
+        for fact in facts:
+            if about_user and fact.content.startswith(ADDRESS_FACT_PREFIX):
+                continue
+            key = fact.content.strip().casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            lines.append(f"- {fact.content}")
+        if not lines:
             if query:
                 msg = t(_REPLIES, lang, "empty_topic", query=query)
             else:
                 msg = t(_REPLIES, lang, "empty_all")
             return SkillResult(response_text=msg, handled=True)
 
-        lines = [f"- {f.content}" for f in facts]
         body = "\n".join(lines)
-
-        you_tokens = {"me", "mich", "mir", "rólam", "nekem"}
-        if query and query.lower() not in you_tokens:
-            header = t(_REPLIES, lang, "header_topic", query=query)
-        else:
+        if about_user:
             header = t(_REPLIES, lang, "header_you")
+        else:
+            header = t(_REPLIES, lang, "header_topic", query=query)
 
         return SkillResult(
             response_text=f"{header}\n{body}",

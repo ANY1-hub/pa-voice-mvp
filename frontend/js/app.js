@@ -266,6 +266,7 @@ on(changePasswordForm, "submit", async (e) => {
 
 on(displayNameForm, "submit", async (e) => {
     e.preventDefault();
+    if (displayNameForm.dataset.busy === "1") return;
     displayNameError.classList.add("hidden");
 
     const name = document.getElementById("displayNameInput").value.trim();
@@ -274,11 +275,16 @@ on(displayNameForm, "submit", async (e) => {
         return;
     }
 
+    displayNameForm.dataset.busy = "1";
+    const submitBtn = displayNameForm.querySelector("button[type='submit']");
+    if (submitBtn) submitBtn.disabled = true;
     try {
         const user = await setDisplayName(name);
         routeAfterAuth(user);
     } catch (err) {
         showError(displayNameError, err.message || t("displayNameFailed"));
+        displayNameForm.dataset.busy = "0";
+        if (submitBtn) submitBtn.disabled = false;
     }
 });
 
