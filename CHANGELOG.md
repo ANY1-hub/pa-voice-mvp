@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Empty-DB SuperUser setup: FastAPI serves the Voice UI at ``/`` (same origin as the API). A headless-browser test (Playwright engine via ``JARVIS_E2E_BROWSER``, default chromium; Chrome/Edge if the Playwright build is missing) opens the real page on an empty users collection and fails if Sign-in is shown instead of Create SuperUser
 
 ### Changed
-- uv is the only package manager (`pyproject.toml` + `uv.lock`). `requirements.txt` is a generated Docker export. Dropped unused ``httpx2`` extra (tests use ``httpx``)
+- uv is the only package manager (`pyproject.toml` + `uv.lock`). Docker uses ``uv sync --frozen --no-dev``; ``requirements.txt`` is removed. Dropped unused ``httpx2`` extra (tests use ``httpx``)
 
 ### Added
 - First-login preferred name: `display_name` on User, `POST /api/v1/auth/display-name`, chat/memory/admin gated until set (after password change). Jarvis addresses the user by that name; a semantic fact is stored for recall

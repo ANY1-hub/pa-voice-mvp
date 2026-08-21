@@ -140,13 +140,12 @@ Voice UI bootstrap is tested with a headless browser (Playwright). The `playwrig
 
 ### Dependencies (uv only)
 
-`pyproject.toml` + `uv.lock` are the source of truth. `requirements.txt` is a **generated** export for Docker — never edit it by hand.
+`pyproject.toml` + `uv.lock` are the source of truth. Docker runs `uv sync --frozen --no-dev` — there is no `requirements.txt`.
 
 ```bash
 uv add <package>          # or: uv add --dev <package>
 uv remove <package>
 uv lock
-uv export --format requirements-txt --no-hashes -o requirements.txt
 ```
 
 See `docs/decisions/003-uv-only-package-manager.md`.

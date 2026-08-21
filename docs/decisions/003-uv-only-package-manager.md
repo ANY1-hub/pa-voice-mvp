@@ -1,28 +1,28 @@
 # Decision: uv is the only package manager
 
 **Date:** 2026-08-21  
-**Status:** Accepted
+**Status:** Accepted  
+**Updated:** 2026-08-21 — Docker uses `uv.lock`, no `requirements.txt`
 
 ## Context
 
-The project already has `pyproject.toml` and `uv.lock`. `requirements.txt` exists so Docker can `uv pip install -r requirements.txt`. Extra tools (pip, poetry, a hand-edited requirements file) would drift.
+The project already has `pyproject.toml` and `uv.lock`. A second list (`requirements.txt`) for Docker would drift unless someone remembered to export after every lock change.
 
 ## Decision
 
 - **uv** is the only package manager.
 - Source of truth: `pyproject.toml` + `uv.lock`.
-- `requirements.txt` is a generated export for Docker, not a second list of dependencies.
-- After `uv add` / `uv remove` / `uv lock`:
+- There is no committed `requirements.txt`. Docker installs with `uv sync --frozen --no-dev` (venv at `/opt/venv` so a bind-mount of `/app` does not hide packages).
+- Change dependencies with:
 
   ```bash
-  uv export --format requirements-txt --no-hashes -o requirements.txt
+  uv add <package>
+  uv remove <package>
+  uv lock
   ```
-
-- Do not edit `requirements.txt` by hand.
-- Docker keeps installing from that export (`uv pip install --system -r requirements.txt`). Switching the image to `uv sync` is not required for the MVP.
 
 ## Consequences
 
-- One command sequence to change dependencies.
-- CI can fail if the export is stale.
-- Optional extras (`dev` / `test`) live only in `pyproject.toml` / `uv.lock`, not in the Docker export.
+- One lockfile, nothing to keep in sync.
+- Images fail the build if `uv.lock` is missing or stale (`--frozen`).
+- Optional extras (`dev` / `test`) are for local/CI only, not the image.

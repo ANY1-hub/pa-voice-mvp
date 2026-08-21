@@ -1,7 +1,5 @@
 # Package manager: uv only. pyproject.toml + uv.lock are the source of truth.
-# After uv add / uv remove / uv lock, regenerate the Docker export:
-#   uv export --format requirements-txt --no-hashes -o requirements.txt
-# Do not edit requirements.txt by hand.
+# Docker: uv sync --frozen --no-dev (no requirements.txt).
 
 [build-system]
 requires = ["hatchling"]
