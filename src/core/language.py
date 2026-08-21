@@ -31,8 +31,7 @@ _DE_STRONG = re.compile(
     re.IGNORECASE,
 )
 _EN_STRONG = re.compile(
-    r"\b(the|and|you|what|how|have|this|that|with|your|"
-    r"don't|can't|hello|thanks)\b",
+    r"\b(the|and|you|what|how|have|this|that|with|your|" r"don't|can't|hello|thanks)\b",
     re.IGNORECASE,
 )
 
