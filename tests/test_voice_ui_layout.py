@@ -112,13 +112,13 @@ def _assert_chrome_pinned(page: Page) -> None:
     def _fully_in_view(box: dict, name: str) -> None:
         assert box["height"] > 0, f"{name} has no height"
         assert box["top"] >= -_SLACK, f"{name} top {box['top']} is above the viewport"
-        assert box["bottom"] <= view_h + _SLACK, (
-            f"{name} bottom {box['bottom']} exceeds viewport {view_h}"
-        )
+        assert (
+            box["bottom"] <= view_h + _SLACK
+        ), f"{name} bottom {box['bottom']} exceeds viewport {view_h}"
         assert box["left"] >= -_SLACK, f"{name} left {box['left']} is off-screen"
-        assert box["right"] <= view_w + _SLACK, (
-            f"{name} right {box['right']} exceeds viewport {view_w}"
-        )
+        assert (
+            box["right"] <= view_w + _SLACK
+        ), f"{name} right {box['right']} exceeds viewport {view_w}"
 
     _fully_in_view(metrics["header"], "header")
     _fully_in_view(metrics["footer"], "input area")
@@ -128,14 +128,14 @@ def _assert_chrome_pinned(page: Page) -> None:
     _fully_in_view(metrics["logout"], "logout")
 
     chat = metrics["chatScroll"]
-    assert chat["scrollHeight"] > chat["clientHeight"] + 40, (
-        "Chat must overflow internally so the page itself does not scroll"
-    )
+    assert (
+        chat["scrollHeight"] > chat["clientHeight"] + 40
+    ), "Chat must overflow internally so the page itself does not scroll"
     assert metrics["header"]["bottom"] <= metrics["chat"]["top"] + _SLACK
     assert metrics["chat"]["bottom"] <= metrics["footer"]["top"] + _SLACK
-    assert metrics["pageScroll"] <= view_h + 8, (
-        f"Document still scrolls ({metrics['pageScroll']} > {view_h})"
-    )
+    assert (
+        metrics["pageScroll"] <= view_h + 8
+    ), f"Document still scrolls ({metrics['pageScroll']} > {view_h})"
 
     last = metrics["last"]
     assert last is not None
