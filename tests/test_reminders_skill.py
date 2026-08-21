@@ -11,7 +11,12 @@ from src.models.reminder import Reminder
 from src.skills.base import SkillResult
 from src.skills.registry import SkillRegistry
 from src.skills.reminders.repository import ReminderRepository
-from src.skills.reminders.skill import RemindersSkill
+from src.skills.reminders.skill import (
+    REMINDER_FACT_PREFIX,
+    RemindersSkill,
+    _best_fuzzy_match,
+    _delete_keyword,
+)
 
 
 def test_reminder_defaults():
@@ -164,6 +169,35 @@ async def test_repository_search_by_content():
     assert "Arbeitsagentur" in results[0].content
     assert results[0].due_at is not None
     assert results[0].due_at.hour == 9
+
+
+@pytest.mark.asyncio
+async def test_repository_cancel_sets_cancelled():
+    """Cancel must set status=cancelled for the owning user's pending reminder."""
+    now = datetime.now(UTC)
+    doc = {
+        "id": "rid",
+        "user_id": "u1",
+        "content": "Do I have a ?",
+        "status": "cancelled",
+        "due_at": now,
+        "created_at": now,
+        "last_accessed": now,
+    }
+    collection = MagicMock()
+    collection.find_one_and_update = AsyncMock(return_value=doc)
+    repo = ReminderRepository(user_id="u1", collection=collection)
+    updated = await repo.cancel("rid")
+    assert updated is not None
+    assert updated.status == "cancelled"
+    filt = collection.find_one_and_update.await_args.args[0]
+    assert filt["id"] == "rid"
+    assert filt["user_id"] == "u1"
+    assert filt["status"] == "pending"
+    assert (
+        collection.find_one_and_update.await_args.args[1]["$set"]["status"]
+        == "cancelled"
+    )
 
 
 def test_can_handle_create_intents():
@@ -652,3 +686,385 @@ async def test_execute_create_relative_hour_hungarian():
 
     due = spy.await_args.kwargs["due_at"]
     assert due == datetime(2026, 8, 20, 13, 0, tzinfo=UTC)
+
+
+@pytest.mark.asyncio
+async def test_question_do_i_have_a_reminder_does_not_create():
+    """'Do I have a reminder?' must list/lookup, never create from the question."""
+    repo = ReminderRepository(user_id="u1", collection=None)
+    skill = RemindersSkill(repository=repo, semantic_memory=None)
+
+    with patch.object(repo, "create", wraps=repo.create) as spy:
+        result = await skill.execute(
+            user_text="Do I have a reminder?",
+            user_id="u1",
+        )
+
+    assert result.handled is True
+    spy.assert_not_awaited()
+    lower = result.response_text.lower()
+    assert "i'll remind you" not in lower
+    assert "do i have a ?" not in lower
+
+
+@pytest.mark.asyncio
+async def test_anything_for_me_today_lists_todays_reminders():
+    """'Is there anything for me today?' must run today's agenda and list pending."""
+    now = datetime(2026, 8, 21, 11, 27, tzinfo=UTC)  # 13:27 CEST
+    due_a = datetime(2026, 8, 21, 11, 30, tzinfo=UTC)  # 13:30 CEST
+    due_b = datetime(2026, 8, 21, 11, 45, tzinfo=UTC)  # 13:45 CEST
+    mock_repo = MagicMock(spec=ReminderRepository)
+    mock_repo.create = AsyncMock()
+    mock_repo.list_reminders = AsyncMock(
+        return_value=[
+            Reminder(user_id="u1", content="first reminder", due_at=due_a),
+            Reminder(user_id="u1", content="test reminder", due_at=due_b),
+        ]
+    )
+    skill = RemindersSkill(
+        repository=mock_repo, semantic_memory=None, timezone="Europe/Berlin"
+    )
+
+    with patch("src.skills.reminders.skill._now_utc", return_value=now):
+        result = await skill.execute(
+            user_text="Is there anything for me today?",
+            user_id="u1",
+        )
+
+    assert result.handled is True
+    mock_repo.create.assert_not_awaited()
+    kwargs = mock_repo.list_reminders.await_args.kwargs
+    assert kwargs["due_from"] <= due_a
+    assert kwargs["due_to"] >= due_b
+    text = result.response_text.lower()
+    assert "first reminder" in text
+    assert "test reminder" in text
+    assert "nothing scheduled" not in text
+    assert "13:30" in result.response_text
+    assert "13:45" in result.response_text
+
+
+@pytest.mark.asyncio
+async def test_german_habe_ich_eine_erinnerung_does_not_create():
+    """DE existence question must not be treated as a create utterance."""
+    repo = ReminderRepository(user_id="u1", collection=None)
+    skill = RemindersSkill(repository=repo, semantic_memory=None)
+
+    with patch.object(repo, "create", wraps=repo.create) as spy:
+        result = await skill.execute(
+            user_text="Habe ich eine Erinnerung?",
+            user_id="u1",
+        )
+
+    assert result.handled is True
+    spy.assert_not_awaited()
+    assert "erinnere dich" not in result.response_text.lower()
+
+
+@pytest.mark.asyncio
+async def test_hungarian_van_ma_valami_is_today_agenda():
+    """HU 'Van ma valami?' must query today's agenda window, not create."""
+    mock_repo = MagicMock(spec=ReminderRepository)
+    mock_repo.create = AsyncMock()
+    mock_repo.list_reminders = AsyncMock(return_value=[])
+    skill = RemindersSkill(repository=mock_repo, timezone="Europe/Berlin")
+
+    with patch("src.skills.reminders.skill._now_utc") as mock_now:
+        mock_now.return_value = datetime(2026, 8, 21, 11, 27, tzinfo=UTC)
+        result = await skill.execute(user_text="Van ma valami?", user_id="u1")
+
+    assert result.handled is True
+    mock_repo.create.assert_not_awaited()
+    kwargs = mock_repo.list_reminders.await_args.kwargs
+    # 2026-08-21 00:00 CEST = 2026-08-20 22:00 UTC
+    assert kwargs["due_from"] == datetime(2026, 8, 20, 22, 0, tzinfo=UTC)
+    assert kwargs["due_to"].date() == date(2026, 8, 21)
+
+
+@pytest.mark.asyncio
+async def test_clock_time_uses_user_timezone_not_utc_digits():
+    """Spoken 13:30 in Europe/Berlin must store 11:30Z and confirm 13:30."""
+    repo = ReminderRepository(user_id="u1", collection=None)
+    skill = RemindersSkill(
+        repository=repo, semantic_memory=None, timezone="Europe/Berlin"
+    )
+
+    with (
+        patch.object(repo, "create", wraps=repo.create) as spy,
+        patch("src.skills.reminders.skill._now_utc") as mock_now,
+    ):
+        mock_now.return_value = datetime(2026, 8, 21, 11, 27, tzinfo=UTC)
+        result = await skill.execute(
+            user_text="remind me at 13:30 first reminder",
+            user_id="u1",
+        )
+
+    assert result.handled is True
+    due = spy.await_args.kwargs["due_at"]
+    assert due == datetime(2026, 8, 21, 11, 30, tzinfo=UTC)
+    assert "13:30" in result.response_text
+    assert "11:30" not in result.response_text
+
+
+@pytest.mark.asyncio
+async def test_relative_wait_still_now_plus_delta_in_utc():
+    """'in 2 minutes' must stay an absolute UTC offset even with a local zone."""
+    repo = ReminderRepository(user_id="u1", collection=None)
+    skill = RemindersSkill(
+        repository=repo, semantic_memory=None, timezone="Europe/Berlin"
+    )
+
+    with (
+        patch.object(repo, "create", wraps=repo.create) as spy,
+        patch("src.skills.reminders.skill._now_utc") as mock_now,
+    ):
+        mock_now.return_value = datetime(2026, 8, 21, 11, 27, tzinfo=UTC)
+        await skill.execute(
+            user_text="remind me in 2 minutes to drink water",
+            user_id="u1",
+        )
+
+    due = spy.await_args.kwargs["due_at"]
+    assert due == datetime(2026, 8, 21, 11, 29, tzinfo=UTC)
+
+
+@pytest.mark.asyncio
+async def test_past_local_clock_rolls_to_tomorrow_in_zone():
+    """A clock time already past locally must roll to tomorrow in that zone."""
+    repo = ReminderRepository(user_id="u1", collection=None)
+    skill = RemindersSkill(
+        repository=repo, semantic_memory=None, timezone="Europe/Berlin"
+    )
+
+    with (
+        patch.object(repo, "create", wraps=repo.create) as spy,
+        patch("src.skills.reminders.skill._now_utc") as mock_now,
+    ):
+        mock_now.return_value = datetime(2026, 8, 21, 11, 27, tzinfo=UTC)
+        result = await skill.execute(
+            user_text="remind me at 13:00 coffee",
+            user_id="u1",
+        )
+
+    due = spy.await_args.kwargs["due_at"]
+    assert due == datetime(2026, 8, 22, 11, 0, tzinfo=UTC)
+    assert "13:00" in result.response_text
+
+
+def test_can_handle_question_intents_en_de_hu():
+    """Observed live questions and DE/HU twins must be claimed by reminders."""
+    skill = RemindersSkill(repository=ReminderRepository(user_id="u1"))
+    assert skill.can_handle("Do I have a reminder?") is True
+    assert skill.can_handle("Is there anything for me today?") is True
+    assert skill.can_handle("Habe ich eine Erinnerung?") is True
+    assert skill.can_handle("Was habe ich heute?") is True
+    assert skill.can_handle("Van emlékeztetőm?") is True
+    assert skill.can_handle("Van ma valami?") is True
+
+
+@pytest.mark.asyncio
+async def test_whats_my_agenda_defaults_to_today_window():
+    """Bare 'what's my agenda' has no date token and must still use local today."""
+    mock_repo = MagicMock(spec=ReminderRepository)
+    mock_repo.list_reminders = AsyncMock(return_value=[])
+    skill = RemindersSkill(repository=mock_repo, timezone="Europe/Berlin")
+
+    with patch("src.skills.reminders.skill._now_utc") as mock_now:
+        mock_now.return_value = datetime(2026, 8, 21, 11, 27, tzinfo=UTC)
+        result = await skill.execute(user_text="what's my agenda", user_id="u1")
+
+    assert result.handled is True
+    kwargs = mock_repo.list_reminders.await_args.kwargs
+    assert kwargs["due_from"] == datetime(2026, 8, 20, 22, 0, tzinfo=UTC)
+
+
+@pytest.mark.asyncio
+async def test_question_does_not_run_llm_slot_fill():
+    """Slot fill must not run unless create intent is already certain."""
+    repo = ReminderRepository(user_id="u1", collection=None)
+    llm = AsyncMock()
+    llm.generate_response.return_value = (
+        '{"content": "invented", "due_iso": "2026-08-21T13:30:00+00:00"}'
+    )
+    skill = RemindersSkill(repository=repo, semantic_memory=None, llm=llm)
+
+    with patch.object(repo, "create", wraps=repo.create) as spy:
+        await skill.execute(user_text="Do I have a reminder?", user_id="u1")
+
+    spy.assert_not_awaited()
+    llm.generate_response.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_delete_cancels_matching_reminder_and_drops_summary_fact():
+    """Delete must cancel the pending reminder and drop its SM summary fact."""
+    bogus = Reminder(user_id="u1", content="Do I have a ?", status="pending")
+    cancelled = Reminder(
+        id=bogus.id, user_id="u1", content=bogus.content, status="cancelled"
+    )
+    mock_repo = MagicMock(spec=ReminderRepository)
+    mock_repo.create = AsyncMock()
+    mock_repo.search_by_content = AsyncMock(return_value=[bogus])
+    mock_repo.cancel = AsyncMock(return_value=cancelled)
+    mock_sem = MagicMock()
+    mock_sem.delete_facts_containing = AsyncMock(return_value=1)
+    skill = RemindersSkill(
+        repository=mock_repo, semantic_memory=mock_sem, llm=AsyncMock()
+    )
+
+    result = await skill.execute(
+        user_text="Then please delete the reminder do I have a",
+        user_id="u1",
+    )
+
+    assert result.handled is True
+    mock_repo.create.assert_not_awaited()
+    assert mock_repo.list_reminders.called is False
+    query = mock_repo.search_by_content.await_args.args[0]
+    assert query.casefold() in bogus.content.casefold()
+    assert "do i have" in query.casefold()
+    mock_repo.cancel.assert_awaited_once_with(bogus.id)
+    mock_sem.delete_facts_containing.assert_awaited_once()
+    sm_args, sm_kwargs = mock_sem.delete_facts_containing.await_args
+    assert sm_args[0] == bogus.content
+    assert sm_kwargs["prefix"] == REMINDER_FACT_PREFIX
+    assert result.response_text.startswith("Removed the reminder:")
+    assert "Do I have a ?" in result.response_text
+    skill.llm.generate_response.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_delete_scrubs_leftover_summary_when_reminder_already_gone():
+    """A leftover SM summary must still be dropped if the reminder is gone."""
+    mock_repo = MagicMock(spec=ReminderRepository)
+    mock_repo.search_by_content = AsyncMock(return_value=[])
+    mock_repo.cancel = AsyncMock()
+    mock_sem = MagicMock()
+    mock_sem.delete_facts_containing = AsyncMock(return_value=1)
+    skill = RemindersSkill(repository=mock_repo, semantic_memory=mock_sem)
+
+    result = await skill.execute(
+        user_text="delete the reminder do I have a",
+        user_id="u1",
+    )
+
+    assert result.handled is True
+    mock_repo.cancel.assert_not_awaited()
+    mock_sem.delete_facts_containing.assert_awaited_once()
+    sm_args, sm_kwargs = mock_sem.delete_facts_containing.await_args
+    assert "do i have" in sm_args[0].casefold()
+    assert sm_kwargs["prefix"] == REMINDER_FACT_PREFIX
+    assert "leftover note" in result.response_text.lower()
+
+
+@pytest.mark.asyncio
+async def test_delete_unknown_reminder_does_not_create():
+    """Unknown delete targets must not fall through to create."""
+    mock_repo = MagicMock(spec=ReminderRepository)
+    mock_repo.create = AsyncMock()
+    mock_repo.search_by_content = AsyncMock(return_value=[])
+    mock_repo.cancel = AsyncMock()
+    mock_sem = MagicMock()
+    mock_sem.delete_facts_containing = AsyncMock(return_value=0)
+    skill = RemindersSkill(repository=mock_repo, semantic_memory=mock_sem)
+
+    result = await skill.execute(
+        user_text="delete the reminder unicorn ballet",
+        user_id="u1",
+    )
+
+    assert result.handled is True
+    mock_repo.create.assert_not_awaited()
+    mock_repo.cancel.assert_not_awaited()
+    assert (
+        "couldn't find" in result.response_text.lower()
+        or "could not find" in result.response_text.lower()
+    )
+
+
+def test_can_handle_delete_intents_en_de_hu():
+    """Delete utterances must be claimed by reminders, not left to the LLM."""
+    skill = RemindersSkill(repository=ReminderRepository(user_id="u1"))
+    assert skill.can_handle("Then please delete the reminder do I have a") is True
+    assert skill.can_handle("Lösche die Erinnerung Zahnarzt") is True
+    assert skill.can_handle("Töröld az emlékeztetőt fogorvos") is True
+
+
+@pytest.mark.asyncio
+async def test_dont_let_me_forget_still_creates_not_deletes():
+    """Create 'don't let me forget' must not be stolen by a forget/delete phrase."""
+    repo = ReminderRepository(user_id="u1", collection=None)
+    skill = RemindersSkill(repository=repo, semantic_memory=None)
+
+    with patch.object(repo, "create", wraps=repo.create) as spy:
+        result = await skill.execute(
+            user_text="don't let me forget to call mom",
+            user_id="u1",
+        )
+
+    assert result.handled is True
+    spy.assert_awaited_once()
+    assert "mom" in spy.await_args.kwargs["content"].lower()
+
+
+def test_delete_keyword_is_substring_of_stored_bogus_content():
+    """Live delete utterance must search with a substring of the stored content."""
+    keyword = _delete_keyword("Then please delete the reminder do I have a")
+    stored = "Do I have a ?"
+    assert keyword
+    assert "do i have" in keyword.casefold()
+    assert keyword.casefold() in stored.casefold()
+
+
+def test_can_handle_stt_typo_delete_utterance():
+    """STT 'delet' / 'habe' must still claim reminders, not fall through to chat."""
+    skill = RemindersSkill(repository=ReminderRepository(user_id="u1"))
+    assert skill.can_handle("please delet the reminder: Do I habe a ?") is True
+
+
+def test_fuzzy_delete_picks_habe_not_other_pending():
+    """'Do I habe a' must select 'Do I have a ?', not first/test reminder."""
+    bogus = Reminder(user_id="u1", content="Do I have a ?")
+    first = Reminder(user_id="u1", content="first reminder")
+    other = Reminder(user_id="u1", content="test reminder")
+    keyword = _delete_keyword("please delet the reminder: Do I habe a ?")
+    picked = _best_fuzzy_match(
+        keyword, [(item.content, item) for item in (bogus, first, other)]
+    )
+    assert picked is bogus
+
+
+@pytest.mark.asyncio
+async def test_typo_delete_cancels_have_reminder_not_others():
+    """Exact search miss must fuzzy-cancel only the habe/have reminder."""
+    bogus = Reminder(user_id="u1", content="Do I have a ?", status="pending")
+    first = Reminder(user_id="u1", content="first reminder", status="pending")
+    other = Reminder(user_id="u1", content="test reminder", status="pending")
+    cancelled = Reminder(
+        id=bogus.id, user_id="u1", content=bogus.content, status="cancelled"
+    )
+    mock_repo = MagicMock(spec=ReminderRepository)
+    mock_repo.create = AsyncMock()
+    mock_repo.search_by_content = AsyncMock(return_value=[])
+    mock_repo.list_reminders = AsyncMock(return_value=[bogus, first, other])
+    mock_repo.cancel = AsyncMock(return_value=cancelled)
+    mock_sem = MagicMock()
+    mock_sem.delete_facts_containing = AsyncMock(return_value=1)
+    skill = RemindersSkill(
+        repository=mock_repo, semantic_memory=mock_sem, llm=AsyncMock()
+    )
+
+    result = await skill.execute(
+        user_text="please delet the reminder: Do I habe a ?",
+        user_id="u1",
+    )
+
+    assert result.handled is True
+    mock_repo.create.assert_not_awaited()
+    mock_repo.cancel.assert_awaited_once_with(bogus.id)
+    sm_args, sm_kwargs = mock_sem.delete_facts_containing.await_args
+    assert sm_args[0] == "Do I have a ?"
+    assert sm_kwargs["prefix"] == REMINDER_FACT_PREFIX
+    assert "Do I have a ?" in result.response_text
+    assert result.response_text.startswith("Removed the reminder:")
+    skill.llm.generate_response.assert_not_awaited()

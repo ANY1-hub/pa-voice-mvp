@@ -5,6 +5,8 @@ from uuid import uuid4
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
+from src.core.timezones import parse_iana_timezone
+
 
 def now_utc() -> datetime:
     """Return the current UTC timestamp.
@@ -28,6 +30,7 @@ class User(BaseModel):
         must_change_password: Force a password change before chat.
         token_version: Incremented on password change; JWT ``ver`` must match.
         display_name: Preferred name Jarvis should use, or ``None`` until set.
+        timezone: IANA timezone for spoken clock times, or ``None`` until set.
     """
 
     id: str = Field(default_factory=lambda: str(uuid4()))
@@ -39,6 +42,7 @@ class User(BaseModel):
     must_change_password: bool = False
     token_version: int = 0
     display_name: str | None = None
+    timezone: str | None = None
 
     def to_public(self) -> "UserPublic":
         """Safe user representation (no password hash)."""
@@ -50,6 +54,7 @@ class User(BaseModel):
             is_superuser=self.is_superuser,
             must_change_password=self.must_change_password,
             display_name=self.display_name,
+            timezone=self.timezone,
         )
 
 
@@ -88,6 +93,7 @@ class UserPublic(BaseModel):
         is_superuser: Superuser flag.
         must_change_password: Whether a password change is still required.
         display_name: Preferred name, or ``None`` until first-login onboarding.
+        timezone: IANA timezone for spoken clock times, or ``None`` until set.
     """
 
     id: str
@@ -97,6 +103,7 @@ class UserPublic(BaseModel):
     is_superuser: bool = False
     must_change_password: bool = False
     display_name: str | None = None
+    timezone: str | None = None
 
 
 class UserAdminCreate(BaseModel):
@@ -145,6 +152,22 @@ class DisplayNameRequest(BaseModel):
         if len(cleaned) > 40:
             raise ValueError("Display name must be at most 40 characters")
         return cleaned
+
+
+class TimezoneRequest(BaseModel):
+    """Payload for the browser IANA timezone.
+
+    Attributes:
+        timezone: IANA name such as ``Europe/Berlin``.
+    """
+
+    timezone: str = Field(min_length=1, max_length=64)
+
+    @field_validator("timezone")
+    @classmethod
+    def normalize_timezone(cls, value: str) -> str:
+        """Reject unknown IANA names so due times are never guessed."""
+        return parse_iana_timezone(value)
 
 
 class ChangePasswordRequest(BaseModel):

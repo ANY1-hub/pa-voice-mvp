@@ -6,16 +6,24 @@ import json
 import logging
 from datetime import UTC, datetime
 
+from src.core.timezones import zoneinfo_or_utc
 from src.services.llm.base import LLMAdapter
 
 logger = logging.getLogger(__name__)
 
-_SLOT_SYSTEM = """You extract reminder slots from a user utterance.
+
+def _slot_system(timezone: str) -> str:
+    """System prompt: clock times are local to ``timezone``, due_iso is UTC."""
+    return f"""You extract reminder slots from a user utterance.
 Return JSON only with keys:
 - content: the thing to be reminded of (no date/time words, no trigger phrases)
 - due_iso: UTC ISO-8601 datetime string, or null if no date/time is present
-Use the provided "now_utc" as the reference for relative dates (today, tomorrow, weekdays).
-If the user names a calendar date such as 18.8. or 18/8/2026, convert it to UTC ISO.
+The user's IANA timezone is {timezone}. Named clock times (13:30, um 14 Uhr)
+are wall-clock times in that timezone; convert them to UTC for due_iso.
+Use now_utc / now_local as the reference for relative dates (today, tomorrow, weekdays).
+If the user names a calendar date such as 18.8. or 18/8/2026, interpret it in
+the user's timezone, then emit UTC ISO.
+Do not invent a reminder from a question (for example "do I have a reminder?").
 """
 
 
@@ -23,13 +31,21 @@ async def extract_reminder_slots(
     llm: LLMAdapter,
     user_text: str,
     now_utc: datetime,
+    timezone: str | None = None,
 ) -> tuple[str | None, datetime | None]:
     """Ask the LLM for (content, due_at). Returns (None, None) on failure."""
+    tz_name = timezone or "UTC"
+    now_local = now_utc.astimezone(zoneinfo_or_utc(timezone))
     messages = [
-        {"role": "system", "content": _SLOT_SYSTEM},
+        {"role": "system", "content": _slot_system(tz_name)},
         {
             "role": "user",
-            "content": f"now_utc={now_utc.isoformat()}\nutterance={user_text}",
+            "content": (
+                f"now_utc={now_utc.isoformat()}\n"
+                f"now_local={now_local.isoformat()}\n"
+                f"timezone={tz_name}\n"
+                f"utterance={user_text}"
+            ),
         },
     ]
     try:

@@ -151,6 +151,64 @@ class SemanticMemory:
         )
         return int(result.deleted_count)
 
+    async def delete_facts_containing(
+        self, query: str, *, prefix: str | None = None
+    ) -> int:
+        """Delete this user's facts whose content contains ``query``.
+
+        Args:
+            query: Literal substring of ``content`` (not a regex).
+            prefix: If set, ``content`` must also start with this literal.
+
+        Returns:
+            Number of deleted documents, or 0 when no collection is configured.
+        """
+        if self.collection is None or not (query or "").strip():
+            return 0
+        if prefix:
+            content_filter: dict[str, str] = {
+                "$regex": f"^{re.escape(prefix)}.*{re.escape(query)}",
+                "$options": "i",
+            }
+        else:
+            content_filter = contains_regex(query)
+        result = await self.collection.delete_many(
+            {"user_id": self.user_id, "content": content_filter}
+        )
+        return int(result.deleted_count)
+
+    async def list_facts_with_prefix(
+        self, prefix: str, limit: int = 50
+    ) -> list[SemanticMemoryFact]:
+        """Return this user's facts whose content starts with ``prefix``."""
+        if self.collection is None or not prefix:
+            return []
+        cursor = (
+            self.collection.find(
+                {
+                    "user_id": self.user_id,
+                    "content": {"$regex": f"^{re.escape(prefix)}"},
+                }
+            )
+            .sort("importance_score", -1)
+            .limit(limit)
+        )
+        results: list[SemanticMemoryFact] = []
+        async for doc in cursor:
+            assign_stable_id(doc)
+            doc.pop("_id", None)
+            results.append(SemanticMemoryFact.model_validate(doc))
+        return results
+
+    async def delete_facts_by_ids(self, fact_ids: list[str]) -> int:
+        """Delete this user's facts by application id. 0 if nothing to delete."""
+        if self.collection is None or not fact_ids:
+            return 0
+        result = await self.collection.delete_many(
+            {"user_id": self.user_id, "id": {"$in": list(fact_ids)}}
+        )
+        return int(result.deleted_count)
+
     async def search(
         self,
         query: str,

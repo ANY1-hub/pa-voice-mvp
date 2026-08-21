@@ -5,6 +5,8 @@ import {
     register,
     changePassword,
     setDisplayName,
+    setTimezone,
+    browserTimeZone,
     clearAuth,
     getStoredUser,
     connectApi,
@@ -13,7 +15,7 @@ import {
     adminCreateUser,
     adminUpdateUser,
     api,
-} from "./auth.js";
+} from "./auth.js?v=2026-08-21-tz";
 import { sendText, sendVoice, setStatus, resetChatTimestamps, appendMessage } from "./chat.js";
 import { startRecordingSession, setSpeakingHandlers, stopTts, playBase64Audio } from "./audio.js";
 import { applyI18n, getChatLang, getLang, setChatLang, setLang, t } from "./i18n.js";
@@ -98,14 +100,14 @@ function stopDuePoll() {
 }
 
 async function tickDueReminders() {
-    if (isRecording || isProcessing) return;
+    if (isRecording) return;
     try {
         const res = await api("/api/v1/reminders/due");
         if (!res.ok) return;
         const data = await res.json();
         for (const item of data.reminders || []) {
             appendMessage("jarvis", item.text);
-            playBase64Audio(item.audio_base64);
+            if (!isRecording) playBase64Audio(item.audio_base64);
             await api(`/api/v1/reminders/${item.id}/ack`, { method: "POST" });
         }
     } catch (_) {
@@ -153,10 +155,22 @@ function showDisplayName() {
     applyI18n();
 }
 
-function routeAfterAuth(user) {
-    if (user.must_change_password) {
+async function syncBrowserTimezone(user) {
+    const tz = browserTimeZone();
+    if (!tz) return user;
+    if (user && user.timezone === tz) return user;
+    try {
+        return (await setTimezone(tz)) || user;
+    } catch {
+        return user;
+    }
+}
+
+async function routeAfterAuth(user) {
+    const synced = await syncBrowserTimezone(user);
+    if (synced.must_change_password) {
         showChangePassword();
-    } else if (!user.display_name) {
+    } else if (!synced.display_name) {
         showDisplayName();
     } else {
         showApp();
@@ -181,6 +195,7 @@ function setProcessing(on) {
     speakBtn.disabled = on;
     sendBtn.disabled = on;
     textInput.disabled = on;
+    if (!on) tickDueReminders();
 }
 
 function showError(el, msg) {
@@ -205,7 +220,7 @@ on(loginForm, "submit", async (e) => {
 
     try {
         const user = await login(email, password);
-        routeAfterAuth(user);
+        await routeAfterAuth(user);
     } catch (err) {
         showError(authError, err.message || "Login failed");
     }
@@ -258,7 +273,7 @@ on(changePasswordForm, "submit", async (e) => {
 
     try {
         const user = await changePassword(current, next);
-        routeAfterAuth(user);
+        await routeAfterAuth(user);
     } catch (err) {
         showError(changePasswordError, err.message || "Password change failed");
     }
@@ -280,7 +295,7 @@ on(displayNameForm, "submit", async (e) => {
     if (submitBtn) submitBtn.disabled = true;
     try {
         const user = await setDisplayName(name);
-        routeAfterAuth(user);
+        await routeAfterAuth(user);
     } catch (err) {
         showError(displayNameError, err.message || t("displayNameFailed"));
         displayNameForm.dataset.busy = "0";
@@ -606,7 +621,7 @@ async function boot() {
     try {
         const user = await fetchMe(token);
         setAuth(token, user);
-        routeAfterAuth(user);
+        await routeAfterAuth(user);
     } catch (_) {
         clearAuth();
         showAuth({ bootstrap: false });

@@ -19,6 +19,7 @@ from src.models.user import (
     ChangePasswordRequest,
     ChangePasswordResponse,
     DisplayNameRequest,
+    TimezoneRequest,
     User,
     UserCreate,
     UserLogin,
@@ -215,4 +216,24 @@ async def set_display_name(
     except Exception:
         logger.exception("Failed to store display-name fact in semantic memory")
 
+    return updated.to_public()
+
+
+@router.post("/timezone", response_model=UserPublic)
+async def set_timezone(
+    payload: TimezoneRequest,
+    current_user: User = Depends(get_current_user),  # noqa: B008
+    repo: UserRepository = Depends(get_user_repository),  # noqa: B008
+) -> UserPublic:
+    """Store the browser IANA timezone so spoken clock times are local.
+
+    Allowed before display-name onboarding so the first reminder uses the
+    correct zone. Clock times are wall-clock in this zone; ``due_at`` is UTC.
+    """
+    updated = await repo.set_timezone(current_user.id, payload.timezone)
+    if updated is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
     return updated.to_public()

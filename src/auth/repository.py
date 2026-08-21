@@ -183,3 +183,25 @@ class UserRepository:
             return None
         result.pop("_id", None)
         return User.model_validate(result)
+
+    async def set_timezone(self, user_id: str, timezone: str) -> User | None:
+        """Store the user's IANA timezone for local clock-time reminders.
+
+        Args:
+            user_id: Target user UUID.
+            timezone: Already-validated IANA name.
+
+        Returns:
+            Updated ``User``, or ``None`` if not found / no collection.
+        """
+        if self.collection is None:
+            return None
+        result = await self.collection.find_one_and_update(
+            {"id": user_id},
+            {"$set": {"timezone": timezone}},
+            return_document=True,
+        )
+        if result is None:
+            return None
+        result.pop("_id", None)
+        return User.model_validate(result)

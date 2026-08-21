@@ -31,6 +31,34 @@
       "tag": "canonical"
     },
     {
+      "id": "en-remind-lookup-do-i-have",
+      "lang": "en",
+      "text": "Do I have a reminder?",
+      "expected": "reminders",
+      "tag": "canonical"
+    },
+    {
+      "id": "en-remind-agenda-anything-today",
+      "lang": "en",
+      "text": "Is there anything for me today?",
+      "expected": "reminders",
+      "tag": "canonical"
+    },
+    {
+      "id": "en-remind-delete",
+      "lang": "en",
+      "text": "Then please delete the reminder do I have a",
+      "expected": "reminders",
+      "tag": "canonical"
+    },
+    {
+      "id": "en-remind-delete-stt-typos",
+      "lang": "en",
+      "text": "please delet the reminder: Do I habe a ?",
+      "expected": "reminders",
+      "tag": "canonical"
+    },
+    {
       "id": "en-notes-create",
       "lang": "en",
       "text": "note: buy oat milk",
@@ -115,6 +143,27 @@
       "tag": "canonical"
     },
     {
+      "id": "de-remind-lookup-habe-ich",
+      "lang": "de",
+      "text": "Habe ich eine Erinnerung?",
+      "expected": "reminders",
+      "tag": "canonical"
+    },
+    {
+      "id": "de-remind-agenda-was-habe-ich-heute",
+      "lang": "de",
+      "text": "Was habe ich heute?",
+      "expected": "reminders",
+      "tag": "canonical"
+    },
+    {
+      "id": "de-remind-delete",
+      "lang": "de",
+      "text": "Lösche die Erinnerung Zahnarzt",
+      "expected": "reminders",
+      "tag": "canonical"
+    },
+    {
       "id": "de-notes-create",
       "lang": "de",
       "text": "merk dir das: Milch kaufen",
@@ -174,6 +223,27 @@
       "id": "hu-remind-agenda-today",
       "lang": "hu",
       "text": "mi van ma a naptáramban",
+      "expected": "reminders",
+      "tag": "canonical"
+    },
+    {
+      "id": "hu-remind-lookup-van-emlekezteto",
+      "lang": "hu",
+      "text": "Van emlékeztetőm?",
+      "expected": "reminders",
+      "tag": "canonical"
+    },
+    {
+      "id": "hu-remind-agenda-van-ma-valami",
+      "lang": "hu",
+      "text": "Van ma valami?",
+      "expected": "reminders",
+      "tag": "canonical"
+    },
+    {
+      "id": "hu-remind-delete",
+      "lang": "hu",
+      "text": "Töröld az emlékeztetőt fogorvos",
       "expected": "reminders",
       "tag": "canonical"
     },

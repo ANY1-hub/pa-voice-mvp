@@ -352,6 +352,7 @@ def get_skill_registry(
     reminder_repo: Annotated[ReminderRepository, Depends(get_reminder_repository)],
     semantic_memory: Annotated[SemanticMemory, Depends(get_semantic_memory)],
     llm: Annotated[LLMAdapter, Depends(get_llm_adapter)],
+    current_user: Annotated[User, Depends(get_current_ready_user)],
 ) -> SkillRegistry:
     """Build and return a SkillRegistry with all available skills for the user.
 
@@ -363,6 +364,7 @@ def get_skill_registry(
         reminder_repo: User-scoped reminder repository.
         semantic_memory: User-scoped semantic memory (for summary facts).
         llm: LLM adapter used for optional reminder slot filling.
+        current_user: Ready user (timezone is used for reminder clock times).
 
     Returns:
         ``SkillRegistry`` with registered skills.
@@ -375,6 +377,7 @@ def get_skill_registry(
             repository=reminder_repo,
             semantic_memory=semantic_memory,
             llm=llm,
+            timezone=current_user.timezone,
         )
     )
     registry.register(WebSearchSkill(semantic_memory=semantic_memory))

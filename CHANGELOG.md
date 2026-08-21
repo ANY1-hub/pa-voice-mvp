@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] 2026-08-21
+
+### Added
+- Reminders delete/cancel (`delete the reminder …` / DE `lösche die Erinnerung` / HU `töröld az emlékeztetőt`): cancels the pending item and drops its Semantic Memory summary so Active Recall cannot keep a ghost. STT typos (`delet`, `habe`/`have`) still match; the LLM must not claim a delete.
+- `POST /api/v1/auth/timezone` stores the browser IANA timezone; `UserPublic.timezone` on `/me`
+
+### Changed
+- CI / pytest coverage floor is 90% (`--cov-fail-under=90`)
+
+### Fixed
+- Open-tab due poll no longer skips the whole 15s tick while a chat turn is in flight; it retries when the turn ends. GET `/reminders/due` uses the same clock as reminder parse
+- Voice UI layout test no longer races `boot()`: it waits for auth to settle and does not call the human API on :8000, so a long chat cannot hide the header
+- Reminder questions no longer create a reminder. "Do I have a reminder?" lists pending items; "Is there anything for me today?" is today's agenda (EN/DE/HU twins included). Bare extra "reminder" / "erinnerung" no longer steals those questions
+- Spoken clock times ("at 13:30") are the user's local wall clock. `User.timezone` (IANA, from the browser at login/boot) converts to UTC for `due_at`; confirmations, agenda, and list print local `HH:MM`. Open-tab due poll can fire at the time the user said
+
 ## [Unreleased] 2026-08-20
 
 ### Added

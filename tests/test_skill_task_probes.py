@@ -92,6 +92,83 @@ def test_probe_reminders_create_persists(probe_client: TestClient, probe_auth: t
         client.close()
 
 
+def test_probe_reminders_delete_cancels_and_drops_summary(
+    probe_client: TestClient, probe_auth: tuple
+):
+    """A delete turn must cancel the reminder and drop its semantic summary."""
+    headers, user_id = probe_auth
+    created = probe_client.post(
+        "/api/v1/chat/text",
+        headers=headers,
+        json={"text": "remind me tomorrow to call the dentist", "language": "en"},
+    )
+    assert created.status_code == 200, created.text
+
+    client, db_name = _mongo()
+    try:
+        pending = client[db_name]["reminders"].find_one(
+            {"user_id": user_id, "status": "pending"}
+        )
+        assert pending is not None
+        assert "dentist" in pending["content"].lower()
+        summary = client[db_name]["semantic_memory"].find_one(
+            {
+                "user_id": user_id,
+                "content": {
+                    "$regex": r"^User set a reminder:.*dentist",
+                    "$options": "i",
+                },
+            }
+        )
+        assert (
+            summary is not None
+        ), "create must write the SM summary or delete is vacuous"
+
+        before = probe_client.post(
+            "/api/v1/chat/text",
+            headers=headers,
+            json={"text": "what do you know about me", "language": "en"},
+        )
+        assert before.status_code == 200, before.text
+        assert "dentist" in before.json()["response"].lower()
+
+        deleted = probe_client.post(
+            "/api/v1/chat/text",
+            headers=headers,
+            json={"text": "delete the reminder dentist", "language": "en"},
+        )
+        assert deleted.status_code == 200, deleted.text
+        reply = deleted.json()["response"].lower()
+        assert "dentist" in reply
+        assert "removed the reminder" in reply
+        assert "pending reminders" not in reply
+        assert "llm-fallback" not in reply
+
+        doc = client[db_name]["reminders"].find_one({"id": pending["id"]})
+        assert doc is not None
+        assert doc.get("status") == "cancelled"
+        leftover = client[db_name]["semantic_memory"].find_one(
+            {
+                "user_id": user_id,
+                "content": {
+                    "$regex": r"^User set a reminder:.*dentist",
+                    "$options": "i",
+                },
+            }
+        )
+        assert leftover is None
+    finally:
+        client.close()
+
+    after = probe_client.post(
+        "/api/v1/chat/text",
+        headers=headers,
+        json={"text": "what do you know about me", "language": "en"},
+    )
+    assert after.status_code == 200, after.text
+    assert "dentist" not in after.json()["response"].lower()
+
+
 def test_probe_recall_reads_semantic_fact(probe_client: TestClient, probe_auth: tuple):
     """Active recall must surface a fact previously stored in Semantic Memory."""
     headers, _user_id = probe_auth

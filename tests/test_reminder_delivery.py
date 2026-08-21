@@ -173,3 +173,116 @@ def test_due_requires_auth(delivery_client):
     """GET /reminders/due without JWT must be 401."""
     client, _tts = delivery_client
     assert client.get("/api/v1/reminders/due").status_code == 401
+
+
+def test_relative_wait_is_not_due_until_wait_elapses(delivery_client, delivery_auth):
+    """GET /due must stay empty until the stored due_at, without rewriting Mongo."""
+    from unittest.mock import patch
+
+    client, _tts = delivery_client
+    headers, _user_id = delivery_auth
+    frozen = datetime(2026, 8, 21, 14, 0, tzinfo=UTC)
+    with patch("src.skills.reminders.skill._now_utc", return_value=frozen):
+        create = client.post(
+            "/api/v1/chat/text",
+            headers=headers,
+            json={"text": "remind me in 2 minutes to drink water", "language": "en"},
+        )
+    assert create.status_code == 200, create.text
+
+    with patch(
+        "src.skills.reminders.skill._now_utc",
+        return_value=frozen + timedelta(minutes=1),
+    ):
+        early = client.get("/api/v1/reminders/due", headers=headers)
+    assert early.status_code == 200, early.text
+    assert early.json()["reminders"] == []
+
+    with patch(
+        "src.skills.reminders.skill._now_utc",
+        return_value=frozen + timedelta(minutes=2, seconds=1),
+    ):
+        due = client.get("/api/v1/reminders/due", headers=headers)
+    assert due.status_code == 200, due.text
+    items = due.json()["reminders"]
+    assert len(items) == 1
+    assert "water" in items[0]["content"].lower()
+    assert "Reminder:" in items[0]["text"]
+
+
+def test_local_clock_is_due_at_converted_utc_not_digit_utc(
+    delivery_client, delivery_auth
+):
+    """Spoken 13:30 Berlin must be claimable at 11:30Z, not only at 13:30Z."""
+    from unittest.mock import patch
+
+    client, _tts = delivery_client
+    headers, _user_id = delivery_auth
+    assert (
+        client.post(
+            "/api/v1/auth/timezone",
+            headers=headers,
+            json={"timezone": "Europe/Berlin"},
+        ).status_code
+        == 200
+    )
+    frozen = datetime(2026, 8, 21, 11, 27, tzinfo=UTC)  # 13:27 CEST
+    with patch("src.skills.reminders.skill._now_utc", return_value=frozen):
+        create = client.post(
+            "/api/v1/chat/text",
+            headers=headers,
+            json={"text": "remind me at 13:30 first reminder", "language": "en"},
+        )
+    assert create.status_code == 200, create.text
+    assert "13:30" in create.json()["response"]
+
+    with patch("src.skills.reminders.skill._now_utc", return_value=frozen):
+        too_soon = client.get("/api/v1/reminders/due", headers=headers)
+    assert too_soon.json()["reminders"] == []
+
+    local_due = datetime(2026, 8, 21, 11, 30, 1, tzinfo=UTC)  # 13:30:01 CEST
+    with patch("src.skills.reminders.skill._now_utc", return_value=local_due):
+        due = client.get("/api/v1/reminders/due", headers=headers)
+    items = due.json()["reminders"]
+    assert len(items) == 1
+    assert "first reminder" in items[0]["content"].lower()
+
+
+def test_clock_time_stored_as_utc_from_user_timezone(delivery_client, delivery_auth):
+    """Spoken 13:30 with Europe/Berlin must persist 11:30Z, not 13:30Z."""
+    from unittest.mock import patch
+
+    client, _tts = delivery_client
+    headers, user_id = delivery_auth
+    tz = client.post(
+        "/api/v1/auth/timezone",
+        headers=headers,
+        json={"timezone": "Europe/Berlin"},
+    )
+    assert tz.status_code == 200, tz.text
+
+    now = datetime(2026, 8, 21, 11, 27, tzinfo=UTC)  # 13:27 CEST
+    with patch("src.skills.reminders.skill._now_utc", return_value=now):
+        create = client.post(
+            "/api/v1/chat/text",
+            headers=headers,
+            json={"text": "remind me at 13:30 first reminder", "language": "en"},
+        )
+    assert create.status_code == 200, create.text
+    assert "13:30" in create.json()["response"]
+    assert "11:30" not in create.json()["response"]
+
+    settings = get_settings()
+    mongo = MongoClient(settings.mongodb_uri)
+    try:
+        doc = mongo[settings.mongodb_db_name]["reminders"].find_one(
+            {"user_id": user_id}
+        )
+        assert doc is not None
+        due = doc["due_at"]
+        if isinstance(due, str):
+            due = datetime.fromisoformat(due.replace("Z", "+00:00"))
+        due = due.replace(tzinfo=UTC) if due.tzinfo is None else due.astimezone(UTC)
+        assert due == datetime(2026, 8, 21, 11, 30, tzinfo=UTC)
+    finally:
+        mongo.close()

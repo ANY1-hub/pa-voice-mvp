@@ -114,6 +114,33 @@ export async function changePassword(currentPassword, newPassword) {
     return user;
 }
 
+/** Browser IANA timezone so spoken clock times are the user's wall clock. */
+export function browserTimeZone() {
+    try {
+        return Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+    } catch {
+        return "";
+    }
+}
+
+/** Persist the browser IANA timezone on the user record. */
+export async function setTimezone(timezone) {
+    const tz = timezone || browserTimeZone();
+    if (!tz) return null;
+    const res = await api("/api/v1/auth/timezone", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ timezone: tz }),
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "Could not save timezone");
+    }
+    const user = await res.json();
+    setAuth(getToken(), user);
+    return user;
+}
+
 /** Preferred name / how Jarvis should address the user. */
 export async function setDisplayName(displayName) {
     const res = await api("/api/v1/auth/display-name", {

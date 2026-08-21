@@ -171,6 +171,23 @@ class ReminderRepository:
             return None
         return _from_doc(doc)
 
+    async def cancel(self, reminder_id: str) -> Reminder | None:
+        """Mark a pending reminder as cancelled. Returns None if not found."""
+        if self.collection is None:
+            return None
+        doc = await self.collection.find_one_and_update(
+            {
+                "id": reminder_id,
+                "user_id": self.user_id,
+                "status": "pending",
+            },
+            {"$set": {"status": "cancelled", "last_accessed": datetime.now(UTC)}},
+            return_document=True,
+        )
+        if doc is None:
+            return None
+        return _from_doc(doc)
+
     async def claim_due_for_user(
         self, now: datetime, *, limit: int = 20
     ) -> list[Reminder]:

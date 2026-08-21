@@ -96,14 +96,17 @@ REMINDERS_LIST: dict[str, list[str]] = {
     "en": [
         "show my reminders",
         "list reminders",
+        "do I have any reminders",
     ],
     "de": [
         "meine erinnerungen",
         "zeig mir die erinnerungen",
+        "habe ich eine erinnerung",
     ],
     "hu": [
         "listázd az emlékeztetőket",
         "mutasd az emlékeztetőket",
+        "van emlékeztetőm",
     ],
 }
 
@@ -112,16 +115,20 @@ REMINDERS_AGENDA: dict[str, list[str]] = {
         "what's on today",
         "what's on this week",
         "what's my agenda",
+        "is there anything for me today",
+        "what do I have today",
     ],
     "de": [
         "was steht heute an",
         "was steht diese woche an",
         "mein kalender",
+        "was habe ich heute",
     ],
     "hu": [
         "mi van ma a naptáramban",
         "mi van a héten",
         "a naptáram",
+        "van ma valami",
     ],
 }
 
@@ -137,15 +144,39 @@ REMINDERS_LOOKUP: dict[str, list[str]] = {
     ],
 }
 
+REMINDERS_DELETE: dict[str, list[str]] = {
+    "en": [
+        "delete the reminder",
+        "cancel the reminder",
+        "remove the reminder",
+    ],
+    "de": [
+        "lösche die erinnerung",
+        "storniere die erinnerung",
+    ],
+    "hu": [
+        "töröld az emlékeztetőt",
+        "töröld az emlékeztető",
+    ],
+}
+
+# Create extras require a verb or "noun + für/an". Bare "reminder" /
+# "erinnerung" must not claim questions that only contain the noun.
 REMINDERS_CREATE_EXTRA = [
-    "reminder",
-    "erinnerung",
     "set a reminder",
+    "add a reminder",
+    "erinnerung für",
+    "erinnerung an",
 ]
 REMINDERS_LIST_EXTRA = [
     "show reminders",
     "what reminders",
     "erinnerungen zeigen",
+    "do i have a reminder",
+    "do i have any reminders",
+    "do i have reminders",
+    "habe ich erinnerungen",
+    "vannak emlékeztetőim",
 ]
 REMINDERS_AGENDA_EXTRA = [
     "was steht",
@@ -160,6 +191,19 @@ REMINDERS_AGENDA_EXTRA = [
     "jövő héten",
     "ebben a hónapban",
     "ezen a héten",
+    "anything for me today",
+    "habe ich heute etwas",
+    "mi van ma",
+]
+REMINDERS_DELETE_EXTRA = [
+    "delete reminder",
+    "delet the reminder",
+    "delet reminder",
+    "cancel reminder",
+    "remove reminder",
+    "lösch die erinnerung",
+    "lösche erinnerung",
+    "vergiss die erinnerung",
 ]
 REMINDERS_LOOKUP_EXTRA = [
     "when is",
@@ -168,10 +212,12 @@ REMINDERS_LOOKUP_EXTRA = [
     "when did",
     "when should",
     "when do i have",
+    "do i have a reminder for",
     "wann muss ich",
     "wann ist",
     "wann war",
     "wann soll",
+    "habe ich eine erinnerung für",
 ]
 
 # ---------------------------------------------------------------------------
@@ -482,6 +528,7 @@ def help_catalog(lang: str) -> dict[str, list[str]]:
             + REMINDERS_LIST[lang]
             + REMINDERS_AGENDA[lang]
             + REMINDERS_LOOKUP[lang]
+            + REMINDERS_DELETE[lang]
         ),
         "web_search": WEB_SEARCH[lang],
         "active_recall": ACTIVE_RECALL[lang],

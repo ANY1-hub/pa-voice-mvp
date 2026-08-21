@@ -24,24 +24,30 @@ The Help panel (`?`) lists **ten everyday phrases per skill** for the language y
 
 | Intent | English | German | Hungarian |
 |--------|---------|--------|-----------|
-| Create | remind me, reminder, set a reminder | erinner mich, erinnerung, stell eine erinnerung | emlékeztess |
-| List   | list reminders, show reminders, what reminders | meine erinnerungen, erinnerungen zeigen, zeig mir die erinnerungen | listázd az emlékeztetőket |
-| Agenda | what's on today, this week, next week, this month | was steht heute an, diese Woche, nächste Woche, diesen Monat | mi van ma, mi van a héten, jövő héten, ebben a hónapban |
-| Lookup | when is …, when do I … | wann habe ich …, wann muss ich … | mikor van a … |
+| Create | remind me, set a reminder, add a reminder, don't let me forget | erinner mich, erinnere mich, stell eine erinnerung, vergiss nicht | emlékeztess, állíts be emlékeztetőt, ne felejtsem el |
+| List   | show my reminders, list reminders, do I have a reminder? | meine erinnerungen, habe ich eine Erinnerung? | listázd az emlékeztetőket, van emlékeztetőm? |
+| Agenda | what's on today, is there anything for me today, what do I have today | was steht heute an, was habe ich heute | mi van ma a naptáramban, van ma valami |
+| Lookup | when is …, when do I …, do I have a reminder for … | wann habe ich …, wann muss ich … | mikor van a … |
+| Delete | delete the reminder …, cancel the reminder … | lösche die Erinnerung … | töröld az emlékeztetőt … |
 
-**Date tokens on create** (optional): today/heute/ma, tomorrow/morgen/holnap, weekdays, numeric dates (`18.8.` / `18.8.2026`), “um 14 Uhr” / “at 14:00”, relative wait (`in 2 minutes` / `in 5 Minuten` / `2 perc múlva`).
+Create needs a **verb** (`remind me`, `set`, `stell`, `emlékeztess`, …). A question that only contains the noun (`reminder` / `Erinnerung`) lists or looks up; it does not create. Delete cancels the pending reminder and forgets its short memory summary. A dropped letter in *delete* or the title (STT) still matches if one reminder is clearly the target.
+
+**Date tokens on create** (optional): today/heute/ma, tomorrow/morgen/holnap, weekdays, numeric dates (`18.8.` / `18.8.2026`), “um 14 Uhr” / “at 14:00”, relative wait (`in 2 minutes` / `in 5 Minuten` / `2 perc múlva`). Clock times are **your local wall clock** (browser timezone). Jarvis stores UTC and speaks the local `HH:MM` back.
 
 Skill replies (Reminders, Notes, Active Recall, Web Search) match the user's language (EN / DE / HU) so TTS is not English-on-German. The Help-panel flag is sent with voice and text turns as the STT/TTS hint.
 
-When a reminder's time is reached and the app tab is open, Jarvis speaks it (no extra question). Leave the tab open for the demo (“in 2 minutes”).
+When a reminder's time is reached **and the chat tab is open**, Jarvis shows a bubble and speaks it (poll about every 15s, and again when a turn finishes; no push, no WebSocket). A closed tab is silent — that is expected. Relative waits (`in 2 minutes`) and local clock times (`at 13:30`) both fire this way. A clock time already past locally is stored for **tomorrow**. A reminder with no time never fires.
 
 **Example**  
 - “Remind me tomorrow at 10 to call the dentist”  
 - “Erinner mich morgen um 14 Uhr an den Zahnarzt”  
+- “Is there anything for me today?”  
+- “Do I have a reminder?”  
 - “Was steht heute an?”  
 - “Was steht nächste Woche an?”  
 - “Wann habe ich meinen Termin bei der Arbeitsagentur?”  
-- “Show reminders”
+- “Show reminders”  
+- “Delete the reminder do I have a”
 
 ## Web Search
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import base64
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from src.api.deps import get_reminder_repository, get_tts_adapter
 from src.services.tts.base import TTSAdapter
+from src.skills.reminders import skill as reminders_skill
 from src.skills.reminders.repository import ReminderRepository
 from src.skills.reminders.skill import fire_speech
 
@@ -40,7 +41,7 @@ async def list_due_reminders(
     tts: Annotated[TTSAdapter | None, Depends(get_tts_adapter)],
 ) -> DueRemindersResponse:
     """Claim due reminders for the current user and return them with TTS."""
-    now = datetime.now(UTC)
+    now = reminders_skill._now_utc()
     await repo.claim_due_for_user(now)
     fired = await repo.list_fired_unacked()
     items: list[DueReminderOut] = []

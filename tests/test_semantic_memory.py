@@ -1,5 +1,6 @@
 """Unit tests for SemanticMemory (add, search, cosine)."""
 
+import re
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID
@@ -422,3 +423,76 @@ async def test_search_falls_back_to_text_when_embedding_fails():
 
     assert len(results) == 1
     assert "coffee" in results[0].content.lower()
+
+
+@pytest.mark.asyncio
+async def test_delete_facts_containing_scopes_to_prefix_and_user():
+    """Reminder-summary cleanup must match substring + prefix for this user only."""
+    collection = MagicMock()
+    collection.delete_many = AsyncMock(return_value=MagicMock(deleted_count=1))
+    mem = SemanticMemory(user_id=USER_ID, collection=collection)
+
+    n = await mem.delete_facts_containing("Do I have a", prefix="User set a reminder:")
+    assert n == 1
+    filt = collection.delete_many.await_args.args[0]
+    assert filt["user_id"] == USER_ID
+    regex = filt["content"]["$regex"]
+    assert regex.startswith("^")
+    assert filt["content"]["$options"] == "i"
+    assert regex.startswith("^" + re.escape("User set a reminder:"))
+    assert "Do\\ I\\ have\\ a" in regex
+
+
+@pytest.mark.asyncio
+async def test_delete_facts_containing_without_collection_is_zero():
+    """No collection means no deletes."""
+    mem = SemanticMemory(user_id=USER_ID, collection=None)
+    assert await mem.delete_facts_containing("x", prefix="User set a reminder:") == 0
+
+
+@pytest.mark.asyncio
+async def test_delete_facts_containing_blank_query_does_not_wipe():
+    """Blank query must not delete every reminder summary for the user."""
+    collection = MagicMock()
+    collection.delete_many = AsyncMock()
+    mem = SemanticMemory(user_id=USER_ID, collection=collection)
+    assert await mem.delete_facts_containing("  ", prefix="User set a reminder:") == 0
+    collection.delete_many.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_list_facts_with_prefix_filters_this_user():
+    """Prefix listing must be user-scoped and anchored at start of content."""
+    docs = [
+        {
+            "id": "f1",
+            "user_id": USER_ID,
+            "content": "User set a reminder: Do I have a ?",
+            "importance_score": 0.6,
+            "entities_involved": ["reminder"],
+            "created_at": "2026-08-21T12:00:00+00:00",
+            "last_accessed": "2026-08-21T12:00:00+00:00",
+        }
+    ]
+    collection = MagicMock()
+    collection.find.return_value = _chainable_find(docs)
+    mem = SemanticMemory(user_id=USER_ID, collection=collection)
+    facts = await mem.list_facts_with_prefix("User set a reminder:")
+    assert len(facts) == 1
+    assert facts[0].content.startswith("User set a reminder:")
+    filt = collection.find.call_args.args[0]
+    assert filt["user_id"] == USER_ID
+    assert filt["content"]["$regex"].startswith("^")
+
+
+@pytest.mark.asyncio
+async def test_delete_facts_by_ids_scopes_to_user():
+    """Fact id deletes must include user_id so another user's row cannot go."""
+    collection = MagicMock()
+    collection.delete_many = AsyncMock(return_value=MagicMock(deleted_count=1))
+    mem = SemanticMemory(user_id=USER_ID, collection=collection)
+    n = await mem.delete_facts_by_ids(["f1", "f2"])
+    assert n == 1
+    filt = collection.delete_many.await_args.args[0]
+    assert filt["user_id"] == USER_ID
+    assert filt["id"]["$in"] == ["f1", "f2"]
