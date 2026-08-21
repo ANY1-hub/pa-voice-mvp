@@ -48,6 +48,9 @@ def _windows_browser() -> Path | None:
 
 def _open_app_with_long_chat(page: Page, origin: str) -> None:
     page.goto(origin, wait_until="domcontentloaded")
+    # boot() always ends on auth (this origin has no API). Wait so it cannot
+    # hide #appScreen after we reveal the chat chrome.
+    page.wait_for_selector("#authError:not(.hidden)", timeout=10_000)
     page.evaluate(
         """() => {
             document.getElementById("authScreen").classList.add("hidden");
@@ -147,6 +150,8 @@ def _assert_with_playwright(origin: str) -> None:
     with sync_playwright() as playwright:
         browser = _launch_headless(playwright)
         page = browser.new_page(viewport={"width": 1280, "height": 800})
+        # Do not call human :8000. Same contract as the bootstrap e2e test.
+        page.add_init_script("window.JARVIS_API_BASE = '';")
         _open_app_with_long_chat(page, origin)
         _assert_chrome_pinned(page)
 
