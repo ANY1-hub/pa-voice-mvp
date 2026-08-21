@@ -55,6 +55,6 @@ jobs:
           MONGODB_URI: "mongodb://localhost:27017"
           MONGODB_DB_NAME: "jarvis_test"
           JARVIS_E2E_BROWSER: chromium
-        # --cov-fail-under enforces a minimum total coverage (currently ~86%+).
+        # --cov-fail-under enforces a minimum total coverage.
         # STT/ffmpeg paths stay low on purpose; overall floor keeps regressions in check.
-        run: pytest --cov=src --cov-report=term-missing --cov-fail-under=80
+        run: pytest --cov=src --cov-report=term-missing --cov-fail-under=90

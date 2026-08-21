@@ -183,7 +183,7 @@ PIPER_VOICE_HU=voice_models/piper/hu_HU-anna-medium.onnx
 - Tests with edge cases for every relevant function (pytest)
 - Security by Design (aligned with ISO/IEC 27001 principles)
 - Accessibility considerations (WCAG 2.2 / ISO 40500)
-- Automated checks via Ruff, Black, pytest (CI coverage ≥ 80%)
+- Automated checks via Ruff, Black, pytest (CI coverage ≥ 90%)
 
 ## Project Memory
 

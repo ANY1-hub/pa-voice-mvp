@@ -78,5 +78,5 @@ warn_unused_configs = true
 
 [tool.pytest.ini_options]
 minversion = "8.0"
-addopts = "-ra -q --cov=src --cov-report=term-missing"
+addopts = "-ra -q --cov=src --cov-report=term-missing --cov-fail-under=90"
 testpaths = ["tests"]
