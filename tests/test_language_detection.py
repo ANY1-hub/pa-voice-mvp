@@ -54,6 +54,32 @@ def test_english_utterance_beats_german_hint():
     assert detect_response_language("Hello, how are you today?", hint="de") == "en"
 
 
+def test_english_story_beats_stale_hungarian_hint():
+    """Walk: an English story request must not keep a Whisper/session HU hint."""
+    assert (
+        detect_response_language("Tell me a short story about Leipzig", hint="hu")
+        == "en"
+    )
+
+
+def test_short_hungarian_agenda_beats_english_hint():
+    """Walk: 'Mi van ma?' has no unique letters and must still be Hungarian."""
+    assert detect_response_language("Mi van ma?", hint="en") == "hu"
+    assert detect_response_language("Mi van ma?") == "hu"
+
+
+def test_german_note_trigger_beats_english_hint():
+    """Walk: a DE note request after EN chat must not stay English."""
+    assert detect_response_language("Notiz: kaufe Milch", hint="en") == "de"
+
+
+def test_english_reminder_with_listed_name_beats_hungarian_hint():
+    """Walk: Ákos in an English reminder must not select Hungarian."""
+    text = "Remind me in two minutes to stretch, Ákos"
+    assert detect_response_language(text, hint="hu") == "en"
+    assert detect_response_language(text) == "en"
+
+
 def test_hungarian_word_markers():
     """Common Hungarian function words must select 'hu'."""
     assert detect_response_language("Nem tudom, hogy mi van") == "hu"

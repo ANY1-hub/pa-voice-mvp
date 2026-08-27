@@ -17,7 +17,12 @@ _NAME_ACCENT_CHARS = set("áéíóúöüőűÁÉÍÓÚÖÜŐŰ")
 _NAMES_PATH = Path(__file__).resolve().parent / "data" / "hungarian_given_names.json"
 _HU_WORDS = re.compile(
     r"\b(hogy|nem|egy|és|vagy|ez|az|igen|köszönöm|szia|tudom|rólam|kérem|"
-    r"elmentettem|emlékeztess|jegyzeteld)\b",
+    r"elmentettem|emlékeztess|jegyzeteld|milyen|holnap|kérlek|köszi|miért)\b",
+    re.IGNORECASE,
+)
+# Short agenda/smalltalk without ő/ű. Do not list bare van/mi/ma (English collisions).
+_HU_PHRASES = re.compile(
+    r"\b(mi van|mi a|hol van|van ma)\b",
     re.IGNORECASE,
 )
 _DE_WORDS = re.compile(
@@ -27,11 +32,14 @@ _DE_WORDS = re.compile(
 # Beat a stale English hint. Omit bare die/mit/ist so English is not flipped.
 _DE_STRONG = re.compile(
     r"\b(ich|nicht|und|wir|eine|für|bitte|danke|bin|haben|keine?|"
-    r"aber|oder|wenn|weil|dass|mein|meine|mir|dir|wie|geht)\b",
+    r"aber|oder|wenn|weil|dass|mein|meine|mir|dir|wie|geht|"
+    r"notiz|merke?|heute|steht)\b",
     re.IGNORECASE,
 )
 _EN_STRONG = re.compile(
-    r"\b(the|and|you|what|how|have|this|that|with|your|" r"don't|can't|hello|thanks)\b",
+    r"\b(the|and|you|what|how|have|this|that|with|your|"
+    r"don't|can't|hello|thanks|tell|about|story|please|"
+    r"remind|today|are|short|minutes?|once|stretch|me)\b",
     re.IGNORECASE,
 )
 
@@ -71,7 +79,7 @@ def normalize_language_code(hint: str | None) -> str | None:
 def heuristic_language(text: str) -> str | None:
     """Return a language code from function words, or None."""
     text = _nfc(text)
-    if _HU_WORDS.search(text):
+    if _HU_PHRASES.search(text) or _HU_WORDS.search(text):
         return "hu"
     if _DE_WORDS.search(text):
         return "de"
@@ -104,9 +112,10 @@ def detect_response_language(
     """Guess language for TTS / skill replies.
 
     Hungarian letters including áéíóú beat a stale hint. Shared ö/ü do not.
-    Strong German or English function words beat a Help-panel / STT hint so
-    the current utterance wins. Accents inside a listed Hungarian given name
-    or ``ignore`` (display name) are stripped first so they do not pick the voice.
+    Short Hungarian phrases (``mi van``, ``van ma``) and strong German or
+    English function words beat a Help-panel / STT hint so this utterance
+    wins. Accents inside a listed Hungarian given name or ``ignore``
+    (display name) are stripped first so they do not pick the voice.
 
     Args:
         text: User or assistant text to inspect.
@@ -123,7 +132,7 @@ def detect_response_language(
         return "hu"
     if any(c in _DE_ONLY_CHARS for c in text):
         return "de"
-    if _HU_WORDS.search(text):
+    if _HU_PHRASES.search(text) or _HU_WORDS.search(text):
         return "hu"
     if _DE_STRONG.search(text):
         return "de"
