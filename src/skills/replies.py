@@ -8,13 +8,17 @@ from src.core.language import detect_response_language
 
 
 def reply_language(user_text: str, deps: dict[str, Any] | None = None) -> str:
-    """Language for a skill reply: unique letters, then UI/STT hint, then words."""
+    """Language for a skill reply: this utterance, names stripped, then hint."""
     hint = None
+    ignore = None
     if deps:
         raw = deps.get("language")
         if isinstance(raw, str):
             hint = raw
-    return detect_response_language(user_text, hint=hint)
+        name = deps.get("display_name")
+        if isinstance(name, str):
+            ignore = name
+    return detect_response_language(user_text, hint=hint, ignore=ignore)
 
 
 def t(table: dict[str, dict[str, str]], lang: str, key: str, **kwargs: str) -> str:

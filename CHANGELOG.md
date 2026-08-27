@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] 2026-08-27
+
+### Fixed
+- Chat language follows this user utterance: Detect, skill reply, and Piper stay on the same code. A stale STT/session hint no longer makes an English story speak Hungarian, or turns `Mi van ma?` / `Notiz:` into English. Assistant text is not re-classified for TTS. Hungarian given names and `display_name` are ignored when skills pick a reply language, so `Remind me … Ákos` stays English including due TTS. Help-panel flags remain GUI-only; Autodetect vs force EN/DE/HU is unchanged.
+
 ## [Unreleased] 2026-08-21
 
 ### Added

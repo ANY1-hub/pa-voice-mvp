@@ -8,7 +8,6 @@ from datetime import UTC, datetime, timedelta
 from difflib import SequenceMatcher
 from typing import Any
 
-from src.core.language import detect_response_language
 from src.core.timezones import to_utc, zoneinfo_or_utc
 from src.memory.semantic_memory import SemanticMemory
 from src.models.reminder import Reminder
@@ -16,6 +15,7 @@ from src.services.llm.base import LLMAdapter
 from src.skills.base import Skill, SkillResult
 from src.skills.reminders.repository import ReminderRepository
 from src.skills.reminders.slots import extract_reminder_slots
+from src.skills.replies import reply_language
 from src.skills.vocabulary import (
     REMINDERS_AGENDA,
     REMINDERS_AGENDA_EXTRA,
@@ -481,7 +481,7 @@ class RemindersSkill(Skill):
         **deps: Any,
     ) -> SkillResult:
         text = user_text.strip()
-        lang = detect_response_language(text)
+        lang = reply_language(text, deps)
         is_create = bool(_CREATE_PATTERNS.search(text))
 
         # Question intents before create when both could match (a lookup

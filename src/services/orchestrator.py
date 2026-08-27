@@ -213,9 +213,6 @@ class ChatOrchestrator:
                 else:
                     if skill_result.handled:
                         response_text = skill_result.response_text.strip()
-                        tts_lang = self._turn_language(
-                            response_text, forced_lang, tts_lang
-                        )
                         await self._store_turn(sanitized, response_text, correlation_id)
                         audio_b64 = await self._maybe_synthesize(
                             response_text, tts_lang
@@ -251,8 +248,6 @@ class ChatOrchestrator:
                 "I'm having trouble generating a response right now. "
                 "Please try again in a moment."
             )
-
-        tts_lang = self._turn_language(response_text, forced_lang, tts_lang)
 
         # 5. Persist the turn in Working Memory (active use of memory)
         await self._store_turn(sanitized, response_text, correlation_id)
@@ -293,7 +288,7 @@ class ChatOrchestrator:
         forced_lang: str | None,
         hint: str | None,
     ) -> str:
-        """Forced chat language, else STT/utterance auto-detect."""
+        """Forced chat language, else this utterance (STT hint cannot outrank it)."""
         if forced_lang:
             return forced_lang
         return detect_response_language(text, hint=hint, ignore=self.display_name)
