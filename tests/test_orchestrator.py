@@ -556,3 +556,31 @@ async def test_forced_english_overrides_german_utterance(orchestrator, mock_llm)
     await orchestrator.process(text="Wie geht es dir?", language="en")
     system = mock_llm.generate_response.await_args.args[0][0]["content"]
     assert reply_language_instruction("en") in system
+
+
+@pytest.mark.asyncio
+async def test_notes_skill_works_without_llm():
+    """Notes must handle a turn when no LLM adapter is wired."""
+    from src.skills.notes.repository import NoteRepository
+    from src.skills.notes.skill import NotesSkill
+    from src.skills.registry import SkillRegistry
+
+    repo = NoteRepository(user_id="u1", collection=None)
+    registry = SkillRegistry()
+    registry.register(NotesSkill(repository=repo))
+    orch = ChatOrchestrator(llm=None, skill_registry=registry)
+
+    result = await orch.process(text="take a note buy milk")
+
+    assert result.path == "skill"
+    assert result.skill_name == "notes"
+    assert "milk" in result.response.lower()
+
+
+@pytest.mark.asyncio
+async def test_llm_path_without_adapter_is_friendly():
+    """Missing LLM adapter must not raise; return the same friendly fallback."""
+    orch = ChatOrchestrator(llm=None)
+    result = await orch.process(text="Hello there how are you")
+    assert result.path == "llm"
+    assert "trouble generating a response" in result.response.lower()

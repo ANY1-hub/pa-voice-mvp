@@ -114,7 +114,7 @@ class ChatOrchestrator:
 
     def __init__(
         self,
-        llm: LLMAdapter,
+        llm: LLMAdapter | None = None,
         stt: STTAdapter | None = None,
         tts: TTSAdapter | None = None,
         working_memory: WorkingMemory | None = None,
@@ -125,7 +125,7 @@ class ChatOrchestrator:
         """Wire the adapters used for one chat turn.
 
         Args:
-            llm: Language-model adapter (required).
+            llm: Language-model adapter, or ``None`` when no API key is set.
             stt: Optional speech-to-text adapter (needed for voice turns).
             tts: Optional text-to-speech adapter.
             working_memory: Optional short-term memory store.
@@ -234,20 +234,9 @@ class ChatOrchestrator:
         memory_context = await self._build_memory_context(sanitized)
 
         # 4. LLM — current-turn language is injected after untrusted memory
-        messages = self._build_messages(
-            sanitized, memory_context, reply_language=tts_lang
+        response_text = await self._generate_llm_response(
+            sanitized, memory_context, tts_lang
         )
-        try:
-            response_text = await self.llm.generate_response(messages)
-            response_text = (response_text or "").strip()
-            if not response_text:
-                response_text = "I am sorry, I could not generate a response."
-        except Exception:
-            logger.exception("LLM generation failed")
-            response_text = (
-                "I'm having trouble generating a response right now. "
-                "Please try again in a moment."
-            )
 
         # 5. Persist the turn in Working Memory (active use of memory)
         await self._store_turn(sanitized, response_text, correlation_id)
@@ -268,6 +257,32 @@ class ChatOrchestrator:
             ),
             started,
         )
+
+    async def _generate_llm_response(
+        self,
+        sanitized: str,
+        memory_context: str,
+        tts_lang: str,
+    ) -> str:
+        """Call the LLM, or return a friendly fallback when it is missing/fails."""
+        unavailable = (
+            "I'm having trouble generating a response right now. "
+            "Please try again in a moment."
+        )
+        if self.llm is None:
+            return unavailable
+        messages = self._build_messages(
+            sanitized, memory_context, reply_language=tts_lang
+        )
+        try:
+            response_text = await self.llm.generate_response(messages)
+            response_text = (response_text or "").strip()
+            if not response_text:
+                return "I am sorry, I could not generate a response."
+            return response_text
+        except Exception:
+            logger.exception("LLM generation failed")
+            return unavailable
 
     def _finish_turn(self, result: ChatResult, started: float) -> ChatResult:
         """Attach duration and emit a structured measurement log line."""
@@ -456,7 +471,7 @@ class ChatOrchestrator:
 
     async def _maybe_learn_facts(self, user_text: str) -> None:
         """Extract durable personal facts into Semantic Memory. Never raises."""
-        if self.semantic_memory is None:
+        if self.semantic_memory is None or self.llm is None:
             return
         try:
             facts = await extract_personal_facts(self.llm, user_text)

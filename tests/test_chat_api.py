@@ -4,12 +4,19 @@ Orchestrator is dependency-overridden so these tests focus on HTTP mapping:
 status codes, request validation, and payload wiring — not LLM/STT internals.
 """
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
 
-from src.api.deps import get_orchestrator
+import src.api.deps as deps
+from src.api.deps import (
+    get_llm_adapter,
+    get_orchestrator,
+    get_stt_adapter,
+    get_tts_adapter,
+)
+from src.core.config import get_settings
 from src.main import app
 from src.services.orchestrator import MAX_AUDIO_BYTES, ChatResult
 
@@ -188,3 +195,33 @@ def test_chat_voice_orchestrator_unexpected_error(
     )
     assert res.status_code == 500
     assert "Something went wrong on my side" in res.json()["detail"]
+
+
+def test_chat_notes_without_openai_key_does_not_500(client, auth_headers, monkeypatch):
+    """Notes chat must not HTTP 500 when OPENAI_API_KEY is unset.
+
+    FastAPI Depends used to raise in get_llm_adapter before the route ran.
+    """
+    settings = get_settings()
+    monkeypatch.setattr(settings, "openai_api_key", None)
+    monkeypatch.setattr(deps, "_llm_adapter", None)
+
+    app.dependency_overrides[get_stt_adapter] = lambda: MagicMock()
+    app.dependency_overrides[get_tts_adapter] = lambda: None
+    try:
+        assert get_llm_adapter() is None
+        res = client.post(
+            "/api/v1/chat/text",
+            headers=auth_headers,
+            json={"text": "take a note buy milk"},
+        )
+        assert res.status_code != 500
+        assert res.status_code == 200
+        data = res.json()
+        assert data["transcript"]
+        assert data["response"]
+        assert "Something went wrong on my side" not in data["response"]
+        assert "milk" in data["response"].lower() or "note" in data["response"].lower()
+    finally:
+        app.dependency_overrides.pop(get_stt_adapter, None)
+        app.dependency_overrides.pop(get_tts_adapter, None)

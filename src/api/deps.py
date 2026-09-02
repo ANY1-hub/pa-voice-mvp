@@ -153,22 +153,21 @@ def get_tts_adapter() -> TTSAdapter | None:
     return _tts_adapter
 
 
-def get_llm_adapter() -> LLMAdapter:
-    """Return a process-wide OpenAI LLM adapter (MVP default).
+def get_llm_adapter() -> LLMAdapter | None:
+    """Return a process-wide OpenAI LLM adapter when an API key is set.
+
+    Skills that do not need the LLM (notes, list reminders, …) still work
+    without ``OPENAI_API_KEY``. The LLM chat path fails friendly instead of
+    HTTP 500 during dependency wiring.
 
     Returns:
-        Shared ``LLMAdapter`` singleton.
-
-    Raises:
-        RuntimeError: If ``OPENAI_API_KEY`` is not configured.
+        Shared ``LLMAdapter`` singleton, or ``None`` if no API key is configured.
     """
     global _llm_adapter
+    settings = get_settings()
+    if not settings.openai_api_key:
+        return None
     if _llm_adapter is None:
-        settings = get_settings()
-        if not settings.openai_api_key:
-            raise RuntimeError(
-                "OPENAI_API_KEY is required for the chat orchestrator (MVP)"
-            )
         _llm_adapter = OpenAILLMAdapter()
     return _llm_adapter
 
@@ -351,7 +350,7 @@ def get_skill_registry(
     note_repo: Annotated[NoteRepository, Depends(get_note_repository)],
     reminder_repo: Annotated[ReminderRepository, Depends(get_reminder_repository)],
     semantic_memory: Annotated[SemanticMemory, Depends(get_semantic_memory)],
-    llm: Annotated[LLMAdapter, Depends(get_llm_adapter)],
+    llm: Annotated[LLMAdapter | None, Depends(get_llm_adapter)],
     current_user: Annotated[User, Depends(get_current_ready_user)],
 ) -> SkillRegistry:
     """Build and return a SkillRegistry with all available skills for the user.
@@ -363,7 +362,7 @@ def get_skill_registry(
         note_repo: User-scoped note repository.
         reminder_repo: User-scoped reminder repository.
         semantic_memory: User-scoped semantic memory (for summary facts).
-        llm: LLM adapter used for optional reminder slot filling.
+        llm: Optional LLM adapter used for reminder slot filling.
         current_user: Ready user (timezone is used for reminder clock times).
 
     Returns:
@@ -385,7 +384,7 @@ def get_skill_registry(
 
 
 def get_orchestrator(
-    llm: Annotated[LLMAdapter, Depends(get_llm_adapter)],
+    llm: Annotated[LLMAdapter | None, Depends(get_llm_adapter)],
     stt: Annotated[STTAdapter, Depends(get_stt_adapter)],
     tts: Annotated[TTSAdapter | None, Depends(get_tts_adapter)],
     working_memory: Annotated[WorkingMemory, Depends(get_working_memory)],
@@ -396,7 +395,7 @@ def get_orchestrator(
     """Wire a ChatOrchestrator for the current authenticated user.
 
     Args:
-        llm: LLM adapter singleton.
+        llm: LLM adapter singleton, or ``None`` when no API key is set.
         stt: STT adapter singleton.
         tts: Optional TTS adapter singleton.
         working_memory: User-scoped working memory.
