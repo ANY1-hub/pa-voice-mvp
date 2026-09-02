@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Missing `OPENAI_API_KEY` no longer 500s `/api/v1/chat/text` including Notes.
+- Notes create strips only a leading create-trigger prefix; interior `note` / `NOTE` / `notiz` / `jegyzet` stay in the body.
 
 ## [Unreleased] 2026-08-27
 

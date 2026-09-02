@@ -50,6 +50,14 @@ _REPLIES: dict[str, dict[str, str]] = {
 }
 
 
+def _strip_leading_create_trigger(user_text: str) -> str:
+    """Strip a create trigger only when it is a leading prefix."""
+    match = _CREATE_PATTERNS.search(user_text)
+    if match is None or match.start() != 0:
+        return user_text.strip()
+    return _CREATE_PATTERNS.sub("", user_text, count=1).strip(" :,-").strip()
+
+
 class NotesSkill(Skill):
     """Create and retrieve structured notes.
 
@@ -97,8 +105,7 @@ class NotesSkill(Skill):
 
     async def _create_note(self, user_text: str, lang: str) -> SkillResult:
         """Extract content and persist a note + semantic summary."""
-        # Very light extraction: strip the trigger phrase if present
-        content = _CREATE_PATTERNS.sub("", user_text).strip(" :,-").strip()
+        content = _strip_leading_create_trigger(user_text)
         if not content:
             content = user_text.strip()
 
