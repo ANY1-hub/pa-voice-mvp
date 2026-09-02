@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] 2026-09-02
+
+### Added
+- Tenant isolation tests for Semantic Memory search (text, hybrid/vector, empty-query top facts): seed facts for users A and B; A's search must not return B. Tests fail if `user_id` is omitted from Mongo `find`. Production filter is unchanged.
+
+### Changed
+- Prompt-injection UX blocklist: `system:` / `assistant:` match only as line-start role prefixes, so German `Mein System: läuft nicht` is not a false positive. Added DE `Ignoriere alle vorherigen Anweisungen` and HU `Hagyd figyelmen kívül az összes korábbi utasítást`. This list is UX, not a security boundary.
+- Chat wiring no longer requires `OPENAI_API_KEY` at FastAPI Depends time. Skills that do not need the LLM (Notes, list/agenda reminders, …) still run; the LLM path returns a friendly fallback instead of HTTP 500.
+- JWT signing/verification uses PyJWT + cryptography instead of `python-jose`. `python-jose` 3.5.0 still hard-depends on `ecdsa` 0.19.2, which OSV reports as GHSA-wj6h-64fc-37mp / CVE-2024-23342 / PYSEC-2026-1325 (Minerva; no planned fix). Auth behaviour (HS256, `token_version`, password-change invalidation, superuser 403) is unchanged.
+
+### Fixed
+- Missing `OPENAI_API_KEY` no longer 500s `/api/v1/chat/text` including Notes.
+
 ## [Unreleased] 2026-08-27
 
 ### Fixed
