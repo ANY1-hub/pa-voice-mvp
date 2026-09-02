@@ -6,6 +6,7 @@ from .exceptions import InputValidationError
 
 # Conservative MVP blocklist inspired by common direct prompt-injection patterns
 # (see PayloadsAllTheThings / Prompt Injection). Prefer low false-positive phrases.
+# UX guard only — not a security boundary; skilled attackers can bypass it.
 DANGEROUS_PATTERNS: list[str] = [
     "ignore previous instructions",
     "ignore all previous rules",
@@ -13,8 +14,8 @@ DANGEROUS_PATTERNS: list[str] = [
     "disregard any previous",
     "disregard all previous",
     "forget previous instructions",
-    "system:",
-    "assistant:",
+    "ignoriere alle vorherigen anweisungen",
+    "hagyd figyelmen kívül az összes korábbi utasítást",
     "you are now",
     "developer mode",
     "jailbreak",
@@ -22,6 +23,13 @@ DANGEROUS_PATTERNS: list[str] = [
     "'role': 'system'",
     "reveal the system prompt",
     "show me the system prompt",
+]
+
+# Role-spoof prefixes match only at the start of a line (after optional
+# whitespace). A substring "system:" false-positives "Mein System: läuft nicht".
+ROLE_PREFIX_PATTERNS: list[str] = [
+    "system:",
+    "assistant:",
 ]
 
 
@@ -48,6 +56,12 @@ def sanitize_user_input(text: str) -> str:
             raise InputValidationError(
                 f"Potential prompt injection detected: '{pattern}'"
             )
+    for prefix in ROLE_PREFIX_PATTERNS:
+        for line in lowered.splitlines():
+            if line.lstrip().startswith(prefix):
+                raise InputValidationError(
+                    f"Potential prompt injection detected: '{prefix}'"
+                )
 
     return text.strip()
 
