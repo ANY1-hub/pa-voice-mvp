@@ -43,3 +43,7 @@ docs/research
 docs/project-memory.md
 docs/handoff*.md
 docs/handoffs/
+
+# JVM crash dumps (never commit)
+hs_err_pid*.log
+hs_err*.log
