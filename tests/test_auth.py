@@ -3,7 +3,7 @@
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from jose import jwt
+import jwt
 from pymongo import MongoClient
 
 from src.core.config import get_settings

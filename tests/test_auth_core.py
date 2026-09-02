@@ -66,7 +66,7 @@ def test_decode_token_missing_sub_returns_none():
     """A JWT without a usable sub claim must be rejected."""
     from datetime import UTC, datetime, timedelta
 
-    from jose import jwt
+    import jwt
 
     from src.auth.jwt import decode_access_token
     from src.core.config import get_settings
@@ -88,7 +88,7 @@ def test_decode_token_invalid_ver_defaults_to_zero():
     """A non-integer ver claim must decode as version 0, not raise."""
     from datetime import UTC, datetime, timedelta
 
-    from jose import jwt
+    import jwt
 
     from src.auth.jwt import decode_access_token
     from src.core.config import get_settings

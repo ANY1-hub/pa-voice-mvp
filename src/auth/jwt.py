@@ -2,7 +2,8 @@
 
 from datetime import UTC, datetime, timedelta
 
-from jose import JWTError, jwt
+import jwt
+from jwt.exceptions import InvalidTokenError
 
 from src.core.config import get_settings
 
@@ -46,7 +47,7 @@ def decode_access_token(token: str) -> tuple[str, int] | None:
         except (TypeError, ValueError):
             version = 0
         return subject, version
-    except JWTError:
+    except InvalidTokenError:
         return None
 
 
