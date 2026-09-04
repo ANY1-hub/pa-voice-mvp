@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] 2026-09-04
+
+### Added
+- Claude-like shell: left sidebar with All notes / All reminders and a local chat-history list; chat column `max-width` so a wider viewport grows the background. `GET /api/v1/notes` and `GET /api/v1/reminders` (JWT, current user only). Chat sittings are stored in `localStorage` until a server sitting id exists.
+- Shell aligned to Ákos’s annotated Claude screenshot: `+ New`, Notes|Reminders in one row, Chats below; centered empty greeting; composer card with mic in the row and a disabled `+` for later document upload.
+
 ## [Unreleased] 2026-09-02
 
 ### Added
