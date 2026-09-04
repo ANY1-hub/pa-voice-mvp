@@ -54,6 +54,20 @@ async def test_german_utterance_keeps_german_piper_when_llm_replies_english(
 
 
 @pytest.mark.asyncio
+async def test_german_w_question_without_ich_keeps_german_reply_language(
+    mock_llm, mock_tts
+):
+    """DE 'Woher hast Du …' must not default to English (no ß/ich/und)."""
+    orch = ChatOrchestrator(llm=mock_llm, tts=mock_tts)
+    result = await orch.process(text="Woher hast Du diese Information?")
+
+    assert result.language == "de"
+    mock_tts.synthesize.assert_awaited_once_with("Hello from Jarvis.", language="de")
+    system = mock_llm.generate_response.await_args.args[0][0]["content"]
+    assert reply_language_instruction("de") in system
+
+
+@pytest.mark.asyncio
 async def test_english_story_uses_english_piper_despite_hungarian_stt_hint(
     mock_llm, mock_tts
 ):

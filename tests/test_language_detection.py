@@ -152,6 +152,20 @@ def test_unlisted_display_name_is_ignored_when_passed():
     assert detect_response_language("Hello Áxel, how are you today?", hint="en") == "hu"
 
 
+def test_german_w_questions_do_not_default_to_english():
+    """DE interrogatives without ß/ich/und must still be German, not the EN default."""
+    assert detect_response_language("Woher hast Du diese Information?") == "de"
+    assert detect_response_language("Woher kommt das?") == "de"
+    assert detect_response_language("Warum?") == "de"
+    assert detect_response_language("nein") == "de"
+    assert detect_response_language("this is a hallucination. isn't it?") == "en"
+    assert (
+        detect_response_language("What does RAG mean in context of AI Programming?")
+        == "en"
+    )
+    assert detect_response_language("I was there") == "en"
+
+
 def test_hungarian_hint_survives_shared_umlauts():
     """A Hungarian UI/STT hint must win when the only special letters are ö/ü."""
     assert detect_response_language("örülök", hint="hu") == "hu"

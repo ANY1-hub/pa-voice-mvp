@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pin Black 26.5.1 and Ruff 0.15.22 (pyproject, pre-commit, CI `uv sync --frozen`). CI no longer installs floating formatters that disagree with the hook.
 - Voice latency: Whisper decode uses `beam_size=1` and does not condition on previous text (short command turns). ffmpeg conversion times out after 60s. Turn logs include `stt_ms` / `reply_ms` / `tts_ms`.
 - Chat turns record monitor signals: `status`, `error_type` (`llm` / `tts`), `duration_ms`, and `tokens` (from LLM usage). Logged and returned on `/chat/text` and `/chat/voice`. TTS failure still returns text (`status=ok`, `error_type=tts`); LLM fallback is `status=error`.
+- German W-questions and short `nein` / `hast` / `diese…` count as German even without ß/ich/und, so reply language + Piper do not default to English.
 
 ### Added
 - Claude-like shell: left sidebar with All notes / All reminders and a local chat-history list; chat column `max-width` so a wider viewport grows the background. `GET /api/v1/notes` and `GET /api/v1/reminders` (JWT, current user only). Chat sittings are stored in `localStorage` until a server sitting id exists.

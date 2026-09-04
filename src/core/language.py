@@ -29,11 +29,15 @@ _DE_WORDS = re.compile(
     r"\b(und|der|die|das|ich|nicht|ist|ein|eine|mit|für|auf|wir)\b",
     re.IGNORECASE,
 )
-# Beat a stale English hint. Omit bare die/mit/ist so English is not flipped.
+# Beat a stale English hint. Omit bare die/mit/ist/was so English is not flipped.
+# W-questions and nein/hast/diese: DE without ß/ich/und must not default to EN.
 _DE_STRONG = re.compile(
     r"\b(ich|nicht|und|wir|eine|für|bitte|danke|bin|haben|keine?|"
     r"aber|oder|wenn|weil|dass|mein|meine|mir|dir|wie|geht|"
-    r"notiz|merke?|heute|steht)\b",
+    r"notiz|merke?|heute|steht|"
+    r"woher|wohin|wofür|worauf|woran|womit|wodurch|worum|"
+    r"weshalb|wieso|warum|wann|wessen|welche[rsn]?|"
+    r"nein|hast|diese[nrms]?)\b",
     re.IGNORECASE,
 )
 _EN_STRONG = re.compile(
