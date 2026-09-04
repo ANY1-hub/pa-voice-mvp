@@ -1,8 +1,10 @@
 import { api, getStoredUser } from "./auth.js";
 import { applyI18n, t } from "./i18n.js";
 import {
+    deleteSitting,
     ensureCurrentSitting,
     getCurrentSittingId,
+    getSitting,
     listSittings,
     startNewSitting,
     switchSitting,
@@ -39,6 +41,8 @@ function renderChats() {
     }
     for (const sitting of sittings) {
         const li = document.createElement("li");
+        const row = document.createElement("div");
+        row.className = "sidebar-item-row";
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "sidebar-item" + (sitting.id === current ? " is-active" : "");
@@ -47,7 +51,19 @@ function renderChats() {
             loadSitting(sitting.id);
             closeMobileSidebar();
         });
-        li.appendChild(btn);
+        const del = document.createElement("button");
+        del.type = "button";
+        del.className = "sidebar-item-menu";
+        del.title = t("deleteChat");
+        del.setAttribute("aria-label", t("deleteChat"));
+        del.textContent = "⋮";
+        del.addEventListener("click", (event) => {
+            event.stopPropagation();
+            removeChat(sitting.id);
+        });
+        row.appendChild(btn);
+        row.appendChild(del);
+        li.appendChild(row);
         ul.appendChild(li);
     }
 }
@@ -151,6 +167,20 @@ function loadSitting(id) {
     renderChats();
 }
 
+function removeChat(id) {
+    if (!window.confirm(t("confirmDeleteChat"))) return;
+    const next = deleteSitting(id);
+    if (next) paintSitting(next);
+    else {
+        const chat = document.getElementById("chatContainer");
+        chat.innerHTML = "";
+        resetChatTimestamps();
+        syncEmptyState();
+    }
+    mode = "chats";
+    renderChats();
+}
+
 export function newChat() {
     startNewSitting();
     const chat = document.getElementById("chatContainer");
@@ -209,6 +239,10 @@ export function initSidebar() {
     applyI18n(document.getElementById("sidebar"));
     window.addEventListener("jarvis:sitting-updated", () => {
         if (mode === "chats") renderChats();
+    });
+    window.addEventListener("jarvis:sitting-repaint", () => {
+        const current = getSitting(getCurrentSittingId());
+        if (current) paintSitting(current);
     });
     refreshSidebar();
 }

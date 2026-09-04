@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Claude-like shell: left sidebar with All notes / All reminders and a local chat-history list; chat column `max-width` so a wider viewport grows the background. `GET /api/v1/notes` and `GET /api/v1/reminders` (JWT, current user only). Chat sittings are stored in `localStorage` until a server sitting id exists.
 - Shell aligned to Ákos’s annotated Claude screenshot: `+ New`, Notes|Reminders in one row, Chats below; centered empty greeting; composer card with mic in the row and a disabled `+` for later document upload.
+- Sidebar: `+` sits on the Chats row; extra gap under Notes/Reminders. Chats can be deleted (confirm). The last user bubble can be edited until a newer user message exists; versions cycle as `n/m` like Grok.
 
 ## [Unreleased] 2026-09-02
 

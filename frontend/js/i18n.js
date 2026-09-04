@@ -59,6 +59,12 @@ const STRINGS = {
         openSidebar: "Menu",
         greetingHello: "Hello, {name}",
         addDocumentSoon: "Document upload later",
+        deleteChat: "Delete chat",
+        confirmDeleteChat: "Delete this chat? This cannot be undone.",
+        editMessage: "Edit message",
+        cancelEdit: "Cancel",
+        saveEdit: "Save",
+        editFailed: "Could not save the edit",
     },
     de: {
         you: "Du",
@@ -115,6 +121,12 @@ const STRINGS = {
         openSidebar: "Menü",
         greetingHello: "Hallo, {name}",
         addDocumentSoon: "Dokument-Upload später",
+        deleteChat: "Chat löschen",
+        confirmDeleteChat: "Diesen Chat löschen? Das lässt sich nicht rückgängig machen.",
+        editMessage: "Nachricht bearbeiten",
+        cancelEdit: "Abbrechen",
+        saveEdit: "Speichern",
+        editFailed: "Bearbeiten fehlgeschlagen",
     },
     hu: {
         you: "Te",
@@ -171,6 +183,12 @@ const STRINGS = {
         openSidebar: "Menü",
         greetingHello: "Szia, {name}",
         addDocumentSoon: "Dokumentumfeltöltés később",
+        deleteChat: "Chat törlése",
+        confirmDeleteChat: "Törlöd ezt a chatet? Ez nem vonható vissza.",
+        editMessage: "Üzenet szerkesztése",
+        cancelEdit: "Mégse",
+        saveEdit: "Mentés",
+        editFailed: "A szerkesztés nem sikerült",
     },
 };
 

@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
-    <div id="chatFlowWrapper">
     <!-- Auth (Login / Bootstrap Register) -->
         <div id="authScreen" class="screen">
             <div class="login-card">
@@ -124,9 +123,9 @@
                     <button type="button" id="notesBtn" class="sidebar-btn" data-i18n="notes">Notes</button>
                     <button type="button" id="remindersBtn" class="sidebar-btn" data-i18n="reminders">Reminders</button>
                 </div>
-                <button type="button" id="newChatBtn" class="sidebar-new" data-i18n="newChat">+ New</button>
                 <div class="sidebar-section-head">
                     <button type="button" id="chatsBtn" class="sidebar-link is-active" data-i18n="chatHistory">Chats</button>
+                    <button type="button" id="newChatBtn" class="sidebar-plus" data-i18n-title="newChat" title="New chat">+</button>
                 </div>
                 <ul id="sidebarList" class="sidebar-list"></ul>
             </aside>
@@ -262,7 +261,6 @@
                 </section>
             </div>
         </div>
-    </div>
-    <script type="module" src="js/app.js?v=2026-09-04-claude-shell"></script>
+    <script type="module" src="js/app.js?v=2026-09-04-chat-edit"></script>
 </body>
 </html>
