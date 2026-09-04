@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 from src.api.deps import get_orchestrator
 from src.security.exceptions import InputValidationError
-from src.services.orchestrator import MAX_AUDIO_BYTES, ChatOrchestrator
+from src.services.orchestrator import MAX_AUDIO_BYTES, ChatOrchestrator, ChatResult
 
 router = APIRouter()
 
@@ -45,12 +45,20 @@ class ChatResponse(BaseModel):
         response: LLM reply text.
         audio_base64: Optional base64-encoded TTS audio.
         correlation_id: UUID v4 for this turn (logging / support).
+        status: ``ok`` or ``error`` for this turn.
+        error_type: ``llm`` / ``tts`` when that stage failed.
+        duration_ms: Wall time of the turn.
+        tokens: Prompt+completion usage when the LLM reported it.
     """
 
     transcript: str
     response: str
     audio_base64: str | None = None
     correlation_id: str | None = None
+    status: str = "ok"
+    error_type: str | None = None
+    duration_ms: float = 0.0
+    tokens: int | None = None
 
 
 @router.post("/text", response_model=ChatResponse)
@@ -72,12 +80,7 @@ async def chat_text(
     """
     try:
         result = await orchestrator.process(text=body.text, language=body.language)
-        return ChatResponse(
-            transcript=result.transcript,
-            response=result.response,
-            audio_base64=result.audio_base64,
-            correlation_id=result.correlation_id,
-        )
+        return _chat_payload(result)
     except InputValidationError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
@@ -91,6 +94,20 @@ async def chat_text(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Something went wrong on my side. Please try again.",
         ) from None  # prevents original exception to land in the Response-chain
+
+
+def _chat_payload(result: ChatResult) -> ChatResponse:
+    """Map orchestrator result to the public chat JSON."""
+    return ChatResponse(
+        transcript=result.transcript,
+        response=result.response,
+        audio_base64=result.audio_base64,
+        correlation_id=result.correlation_id,
+        status=result.status,
+        error_type=result.error_type,
+        duration_ms=result.duration_ms,
+        tokens=result.tokens,
+    )
 
 
 @router.post("/voice", response_model=ChatResponse)
@@ -137,12 +154,7 @@ async def chat_voice(
             audio_bytes=audio_bytes,
             language=language,
         )
-        return ChatResponse(
-            transcript=result.transcript,
-            response=result.response,
-            audio_base64=result.audio_base64,
-            correlation_id=result.correlation_id,
-        )
+        return _chat_payload(result)
     except InputValidationError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)

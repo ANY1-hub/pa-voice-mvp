@@ -93,6 +93,7 @@ def test_to_wav_success_returns_wav_path(stt_adapter):
         assert cmd[0] == "/fake/ffmpeg"
         assert "-ar" in cmd and "16000" in cmd
         assert "-ac" in cmd and "1" in cmd
+        assert mock_run.call_args.kwargs.get("timeout") == 60
         src_arg = Path(cmd[cmd.index("-i") + 1])
         assert not src_arg.exists()
 
@@ -119,6 +120,18 @@ def test_to_wav_os_error_raises_value_error(stt_adapter):
             adapter._to_wav_16k_mono(b"bad-audio")
 
 
+def test_to_wav_timeout_raises_value_error(stt_adapter):
+    """A hung ffmpeg must fail the conversion instead of blocking the turn."""
+    import subprocess
+
+    adapter, _model = stt_adapter
+    with patch("src.services.stt.faster_whisper.subprocess.run") as mock_run:
+        mock_run.side_effect = subprocess.TimeoutExpired(cmd=["ffmpeg"], timeout=60)
+
+        with pytest.raises(ValueError, match="conversion failed"):
+            adapter._to_wav_16k_mono(b"slow-audio")
+
+
 # ---------------------------------------------------------------------------
 # _transcribe_sync
 # ---------------------------------------------------------------------------
@@ -143,6 +156,8 @@ def test_transcribe_sync_joins_segment_texts(stt_adapter):
     model.transcribe.assert_called_once()
     _, kwargs = model.transcribe.call_args
     assert kwargs.get("language") == "en"
+    assert kwargs.get("beam_size") == 1
+    assert kwargs.get("condition_on_previous_text") is False
 
 
 def test_transcribe_sync_empty_segments_returns_empty_string(stt_adapter):

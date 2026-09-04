@@ -6,7 +6,7 @@ from typing import Any
 from openai import AsyncOpenAI
 
 from src.core.config import get_settings
-from src.services.llm.base import LLMAdapter
+from src.services.llm.base import LLMAdapter, LLMResult
 
 
 class OpenAILLMAdapter(LLMAdapter):
@@ -38,14 +38,23 @@ class OpenAILLMAdapter(LLMAdapter):
             **kwargs: Extra arguments forwarded to the OpenAI API.
 
         Returns:
-            Generated reply text (empty string if the model returns nothing).
+            ``LLMResult`` with reply text and usage when the API sends it.
         """
         response = await self.client.chat.completions.create(
             model=self.model,
             messages=messages,
             **kwargs,
         )
-        return response.choices[0].message.content or ""
+        usage = getattr(response, "usage", None)
+        prompt_tokens = getattr(usage, "prompt_tokens", None) if usage else None
+        completion_tokens = getattr(usage, "completion_tokens", None) if usage else None
+        return LLMResult(
+            text=response.choices[0].message.content or "",
+            prompt_tokens=prompt_tokens if isinstance(prompt_tokens, int) else None,
+            completion_tokens=(
+                completion_tokens if isinstance(completion_tokens, int) else None
+            ),
+        )
 
     async def extract_entities(self, text: str) -> list[str]:
         """Extract named entities using structured JSON output.

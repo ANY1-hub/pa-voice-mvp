@@ -49,9 +49,13 @@ async def test_openai_llm_adapter_generate_response():
 
         mock_client.chat.completions.create.return_value = mock_response
 
+        mock_response.usage = MagicMock(prompt_tokens=11, completion_tokens=4)
+
         adapter = OpenAILLMAdapter(api_key="test_key")
         response = await adapter.generate_response([{"role": "user", "content": "Hi"}])
-        assert response == "Hello there!"
+        assert response.text == "Hello there!"
+        assert response.prompt_tokens == 11
+        assert response.completion_tokens == 4
 
 
 @pytest.mark.asyncio
@@ -96,7 +100,7 @@ async def test_grok_llm_adapter_generate_response():
 
         adapter = GrokLLMAdapter(api_key="test_key")
         response = await adapter.generate_response([{"role": "user", "content": "Hi"}])
-        assert response == "Grok response!"
+        assert response.text == "Grok response!"
 
         # Verify it uses the right base URL via kwargs to AsyncOpenAI constructor
         mock_grok.assert_called_with(api_key="test_key", base_url="https://api.x.ai/v1")

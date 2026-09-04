@@ -8,7 +8,7 @@ import re
 from dataclasses import dataclass
 
 from src.core.language import detect_response_language
-from src.services.llm.base import LLMAdapter
+from src.services.llm.base import LLMAdapter, llm_text
 from src.skills.vocabulary import PERSONAL_FACTS, compile_phrase_regex
 
 logger = logging.getLogger(__name__)
@@ -94,7 +94,7 @@ async def extract_personal_facts(
             temperature=0,
             response_format={"type": "json_object"},
         )
-        data = json.loads(raw or "{}")
+        data = json.loads(llm_text(raw) or "{}")
     except Exception:
         logger.exception("Personal-fact extraction failed")
         return []

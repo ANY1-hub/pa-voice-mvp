@@ -10,6 +10,7 @@ from uuid import UUID
 import pytest
 
 from src.security.exceptions import InputValidationError
+from src.services.llm.base import LLMResult
 from src.services.orchestrator import (
     MAX_AUDIO_BYTES,
     SYSTEM_PROMPT,
@@ -91,6 +92,12 @@ async def test_process_text_happy_path(
 
     mock_llm.generate_response.assert_awaited_once()
     mock_tts.synthesize.assert_awaited_once_with("Hello from Jarvis.", language=ANY)
+    assert result.stt_ms == 0.0
+    assert result.tts_ms >= 0.0
+    assert result.reply_ms >= 0.0
+    assert result.duration_ms >= result.tts_ms
+    assert result.status == "ok"
+    assert result.error_type is None
     assert mock_working_memory.add.await_count == 2  # user + jarvis turn
     for call in mock_working_memory.add.await_args_list:
         assert call.kwargs["correlation_id"] == result.correlation_id
@@ -108,6 +115,8 @@ async def test_process_voice_happy_path(orchestrator, mock_stt, mock_llm, mock_t
     mock_stt.transcribe.assert_awaited_once_with(audio, language="de")
     mock_llm.generate_response.assert_awaited_once()
     mock_tts.synthesize.assert_awaited_once_with("Hello from Jarvis.", language="de")
+    assert result.stt_ms >= 0.0
+    assert result.tts_ms >= 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -169,6 +178,8 @@ async def test_tts_failure_does_not_break_turn(orchestrator, mock_tts):
     assert result.transcript == "Still works"
     assert result.response == "Hello from Jarvis."
     assert result.audio_base64 is None
+    assert result.status == "ok"
+    assert result.error_type == "tts"
 
 
 @pytest.mark.asyncio
@@ -179,6 +190,8 @@ async def test_empty_llm_response_gets_fallback(orchestrator, mock_llm):
     result = await orchestrator.process(text="Hello")
 
     assert result.response == "I am sorry, I could not generate a response."
+    assert result.status == "error"
+    assert result.error_type == "llm"
 
 
 @pytest.mark.asyncio
@@ -364,6 +377,24 @@ async def test_skill_handled_false_falls_through_to_llm(
 
 
 @pytest.mark.asyncio
+async def test_llm_result_tokens_are_recorded_on_the_turn(orchestrator, mock_llm):
+    """OpenAI-style usage on LLMResult must land on ChatResult for the monitor."""
+    mock_llm.generate_response.return_value = LLMResult(
+        text="Hello from Jarvis.",
+        prompt_tokens=12,
+        completion_tokens=8,
+    )
+
+    result = await orchestrator.process(text="Hi")
+
+    assert result.status == "ok"
+    assert result.error_type is None
+    assert result.prompt_tokens == 12
+    assert result.completion_tokens == 8
+    assert result.tokens == 20
+
+
+@pytest.mark.asyncio
 async def test_llm_failure_returns_friendly_fallback(orchestrator, mock_llm):
     """LLM exceptions must not 500 the turn – return a safe user-facing message."""
     mock_llm.generate_response.side_effect = RuntimeError("api down")
@@ -372,6 +403,8 @@ async def test_llm_failure_returns_friendly_fallback(orchestrator, mock_llm):
 
     assert result.transcript == "Hello"
     assert "trouble generating a response" in result.response.lower()
+    assert result.status == "error"
+    assert result.error_type == "llm"
 
 
 @pytest.mark.asyncio

@@ -81,8 +81,9 @@ class FasterWhisperSTTAdapter(STTAdapter):
                 cmd,
                 check=True,
                 capture_output=True,
+                timeout=60,
             )
-        except subprocess.CalledProcessError as e:
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
             src_path.unlink(missing_ok=True)
             raise ValueError("Could not process audio (conversion failed)") from e
         except OSError as e:
@@ -116,8 +117,9 @@ class FasterWhisperSTTAdapter(STTAdapter):
             segments, info = self.model.transcribe(
                 str(wav_path),
                 language=language,
-                beam_size=5,
+                beam_size=1,
                 vad_filter=True,
+                condition_on_previous_text=False,
             )
             text = " ".join(segment.text.strip() for segment in segments).strip()
             detected = getattr(info, "language", None) if info is not None else None

@@ -7,7 +7,7 @@ import logging
 from datetime import UTC, datetime
 
 from src.core.timezones import zoneinfo_or_utc
-from src.services.llm.base import LLMAdapter
+from src.services.llm.base import LLMAdapter, llm_text
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ async def extract_reminder_slots(
             temperature=0,
             response_format={"type": "json_object"},
         )
-        data = json.loads(raw or "{}")
+        data = json.loads(llm_text(raw) or "{}")
     except Exception:
         logger.exception("Reminder slot extraction failed – using regex fallback")
         return None, None
