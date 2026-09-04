@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] 2026-09-04
 
+### Changed
+- Pin Black 26.5.1 and Ruff 0.15.22 (pyproject, pre-commit, CI `uv sync --frozen`). CI no longer installs floating formatters that disagree with the hook.
+
 ### Added
 - Claude-like shell: left sidebar with All notes / All reminders and a local chat-history list; chat column `max-width` so a wider viewport grows the background. `GET /api/v1/notes` and `GET /api/v1/reminders` (JWT, current user only). Chat sittings are stored in `localStorage` until a server sitting id exists.
 - Shell aligned to Ákos’s annotated Claude screenshot: `+ New`, Notes|Reminders in one row, Chats below; centered empty greeting; composer card with mic in the row and a disabled `+` for later document upload.

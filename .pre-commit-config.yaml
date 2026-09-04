@@ -1,12 +1,14 @@
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.9.6
+    rev: v0.15.22
     hooks:
       - id: ruff
         args: [--fix]
+      # Do not add ruff-format: Black is the formatter. The two disagree
+      # on assert-paren wrapping and page.evaluate() line breaks.
 
   - repo: https://github.com/psf/black
-    rev: 25.1.0
+    rev: 26.5.1
     hooks:
       - id: black
 
