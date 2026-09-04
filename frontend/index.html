@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/html">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
@@ -8,239 +8,261 @@
     <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
+    <div id="chatFlowWrapper">
     <!-- Auth (Login / Bootstrap Register) -->
-    <div id="authScreen" class="screen">
-        <div class="login-card">
-            <div class="logo">2b J.A.R.V.I.S.</div>
-            <p class="tagline">will become: Just A Rather Very Intelligent System</p>
+        <div id="authScreen" class="screen">
+            <div class="login-card">
+                <div class="logo">2b J.A.R.V.I.S.</div>
+                <p class="tagline">will become: Just A Rather Very Intelligent System</p>
 
-            <!-- Neither form until boot() knows bootstrap-status. -->
-            <form id="loginForm" class="hidden">
-                <div class="field">
-                    <label for="loginEmail">Email</label>
-                    <input type="email" id="loginEmail" required autocomplete="username" placeholder="tony@stark.com">
-                </div>
-                <div class="field">
-                    <label for="loginPassword">Password</label>
-                    <input type="password" id="loginPassword" required autocomplete="current-password" placeholder="••••••••">
-                </div>
-                <button type="submit" class="btn-primary">Sign in</button>
-            </form>
-
-            <!-- Bootstrap register (only when needs_bootstrap) -->
-            <form id="registerForm" class="hidden">
-                <p class="auth-hint">First setup – create the SuperUser account</p>
-                <div class="field">
-                    <label for="regEmail">Email</label>
-                    <input type="email" id="regEmail" required autocomplete="username" placeholder="tony@stark.com">
-                </div>
-                <div class="field">
-                    <label for="regPassword">Password (min 12)</label>
-                    <input type="password" id="regPassword" required minlength="12" autocomplete="new-password" placeholder="••••••••••••">
-                </div>
-                <div class="field">
-                    <label for="regPassword2">Confirm password</label>
-                    <input type="password" id="regPassword2" required minlength="12" autocomplete="new-password" placeholder="••••••••••••">
-                </div>
-                <button type="submit" class="btn-primary">Create SuperUser</button>
-            </form>
-
-            <p id="authStatusHint" class="auth-hint hidden"></p>
-            <p id="authError" class="error-msg hidden"></p>
-            <p id="authSuccess" class="success-msg hidden"></p>
-        </div>
-    </div>
-
-    <!-- Forced password change -->
-    <div id="changePasswordScreen" class="screen hidden">
-        <div class="login-card">
-            <div class="logo">Password Change</div>
-            <p class="tagline">You must set a new password before continuing</p>
-            <form id="changePasswordForm">
-                <div class="field">
-                    <label for="currentPassword">Current password</label>
-                    <input type="password" id="currentPassword" required autocomplete="current-password">
-                </div>
-                <div class="field">
-                    <label for="newPassword">New password (min 12)</label>
-                    <input type="password" id="newPassword" required minlength="12" autocomplete="new-password">
-                </div>
-                <div class="field">
-                    <label for="newPassword2">Confirm new password</label>
-                    <input type="password" id="newPassword2" required minlength="12" autocomplete="new-password">
-                </div>
-                <button type="submit" class="btn-primary">Update Password</button>
-            </form>
-            <p id="changePasswordError" class="error-msg hidden"></p>
-        </div>
-    </div>
-
-    <!-- First-login preferred name -->
-    <div id="displayNameScreen" class="screen hidden">
-        <div class="login-card">
-            <div class="logo" data-i18n="displayNameTitle">How should Jarvis address you?</div>
-            <p class="tagline" data-i18n="displayNameTagline">Used in conversation. First name or nickname is enough.</p>
-            <div class="onboard-lang-switch" role="group" aria-label="Language">
-                <button type="button" class="lang-flag" data-lang="en" data-i18n-title="chatLangEn" title="English">🇬🇧</button>
-                <button type="button" class="lang-flag" data-lang="de" data-i18n-title="chatLangDe" title="German">🇩🇪</button>
-                <button type="button" class="lang-flag" data-lang="hu" data-i18n-title="chatLangHu" title="Hungarian">🇭🇺</button>
-            </div>
-            <form id="displayNameForm">
-                <div class="field">
-                    <label for="displayNameInput" data-i18n="displayNameLabel">Preferred name</label>
-                    <input type="text" id="displayNameInput" required maxlength="40" autocomplete="nickname" data-i18n-placeholder="displayNamePlaceholder" placeholder="e.g. Tony">
-                </div>
-                <button type="submit" class="btn-primary" data-i18n="displayNameSubmit">Continue</button>
-            </form>
-            <p id="displayNameError" class="error-msg hidden"></p>
-        </div>
-    </div>
-
-    <!-- Main App -->
-    <div id="appScreen" class="screen hidden">
-        <header class="top-bar">
-            <div class="brand">2b J.A.R.V.I.S.</div>
-            <div class="user-area">
-                <span id="speakingIndicator" class="speaking-indicator hidden" data-i18n-title="speaking" title="Speaking…" aria-live="polite">
-                    <svg class="speaker-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-                        <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-                    </svg>
-                    <span class="speaking-label" data-i18n="speaking">Speaking</span>
-                </span>
-                <button id="helpBtn" class="btn-ghost" data-i18n-title="help" title="Skills & triggers">?</button>
-                <button id="adminBtn" class="btn-ghost hidden" data-i18n="admin">Admin</button>
-                <span id="userLabel" class="user-label"></span>
-                <button id="logoutBtn" class="btn-ghost" data-i18n="logout">Logout</button>
-            </div>
-        </header>
-
-        <main id="chatContainer" class="chat-area"></main>
-
-        <div id="statusLine" class="status-line hidden"></div>
-
-        <footer class="input-area">
-            <div class="speak-wrapper">
-                <button id="speakBtn" class="speak-btn" aria-label="Speak">
-                    <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                        <line x1="12" y1="19" x2="12" y2="23"/>
-                        <line x1="8" y1="23" x2="16" y2="23"/>
-                    </svg>
-                    <span id="recIndicator" class="rec-dot hidden"></span>
-                </button>
-                <span id="speakHint" class="speak-hint" data-i18n="speakHint">Click to speak</span>
-            </div>
-
-            <div class="chat-lang">
-                <span class="chat-lang-label" data-i18n="chatLang">Chat language:</span>
-                <div class="chat-lang-picker">
-                    <button type="button" id="chatLangBtn" class="chat-lang-btn is-auto" aria-expanded="false" aria-haspopup="true" data-i18n-title="chatLangAuto" title="Autodetect">
-                        <span id="chatLangBtnFace" data-i18n="chatLangAuto">Autodetect</span>
-                    </button>
-                    <div id="chatLangMenu" class="chat-lang-menu hidden" role="menu">
-                        <button type="button" role="menuitem" data-chat-lang="auto" data-i18n="chatLangAuto" data-i18n-title="chatLangAuto" title="Autodetect">Autodetect</button>
-                        <button type="button" role="menuitem" data-chat-lang="en" data-i18n-title="chatLangEn" title="English">🇬🇧</button>
-                        <button type="button" role="menuitem" data-chat-lang="de" data-i18n-title="chatLangDe" title="German">🇩🇪</button>
-                        <button type="button" role="menuitem" data-chat-lang="hu" data-i18n-title="chatLangHu" title="Hungarian">🇭🇺</button>
+                <!-- Neither form until boot() knows bootstrap-status. -->
+                <form id="loginForm" class="hidden">
+                    <div class="field">
+                        <label for="loginEmail">Email</label>
+                        <input type="email" id="loginEmail" required autocomplete="username" placeholder="tony@stark.com">
                     </div>
-                </div>
-            </div>
+                    <div class="field">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" required autocomplete="current-password" placeholder="••••••••">
+                    </div>
+                    <button type="submit" class="btn-primary">Sign in</button>
+                </form>
 
-            <div class="text-row">
-                <input type="text" id="textInput" data-i18n-placeholder="typePlaceholder" placeholder="Or type a command…" autocomplete="off">
-                <button id="sendBtn" class="btn-send" data-i18n="send">Send</button>
-            </div>
-        </footer>
-    </div>
+                <!-- Bootstrap register (only when needs_bootstrap) -->
+                <form id="registerForm" class="hidden">
+                    <p class="auth-hint">First setup – create the SuperUser account</p>
+                    <div class="field">
+                        <label for="regEmail">Email</label>
+                        <input type="email" id="regEmail" required autocomplete="username" placeholder="tony@stark.com">
+                    </div>
+                    <div class="field">
+                        <label for="regPassword">Password (min 12)</label>
+                        <input type="password" id="regPassword" required minlength="12" autocomplete="new-password" placeholder="••••••••••••">
+                    </div>
+                    <div class="field">
+                        <label for="regPassword2">Confirm password</label>
+                        <input type="password" id="regPassword2" required minlength="12" autocomplete="new-password" placeholder="••••••••••••">
+                    </div>
+                    <button type="submit" class="btn-primary">Create SuperUser</button>
+                </form>
 
-    <!-- Skills help panel -->
-    <div id="helpPanel" class="admin-overlay hidden">
-        <div class="admin-card help-card">
-            <div class="admin-header">
-                <h2 data-i18n="helpTitle">Skills &amp; Triggers</h2>
-                <div class="help-lang-switch" role="group" data-i18n-title="helpGuiLang" title="GUI language">
+                <p id="authStatusHint" class="auth-hint hidden"></p>
+                <p id="authError" class="error-msg hidden"></p>
+                <p id="authSuccess" class="success-msg hidden"></p>
+            </div>
+        </div>
+
+        <!-- Forced password change -->
+        <div id="changePasswordScreen" class="screen hidden">
+            <div class="login-card">
+                <div class="logo">Password Change</div>
+                <p class="tagline">You must set a new password before continuing</p>
+                <form id="changePasswordForm">
+                    <div class="field">
+                        <label for="currentPassword">Current password</label>
+                        <input type="password" id="currentPassword" required autocomplete="current-password">
+                    </div>
+                    <div class="field">
+                        <label for="newPassword">New password (min 12)</label>
+                        <input type="password" id="newPassword" required minlength="12" autocomplete="new-password">
+                    </div>
+                    <div class="field">
+                        <label for="newPassword2">Confirm new password</label>
+                        <input type="password" id="newPassword2" required minlength="12" autocomplete="new-password">
+                    </div>
+                    <button type="submit" class="btn-primary">Update Password</button>
+                </form>
+                <p id="changePasswordError" class="error-msg hidden"></p>
+            </div>
+        </div>
+
+        <!-- First-login preferred name -->
+        <div id="displayNameScreen" class="screen hidden">
+            <div class="login-card">
+                <div class="logo" data-i18n="displayNameTitle">How should Jarvis address you?</div>
+                <p class="tagline" data-i18n="displayNameTagline">Used in conversation. First name or nickname is enough.</p>
+                <div class="onboard-lang-switch" role="group" aria-label="Language">
                     <button type="button" class="lang-flag" data-lang="en" data-i18n-title="chatLangEn" title="English">🇬🇧</button>
                     <button type="button" class="lang-flag" data-lang="de" data-i18n-title="chatLangDe" title="German">🇩🇪</button>
                     <button type="button" class="lang-flag" data-lang="hu" data-i18n-title="chatLangHu" title="Hungarian">🇭🇺</button>
                 </div>
-                <button id="helpCloseBtn" class="btn-ghost" data-i18n="helpClose">Close</button>
-            </div>
-            <p class="help-gui-lang-note" data-i18n="helpGuiLang">These flags change Help and buttons only. Chat language is set in the chat window (Autodetect or a forced language).</p>
-            <p class="help-intro" data-i18n="helpIntro">Phrases in the selected language. First match wins; otherwise the general assistant answers.</p>
-
-            <section class="admin-section">
-                <h3 data-i18n="notes">Notes</h3>
-                <ul class="help-list" id="help-notes"></ul>
-            </section>
-
-            <section class="admin-section">
-                <h3 data-i18n="reminders">Reminders</h3>
-                <ul class="help-list" id="help-reminders"></ul>
-            </section>
-
-            <section class="admin-section">
-                <h3 data-i18n="webSearch">Web Search</h3>
-                <ul class="help-list" id="help-web_search"></ul>
-            </section>
-
-            <section class="admin-section">
-                <h3 data-i18n="activeRecall">Active Recall</h3>
-                <ul class="help-list" id="help-active_recall"></ul>
-            </section>
-
-            <section class="admin-section">
-                <h3 data-i18n="personalFacts">Personal memory</h3>
-                <p class="help-intro" data-i18n="personalFactsIntro"></p>
-                <ul class="help-list" id="help-personal_facts"></ul>
-            </section>
-        </div>
-    </div>
-
-    <!-- Admin Panel (overlay) -->
-    <div id="adminPanel" class="admin-overlay hidden">
-        <div class="admin-card">
-            <div class="admin-header">
-                <h2>User Management</h2>
-                <button id="adminCloseBtn" class="btn-ghost">Close</button>
-            </div>
-
-            <section class="admin-section">
-                <h3>Create user</h3>
-                <form id="adminCreateForm" class="admin-form">
+                <form id="displayNameForm">
                     <div class="field">
-                        <label for="adminEmail">Email</label>
-                        <input type="email" id="adminEmail" required placeholder="user@example.com">
+                        <label for="displayNameInput" data-i18n="displayNameLabel">Preferred name</label>
+                        <input type="text" id="displayNameInput" required maxlength="40" autocomplete="nickname" data-i18n-placeholder="displayNamePlaceholder" placeholder="e.g. Tony">
                     </div>
-                    <div class="field">
-                        <label for="adminPassword">Initial password (min 12)</label>
-                        <input type="password" id="adminPassword" required minlength="12" placeholder="••••••••••••">
-                    </div>
-                    <div class="admin-flags">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="adminIsSuperuser"> SuperUser
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="adminIsActive" checked> Active
-                        </label>
-                    </div>
-                    <button type="submit" class="btn-primary">Create</button>
+                    <button type="submit" class="btn-primary" data-i18n="displayNameSubmit">Continue</button>
                 </form>
-                <p id="adminCreateError" class="error-msg hidden"></p>
-                <p id="adminCreateSuccess" class="success-msg hidden"></p>
-            </section>
+                <p id="displayNameError" class="error-msg hidden"></p>
+            </div>
+        </div>
 
-            <section class="admin-section">
-                <h3>Users</h3>
-                <div id="adminUserList" class="admin-user-list">
-                    <p class="text-muted">Loading…</p>
+        <!-- Main App -->
+        <div id="appScreen" class="screen hidden">
+            <header class="top-bar">
+                <button type="button" id="sidebarToggle" class="btn-ghost sidebar-toggle" data-i18n-title="openSidebar" title="Menu" aria-expanded="false">☰</button>
+                <div class="brand">2b J.A.R.V.I.S.</div>
+                <div class="user-area">
+                    <span id="speakingIndicator" class="speaking-indicator hidden" data-i18n-title="speaking" title="Speaking…" aria-live="polite">
+                        <svg class="speaker-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                        </svg>
+                        <span class="speaking-label" data-i18n="speaking">Speaking</span>
+                    </span>
+                    <button id="helpBtn" class="btn-ghost" data-i18n-title="help" title="Skills & triggers">?</button>
+                    <button id="adminBtn" class="btn-ghost hidden" data-i18n="admin">Admin</button>
+                    <span id="userLabel" class="user-label"></span>
+                    <button id="logoutBtn" class="btn-ghost" data-i18n="logout">Logout</button>
                 </div>
-            </section>
+            </header>
+
+            <div class="app-body">
+            <aside id="sidebar" class="sidebar">
+                <div class="sidebar-actions">
+                    <button type="button" id="notesBtn" class="sidebar-btn" data-i18n="notes">Notes</button>
+                    <button type="button" id="remindersBtn" class="sidebar-btn" data-i18n="reminders">Reminders</button>
+                </div>
+                <button type="button" id="newChatBtn" class="sidebar-new" data-i18n="newChat">+ New</button>
+                <div class="sidebar-section-head">
+                    <button type="button" id="chatsBtn" class="sidebar-link is-active" data-i18n="chatHistory">Chats</button>
+                </div>
+                <ul id="sidebarList" class="sidebar-list"></ul>
+            </aside>
+            <div id="sidebarBackdrop" class="sidebar-backdrop hidden"></div>
+
+            <div class="chat-stage">
+            <div class="chat-column is-empty">
+            <div id="emptyGreeting" class="empty-greeting">
+                <p id="emptyGreetingText" class="empty-greeting-title"></p>
+            </div>
+            <main id="chatContainer" class="chat-area"></main>
+
+            <div id="statusLine" class="status-line hidden"></div>
+
+            <footer class="input-area">
+                <div class="composer">
+                    <button type="button" id="attachBtn" class="composer-icon" data-i18n-title="addDocumentSoon" title="Document upload later" disabled>+</button>
+                    <input type="text" id="textInput" data-i18n-placeholder="typePlaceholder" placeholder="Or type a command…" autocomplete="off">
+                    <div class="composer-tools">
+                        <div class="chat-lang">
+                            <div class="chat-lang-picker">
+                                <button type="button" id="chatLangBtn" class="chat-lang-btn is-auto" aria-expanded="false" aria-haspopup="true" data-i18n-title="chatLangAuto" title="Autodetect">
+                                    <span id="chatLangBtnFace" data-i18n="chatLangAuto">Autodetect</span>
+                                </button>
+                                <div id="chatLangMenu" class="chat-lang-menu hidden" role="menu">
+                                    <button type="button" role="menuitem" data-chat-lang="auto" data-i18n="chatLangAuto" data-i18n-title="chatLangAuto" title="Autodetect">Autodetect</button>
+                                    <button type="button" role="menuitem" data-chat-lang="en" data-i18n-title="chatLangEn" title="English">🇬🇧</button>
+                                    <button type="button" role="menuitem" data-chat-lang="de" data-i18n-title="chatLangDe" title="German">🇩🇪</button>
+                                    <button type="button" role="menuitem" data-chat-lang="hu" data-i18n-title="chatLangHu" title="Hungarian">🇭🇺</button>
+                                </div>
+                            </div>
+                        </div>
+                        <button id="speakBtn" class="composer-mic" data-i18n-title="speakHint" title="Click to speak" aria-label="Speak">
+                            <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                                <line x1="12" y1="19" x2="12" y2="23"/>
+                                <line x1="8" y1="23" x2="16" y2="23"/>
+                            </svg>
+                            <span id="recIndicator" class="rec-dot hidden"></span>
+                        </button>
+                        <button id="sendBtn" class="btn-send" data-i18n="send">Send</button>
+                    </div>
+                </div>
+                <span id="speakHint" class="speak-hint" data-i18n="speakHint">Click to speak</span>
+            </footer>
+            </div>
+            </div>
+            </div>
+        </div>
+
+        <!-- Skills help panel -->
+        <div id="helpPanel" class="admin-overlay hidden">
+            <div class="admin-card help-card">
+                <div class="admin-header">
+                    <h2 data-i18n="helpTitle">Skills &amp; Triggers</h2>
+                    <div class="help-lang-switch" role="group" data-i18n-title="helpGuiLang" title="GUI language">
+                        <button type="button" class="lang-flag" data-lang="en" data-i18n-title="chatLangEn" title="English">🇬🇧</button>
+                        <button type="button" class="lang-flag" data-lang="de" data-i18n-title="chatLangDe" title="German">🇩🇪</button>
+                        <button type="button" class="lang-flag" data-lang="hu" data-i18n-title="chatLangHu" title="Hungarian">🇭🇺</button>
+                    </div>
+                    <button id="helpCloseBtn" class="btn-ghost" data-i18n="helpClose">Close</button>
+                </div>
+                <p class="help-gui-lang-note" data-i18n="helpGuiLang">These flags change Help and buttons only. Chat language is set in the chat window (Autodetect or a forced language).</p>
+                <p class="help-intro" data-i18n="helpIntro">Phrases in the selected language. First match wins; otherwise the general assistant answers.</p>
+
+                <section class="admin-section">
+                    <h3 data-i18n="notes">Notes</h3>
+                    <ul class="help-list" id="help-notes"></ul>
+                </section>
+
+                <section class="admin-section">
+                    <h3 data-i18n="reminders">Reminders</h3>
+                    <ul class="help-list" id="help-reminders"></ul>
+                </section>
+
+                <section class="admin-section">
+                    <h3 data-i18n="webSearch">Web Search</h3>
+                    <ul class="help-list" id="help-web_search"></ul>
+                </section>
+
+                <section class="admin-section">
+                    <h3 data-i18n="activeRecall">Active Recall</h3>
+                    <ul class="help-list" id="help-active_recall"></ul>
+                </section>
+
+                <section class="admin-section">
+                    <h3 data-i18n="personalFacts">Personal memory</h3>
+                    <p class="help-intro" data-i18n="personalFactsIntro"></p>
+                    <ul class="help-list" id="help-personal_facts"></ul>
+                </section>
+            </div>
+        </div>
+
+        <!-- Admin Panel (overlay) -->
+        <div id="adminPanel" class="admin-overlay hidden">
+            <div class="admin-card">
+                <div class="admin-header">
+                    <h2>User Management</h2>
+                    <button id="adminCloseBtn" class="btn-ghost">Close</button>
+                </div>
+
+                <section class="admin-section">
+                    <h3>Create user</h3>
+                    <form id="adminCreateForm" class="admin-form">
+                        <div class="field">
+                            <label for="adminEmail">Email</label>
+                            <input type="email" id="adminEmail" required placeholder="user@example.com">
+                        </div>
+                        <div class="field">
+                            <label for="adminPassword">Initial password (min 12)</label>
+                            <input type="password" id="adminPassword" required minlength="12" placeholder="••••••••••••">
+                        </div>
+                        <div class="admin-flags">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="adminIsSuperuser"> SuperUser
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="adminIsActive" checked> Active
+                            </label>
+                        </div>
+                        <button type="submit" class="btn-primary">Create</button>
+                    </form>
+                    <p id="adminCreateError" class="error-msg hidden"></p>
+                    <p id="adminCreateSuccess" class="success-msg hidden"></p>
+                </section>
+
+                <section class="admin-section">
+                    <h3>Users</h3>
+                    <div id="adminUserList" class="admin-user-list">
+                        <p class="text-muted">Loading…</p>
+                    </div>
+                </section>
+            </div>
         </div>
     </div>
-
-    <script type="module" src="js/app.js?v=2026-08-21-due-poll"></script>
+    <script type="module" src="js/app.js?v=2026-09-04-claude-shell"></script>
 </body>
 </html>

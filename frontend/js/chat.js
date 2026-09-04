@@ -1,6 +1,7 @@
 import { api } from "./auth.js";
 import { playBase64Audio } from "./audio.js";
 import { getChatLang, t } from "./i18n.js";
+import { recordMessage } from "./sittings.js";
 
 function chatLanguageParam() {
     const lang = getChatLang();
@@ -43,7 +44,15 @@ export function resetChatTimestamps() {
     lastLocalDayKey = null;
 }
 
-export function appendMessage(role, text, isoUtc) {
+export function syncEmptyState() {
+    const chat = chatContainer();
+    const column = document.querySelector(".chat-column");
+    if (!chat || !column) return;
+    column.classList.toggle("is-empty", !chat.querySelector(".msg"));
+}
+
+export function appendMessage(role, text, isoUtc, options = {}) {
+    const persist = options.persist !== false;
     const when = isoUtc ? new Date(isoUtc) : new Date();
     maybeAppendDateSeparator(when);
 
@@ -73,6 +82,11 @@ export function appendMessage(role, text, isoUtc) {
     el.appendChild(body);
     chatContainer().appendChild(el);
     chatContainer().scrollTop = chatContainer().scrollHeight;
+    syncEmptyState();
+    if (persist) {
+        recordMessage(role, text, el.dataset.utc);
+        window.dispatchEvent(new Event("jarvis:sitting-updated"));
+    }
 }
 
 export function setStatus(msg, isError = false) {

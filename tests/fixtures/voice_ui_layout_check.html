@@ -10,6 +10,7 @@
     <div id="authScreen" class="screen hidden"></div>
     <div id="appScreen" class="screen">
         <header class="top-bar">
+            <button type="button" id="sidebarToggle" class="btn-ghost sidebar-toggle">☰</button>
             <div class="brand">2b J.A.R.V.I.S.</div>
             <div class="user-area">
                 <button class="btn-ghost">?</button>
@@ -17,24 +18,41 @@
                 <button id="logoutBtn" class="btn-ghost">Logout</button>
             </div>
         </header>
-        <main id="chatContainer" class="chat-area"></main>
-        <footer class="input-area">
-            <div class="speak-wrapper">
-                <button id="speakBtn" class="speak-btn" aria-label="Speak">
-                    <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                        <line x1="12" y1="19" x2="12" y2="23"/>
-                        <line x1="8" y1="23" x2="16" y2="23"/>
-                    </svg>
-                </button>
-                <span class="speak-hint">Click to speak</span>
+        <div class="app-body">
+            <aside id="sidebar" class="sidebar">
+                <button type="button" class="sidebar-new">+ New</button>
+                <div class="sidebar-actions">
+                    <button type="button" class="sidebar-btn">Notes</button>
+                    <button type="button" class="sidebar-btn">Reminders</button>
+                </div>
+                <div class="sidebar-section-head">
+                    <button type="button" class="sidebar-link is-active">Chats</button>
+                </div>
+                <ul class="sidebar-list"></ul>
+            </aside>
+            <div class="chat-stage">
+                <div class="chat-column">
+                    <main id="chatContainer" class="chat-area"></main>
+                    <footer class="input-area">
+                        <div class="composer">
+                            <button type="button" class="composer-icon" disabled>+</button>
+                            <input type="text" id="textInput" placeholder="Or type a command…">
+                            <div class="composer-tools">
+                                <button id="speakBtn" class="composer-mic" aria-label="Speak">
+                                    <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                                        <line x1="12" y1="19" x2="12" y2="23"/>
+                                        <line x1="8" y1="23" x2="16" y2="23"/>
+                                    </svg>
+                                </button>
+                                <button id="sendBtn" class="btn-send">Send</button>
+                            </div>
+                        </div>
+                    </footer>
+                </div>
             </div>
-            <div class="text-row">
-                <input type="text" id="textInput" placeholder="Or type a command…">
-                <button id="sendBtn" class="btn-send">Send</button>
-            </div>
-        </footer>
+        </div>
     </div>
     <script>
         const chat = document.getElementById("chatContainer");
@@ -66,6 +84,10 @@
         const last = chat.querySelector(".msg:last-child");
         const lastR = last.getBoundingClientRect();
         const chatR = chat.getBoundingClientRect();
+        const column = document.querySelector(".chat-column");
+        const columnW = column.getBoundingClientRect().width;
+        const maxChat = 48 * 16 + 8;
+        const wideOk = viewW < 900 || columnW <= maxChat + 1;
         const ok =
             inView(header) && inView(footer) && inView(mic) && inView(input)
             && inView(logout) && inView(send)
@@ -73,15 +95,12 @@
             && document.documentElement.scrollHeight <= viewH + 8
             && lastR.bottom <= chatR.bottom + 8
             && header.getBoundingClientRect().bottom <= chatR.top + slack
-            && chatR.bottom <= footer.getBoundingClientRect().top + slack;
+            && chatR.bottom <= footer.getBoundingClientRect().top + slack
+            && wideOk;
         document.documentElement.setAttribute("data-layout", ok ? "ok" : "fail");
         document.documentElement.setAttribute("data-layout-detail", JSON.stringify({
-            viewH, viewW,
+            viewH, viewW, columnW, wideOk,
             header: header.getBoundingClientRect(),
-            footer: footer.getBoundingClientRect(),
-            chat: { top: chatR.top, bottom: chatR.bottom, scrollHeight: chat.scrollHeight, clientHeight: chat.clientHeight },
-            lastBottom: lastR.bottom,
-            pageScroll: document.documentElement.scrollHeight,
         }));
     </script>
 </body>

@@ -16,7 +16,8 @@ import {
     adminUpdateUser,
     api,
 } from "./auth.js?v=2026-08-21-tz";
-import { sendText, sendVoice, setStatus, resetChatTimestamps, appendMessage } from "./chat.js";
+import { sendText, sendVoice, setStatus, resetChatTimestamps, appendMessage, syncEmptyState } from "./chat.js";
+import { initSidebar } from "./sidebar.js";
 import { startRecordingSession, setSpeakingHandlers, stopTts, playBase64Audio } from "./audio.js";
 import { applyI18n, getChatLang, getLang, setChatLang, setLang, t } from "./i18n.js";
 import { API_BASE } from "./config.js?v=2026-08-21-signin";
@@ -183,11 +184,19 @@ function showApp() {
     startDuePoll();
     const user = getStoredUser();
     userLabel.textContent = user.display_name || user.email || "User";
+    const greet = document.getElementById("emptyGreetingText");
+    if (greet) {
+        greet.textContent = t("greetingHello").replace(
+            "{name}",
+            user.display_name || "Ákos",
+        );
+    }
     if (user.is_superuser) {
         adminBtn.classList.remove("hidden");
     } else {
         adminBtn.classList.add("hidden");
     }
+    initSidebar();
 }
 
 function setProcessing(on) {
@@ -308,6 +317,7 @@ logoutBtn.addEventListener("click", () => {
     clearAuth();
     document.getElementById("chatContainer").innerHTML = "";
     resetChatTimestamps();
+    syncEmptyState();
     boot();
 });
 
@@ -440,6 +450,14 @@ function refreshI18n() {
     renderHelpContent();
     if (!isRecording) {
         speakHint.textContent = t("speakHint");
+    }
+    const greet = document.getElementById("emptyGreetingText");
+    const user = getStoredUser();
+    if (greet) {
+        greet.textContent = t("greetingHello").replace(
+            "{name}",
+            user.display_name || "Ákos",
+        );
     }
 }
 

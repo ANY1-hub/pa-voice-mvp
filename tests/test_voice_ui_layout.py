@@ -51,7 +51,8 @@ def _open_app_with_long_chat(page: Page, origin: str) -> None:
     # boot() always ends on auth (this origin has no API). Wait so it cannot
     # hide #appScreen after we reveal the chat chrome.
     page.wait_for_selector("#authError:not(.hidden)", timeout=10_000)
-    page.evaluate("""() => {
+    page.evaluate(
+        """() => {
             document.getElementById("authScreen").classList.add("hidden");
             document.getElementById("changePasswordScreen").classList.add("hidden");
             document.getElementById("displayNameScreen").classList.add("hidden");
@@ -71,11 +72,14 @@ def _open_app_with_long_chat(page: Page, origin: str) -> None:
                 chat.appendChild(el);
             }
             chat.scrollTop = chat.scrollHeight;
-        }""")
+            document.querySelector(".chat-column")?.classList.remove("is-empty");
+        }"""
+    )
 
 
 def _assert_chrome_pinned(page: Page) -> None:
-    metrics = page.evaluate("""() => {
+    metrics = page.evaluate(
+        """() => {
             const viewH = window.innerHeight;
             const viewW = window.innerWidth;
             const box = (el) => {
@@ -104,7 +108,8 @@ def _assert_chrome_pinned(page: Page) -> None:
                 },
                 pageScroll: document.documentElement.scrollHeight,
             };
-        }""")
+        }"""
+    )
     view_h = metrics["viewH"]
     view_w = metrics["viewW"]
 
@@ -150,6 +155,9 @@ def _assert_with_playwright(origin: str) -> None:
         page.add_init_script("window.JARVIS_API_BASE = '';")
         _open_app_with_long_chat(page, origin)
         _assert_chrome_pinned(page)
+        assert page.locator("#notesBtn").is_visible()
+        assert page.locator("#remindersBtn").is_visible()
+        assert page.locator("#sidebarList").is_visible()
 
         page.set_viewport_size({"width": 390, "height": 844})
         page.evaluate(
@@ -157,13 +165,26 @@ def _assert_with_playwright(origin: str) -> None:
             "c.scrollTop = c.scrollHeight; }"
         )
         _assert_chrome_pinned(page)
+
+        page.set_viewport_size({"width": 1600, "height": 900})
+        page.evaluate(
+            "() => { const c = document.getElementById('chatContainer'); "
+            "c.scrollTop = c.scrollHeight; }"
+        )
+        _assert_chrome_pinned(page)
+        column_w = page.evaluate(
+            "() => document.querySelector('.chat-column').getBoundingClientRect().width"
+        )
+        assert (
+            column_w <= 48 * 16 + 8
+        ), f"Chat column must keep max-width on a wide screen, got {column_w}"
         browser.close()
 
 
 def _assert_with_windows_browser(browser: Path, origin: str) -> None:
     shutil.copyfile(_FIXTURE_SRC, _FIXTURE_DST)
     url = origin + "_layout_check.html"
-    for width, height in ((1280, 800), (390, 844)):
+    for width, height in ((1280, 800), (390, 844), (1600, 900)):
         result = subprocess.run(
             [
                 os.fspath(browser),
