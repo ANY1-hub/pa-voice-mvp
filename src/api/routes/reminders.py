@@ -6,7 +6,7 @@ import base64
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 
 from src.api.deps import get_reminder_repository, get_tts_adapter
@@ -33,6 +33,46 @@ class DueRemindersResponse(BaseModel):
     """Payload for GET /reminders/due."""
 
     reminders: list[DueReminderOut]
+
+
+class ReminderOut(BaseModel):
+    """One reminder for the sidebar list."""
+
+    id: str
+    content: str
+    status: str
+    due_at: datetime | None = None
+    created_at: datetime
+
+
+class RemindersListResponse(BaseModel):
+    """Payload for GET /reminders (all statuses)."""
+
+    reminders: list[ReminderOut]
+
+
+@router.get("", response_model=RemindersListResponse)
+async def list_reminders(
+    repo: Annotated[ReminderRepository, Depends(get_reminder_repository)],
+    limit: Annotated[int, Query(ge=1, le=200)] = 100,
+) -> RemindersListResponse:
+    """Return the current user's reminders of any status.
+
+    JWT is enforced via the reminder-repository dependency (ready user).
+    """
+    reminders = await repo.list_reminders(limit=limit, status=None)
+    return RemindersListResponse(
+        reminders=[
+            ReminderOut(
+                id=item.id,
+                content=item.content,
+                status=item.status,
+                due_at=item.due_at,
+                created_at=item.created_at,
+            )
+            for item in reminders
+        ]
+    )
 
 
 @router.get("/due", response_model=DueRemindersResponse)
