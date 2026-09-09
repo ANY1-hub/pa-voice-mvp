@@ -24,6 +24,26 @@ _SEARCH_PATTERNS = compile_phrase_regex(WEB_SEARCH, extra=WEB_SEARCH_EXTRA)
 # "what is" / "was ist" / "mi az" must not steal identity questions from recall.
 _PERSONAL_IDENTITY = compile_phrase_regex(extra=NAME_RECALL_PHRASES)
 
+# Remainder after a search-trigger strip that is empty or only a deictic
+# (das / this / that / diese[sr]? / ez / az …) must fall through to the LLM.
+_DEIXIS_ONLY = frozenset(
+    {
+        "das",
+        "dies",
+        "diese",
+        "dieser",
+        "dieses",
+        "this",
+        "that",
+        "these",
+        "those",
+        "ez",
+        "az",
+        "ezt",
+        "azt",
+    }
+)
+
 _STRIP_PHRASES = sorted(
     {p for items in WEB_SEARCH.values() for p in items} | set(WEB_SEARCH_EXTRA),
     key=len,
@@ -56,6 +76,15 @@ _REPLIES: dict[str, dict[str, str]] = {
 }
 
 
+def _is_empty_or_deixis_only(remainder: str) -> bool:
+    """True when the post-trigger query is empty or a lone deictic token."""
+    cleaned = remainder.strip().casefold()
+    if not cleaned:
+        return True
+    tokens = cleaned.split()
+    return len(tokens) == 1 and tokens[0] in _DEIXIS_ONLY
+
+
 class WebSearchSkill(Skill):
     """Perform a web search and weave in personal Semantic Memory context."""
 
@@ -75,7 +104,9 @@ class WebSearchSkill(Skill):
             return False
         if _PERSONAL_IDENTITY.search(text):
             return False
-        return bool(_SEARCH_PATTERNS.search(text))
+        if not _SEARCH_PATTERNS.search(text):
+            return False
+        return not _is_empty_or_deixis_only(self._extract_query(text))
 
     async def execute(
         self,
