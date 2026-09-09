@@ -9,7 +9,9 @@ os.environ["MONGODB_DB_NAME"] = "jarvis_test"
 # Human ports 5500 (UI) and 8000 (API) stay reserved. Browser tests bind
 # an ephemeral port and set window.JARVIS_API_BASE (see test_voice_ui_bootstrap).
 # SECRET_KEY must be set before the app (and Settings) is imported
-os.environ.setdefault("SECRET_KEY", "test-secret-key-for-ci-only-32chars!")
+os.environ.setdefault(
+    "SECRET_KEY", "unit-test-only-secret-key-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+)
 
 import pytest
 from fastapi.testclient import TestClient

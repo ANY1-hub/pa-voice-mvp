@@ -2,7 +2,17 @@
 
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Explicit weak placeholders (case/trim insensitive; padded variants also fail).
+_SECRET_KEY_PLACEHOLDERS = frozenset(
+    {
+        "change-me-to-a-long-random-string",
+        "change-me",
+    }
+)
+_MIN_SECRET_KEY_LEN = 64
 
 
 class Settings(BaseSettings):
@@ -14,7 +24,7 @@ class Settings(BaseSettings):
         openai_api_key: OpenAI API key (optional; required for chat/embeddings).
         xai_api_key: xAI / Grok API key (optional).
         mongodb_uri: MongoDB connection URI.
-        secret_key: JWT signing key (required, no default).
+        secret_key: JWT signing key (required, ≥64, no placeholder).
         mongodb_db_name: Database name (default ``jarvis_db``).
         llm_model: OpenAI chat model name.
         embedding_model: OpenAI embedding model name.
@@ -50,6 +60,31 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    @field_validator("secret_key")
+    @classmethod
+    def _reject_weak_secret_key(cls, value: str) -> str:
+        """Fail fast on empty, short, or placeholder JWT signing keys."""
+        if not isinstance(value, str):
+            raise ValueError("SECRET_KEY must be a string")
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("SECRET_KEY must not be empty or whitespace-only")
+        lowered = cleaned.casefold()
+        if any(
+            lowered == bad or lowered.startswith(bad)
+            for bad in _SECRET_KEY_PLACEHOLDERS
+        ):
+            raise ValueError(
+                "SECRET_KEY must not be a placeholder "
+                "(e.g. change-me / change-me-to-a-long-random-string); "
+                "set a random value of at least 64 characters"
+            )
+        if len(cleaned) < _MIN_SECRET_KEY_LEN:
+            raise ValueError(
+                f"SECRET_KEY must be at least {_MIN_SECRET_KEY_LEN} characters"
+            )
+        return cleaned
 
 
 @lru_cache

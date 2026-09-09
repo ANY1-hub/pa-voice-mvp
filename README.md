@@ -112,7 +112,9 @@ source .venv/bin/activate   # or .venv\Scripts\activate on Windows
 uv pip install -e ".[dev]"
 playwright install chromium   # default Voice UI engine (firefox / webkit optional)
 
-# Copy env and set MONGODB_URI (local Docker or NAS)
+# Copy env and set MONGODB_URI (local Docker or NAS).
+# SECRET_KEY must be ≥64 random characters — replace the .env.example
+# placeholder or the app will not start.
 cp .env.example .env
 
 # Run the backend

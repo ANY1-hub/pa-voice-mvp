@@ -10,7 +10,7 @@ def test_settings_defaults(monkeypatch):
     monkeypatch.delenv("SECRET_KEY", raising=False)
 
     settings = Settings(
-        secret_key="test-secret-key-for-unit-tests-only!",
+        secret_key="unit-test-only-secret-key-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
         _env_file=None,
     )
 
@@ -27,7 +27,7 @@ def test_settings_override_from_values():
         openai_api_key="sk-test",
         llm_model="gpt-4o",
         mongodb_db_name="test_db",
-        secret_key="another-test-secret-key-32chars!",
+        secret_key="unit-test-only-secret-key-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
         _env_file=None,
     )
     assert settings.openai_api_key == "sk-test"

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] 2026-09-09
 
 ### Fixed
+- `SECRET_KEY` fail-fast at Settings load: reject empty, whitespace-only, length under 64, and `change-me` placeholders (including the documented `.env.example` value and padded variants); app will not start until replaced.
 - Preferred name for name questions is `User.display_name`; durable SM slot `name` uses `valid_to` succession; search returns current facts only; leftover identity/name SM is filtered on about-me.
 - WebSearch `can_handle` returns false when the post-trigger remainder is empty or a lone deictic (`das` / `this` / `that` / `diese`|`dieser`|`dieses` / `ez` / `az` / …), so the registry falls through to the LLM.
 - Weak or garbage utterances fall back to `gui_language` (Help flag); forced chat language still wins; missing GUI defaults to English. `/chat/text` and `/chat/voice` accept only exact `en` / `de` / `hu` for `gui_language` (422 otherwise).
