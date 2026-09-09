@@ -51,7 +51,7 @@ jobs:
 
       - name: Pytest
         env:
-          SECRET_KEY: "ci-test-secret-key-do-not-use-in-prod!"
+          SECRET_KEY: "unit-test-only-secret-key-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
           MONGODB_URI: "mongodb://localhost:27017"
           MONGODB_DB_NAME: "jarvis_test"
           JARVIS_E2E_BROWSER: chromium
