@@ -107,6 +107,40 @@ def _without_ignored(text: str, ignore: str | None) -> str:
     return text
 
 
+def detect_clear_response_language(
+    text: str,
+    *,
+    ignore: str | None = None,
+) -> str | None:
+    """Return ``en`` / ``de`` / ``hu`` only when the utterance has a clear signal.
+
+    STT / Help-panel hints are ignored here. Weak or garbage text yields
+    ``None`` so the caller can fall back to GUI language (or English).
+
+    Args:
+        text: User utterance to inspect.
+        ignore: Optional display name whose letters must not affect the guess.
+
+    Returns:
+        A language code, or ``None`` when there is no clear EN/DE/HU signal.
+    """
+    text = _without_ignored(text, ignore)
+
+    if any(c in _HU_CHARS for c in text):
+        return "hu"
+    if any(c in _DE_ONLY_CHARS for c in text):
+        return "de"
+    if _HU_PHRASES.search(text) or _HU_WORDS.search(text):
+        return "hu"
+    if _DE_STRONG.search(text):
+        return "de"
+    if _EN_STRONG.search(text):
+        return "en"
+    if any(c in _SHARED_UMLAUTS for c in text):
+        return "de"
+    return heuristic_language(text)
+
+
 def detect_response_language(
     text: str,
     hint: str | None = None,
@@ -129,26 +163,10 @@ def detect_response_language(
     Returns:
         One of ``"en"``, ``"de"``, ``"hu"``.
     """
-    text = _without_ignored(text, ignore)
+    clear = detect_clear_response_language(text, ignore=ignore)
+    if clear:
+        return clear
     hint_code = _hint_code(hint)
-
-    if any(c in _HU_CHARS for c in text):
-        return "hu"
-    if any(c in _DE_ONLY_CHARS for c in text):
-        return "de"
-    if _HU_PHRASES.search(text) or _HU_WORDS.search(text):
-        return "hu"
-    if _DE_STRONG.search(text):
-        return "de"
-    if _EN_STRONG.search(text):
-        return "en"
-
-    if hint_code in {"de", "hu"}:
-        return hint_code
-
-    if any(c in _SHARED_UMLAUTS for c in text):
-        return "de"
     if hint_code:
         return hint_code
-
-    return heuristic_language(text) or "en"
+    return "en"

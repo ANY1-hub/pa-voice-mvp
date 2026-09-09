@@ -1,6 +1,6 @@
 import { api } from "./auth.js";
 import { playBase64Audio } from "./audio.js";
-import { getChatLang, t } from "./i18n.js";
+import { getChatLang, getLang, t } from "./i18n.js";
 import {
     getCurrentSittingId,
     getSitting,
@@ -223,7 +223,11 @@ export async function sendText(text, options = {}) {
     const res = await api("/api/v1/chat/text", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, language: chatLanguageParam() }),
+        body: JSON.stringify({
+            text,
+            language: chatLanguageParam(),
+            gui_language: getLang(),
+        }),
     });
 
     if (!res.ok) {
@@ -251,6 +255,7 @@ export async function sendVoice(blob) {
     form.append("audio", blob, "recording.wav");
     const chatLang = chatLanguageParam();
     if (chatLang) form.append("language", chatLang);
+    form.append("gui_language", getLang());
 
     const res = await api("/api/v1/chat/voice", {
         method: "POST",

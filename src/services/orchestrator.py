@@ -12,7 +12,11 @@ import time
 from dataclasses import dataclass, field
 from uuid import uuid4
 
-from src.core.language import detect_response_language, normalize_language_code
+from src.core.language import (
+    detect_clear_response_language,
+    detect_response_language,
+    normalize_language_code,
+)
 from src.memory.semantic_memory import SemanticMemory
 from src.memory.working_memory import WorkingMemory
 from src.security.guardrails import process_user_message
@@ -167,6 +171,7 @@ class ChatOrchestrator:
         text: str | None = None,
         audio_bytes: bytes | None = None,
         language: str | None = None,
+        gui_language: str | None = None,
     ) -> ChatResult:
         """Run one full conversational turn.
 
@@ -176,7 +181,9 @@ class ChatOrchestrator:
             text: Plain-text user message (fallback when no audio).
             audio_bytes: Raw audio payload for STT.
             language: Forced chat language (``"de"``, ``"en"``, ``"hu"``).
-                ``None`` means auto-detect from STT and the utterance.
+                ``None`` means auto-detect from the utterance (then GUI).
+            gui_language: GUI / Help-flag language used when the utterance
+                has no clear EN/DE/HU signal. Not a forced chat language.
 
         Returns:
             ChatResult with transcript, LLM response and optional base64 audio.
@@ -207,7 +214,9 @@ class ChatOrchestrator:
 
         # 2a. Input validation / guardrails
         sanitized = process_user_message(transcript)
-        tts_lang = self._turn_language(sanitized, forced_lang, detected_lang)
+        tts_lang = self._turn_language(
+            sanitized, forced_lang, detected_lang, gui_language
+        )
 
         # 2b. Skill routing (thin – first match wins)
         if self.skill_registry is not None:
@@ -366,11 +375,22 @@ class ChatOrchestrator:
         text: str,
         forced_lang: str | None,
         hint: str | None,
+        gui_language: str | None = None,
     ) -> str:
-        """Forced chat language, else this utterance (STT hint cannot outrank it)."""
+        """Forced chat language, else clear utterance, else GUI, else English.
+
+        STT hints do not outrank a clear utterance. Weak/garbage text falls
+        back to ``gui_language`` (Help flags), not a hard English pin, when set.
+        """
         if forced_lang:
             return forced_lang
-        return detect_response_language(text, hint=hint, ignore=self.display_name)
+        clear = detect_clear_response_language(text, ignore=self.display_name)
+        if clear:
+            return clear
+        gui = normalize_language_code(gui_language)
+        if gui:
+            return gui
+        return "en"
 
     async def _resolve_transcript(
         self,

@@ -1,9 +1,9 @@
 """Chat routes – text and voice entry points for the orchestrator."""
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from src.api.deps import get_orchestrator
 from src.security.exceptions import InputValidationError
@@ -24,6 +24,20 @@ ALLOWED_AUDIO_CONTENT_TYPES = {
     "application/octet-stream",  # some browsers omit a proper type
 }
 
+_GUI_LANGUAGES = frozenset({"en", "de", "hu"})
+
+
+def _require_gui_language(value: str | None) -> str | None:
+    """Accept only exact ``en`` / ``de`` / ``hu``, or omit (``None``)."""
+    if value is None:
+        return None
+    if value not in _GUI_LANGUAGES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="gui_language must be one of: en, de, hu",
+        )
+    return value
+
 
 class TextChatRequest(BaseModel):
     """JSON body for pure text chat.
@@ -31,10 +45,20 @@ class TextChatRequest(BaseModel):
     Attributes:
         text: User message (1–4000 characters).
         language: Forced chat language (``en`` / ``de`` / ``hu``). Omit for auto-detect.
+        gui_language: GUI / Help-flag language for weak STT fallback only.
     """
 
     text: str = Field(..., min_length=1, max_length=4000)
     language: str | None = Field(default=None, max_length=8)
+    gui_language: Literal["en", "de", "hu"] | None = Field(default=None)
+
+    @field_validator("gui_language", mode="before")
+    @classmethod
+    def _reject_blank_gui_language(cls, value: object) -> object:
+        """Empty string is invalid (untrusted client); omit the field instead."""
+        if value == "":
+            raise ValueError("gui_language must be one of: en, de, hu")
+        return value
 
 
 class ChatResponse(BaseModel):
@@ -79,7 +103,11 @@ async def chat_text(
         ChatResponse with transcript, reply and optional audio.
     """
     try:
-        result = await orchestrator.process(text=body.text, language=body.language)
+        result = await orchestrator.process(
+            text=body.text,
+            language=body.language,
+            gui_language=body.gui_language,
+        )
         return _chat_payload(result)
     except InputValidationError as e:
         raise HTTPException(
@@ -115,6 +143,7 @@ async def chat_voice(
     audio: Annotated[UploadFile, File(description="Audio file (wav, webm, …)")],
     orchestrator: Annotated[ChatOrchestrator, Depends(get_orchestrator)],
     language: Annotated[str | None, Form()] = None,
+    gui_language: Annotated[str | None, Form()] = None,
 ) -> ChatResponse:
     """Process a voice message: STT → Memory → LLM → TTS.
 
@@ -125,6 +154,7 @@ async def chat_voice(
         audio: Uploaded audio file (wav, webm, …).
         orchestrator: Injected chat orchestrator for the current user.
         language: Forced chat language (``de`` / ``en`` / ``hu``). Omit for auto-detect.
+        gui_language: GUI language for weak-transcript fallback (not forced chat).
 
     Returns:
         ChatResponse with transcript, reply and optional audio.
@@ -153,6 +183,7 @@ async def chat_voice(
         result = await orchestrator.process(
             audio_bytes=audio_bytes,
             language=language,
+            gui_language=_require_gui_language(gui_language),
         )
         return _chat_payload(result)
     except InputValidationError as e:
