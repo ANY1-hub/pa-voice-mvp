@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Weak or garbage utterances fall back to `gui_language` (Help flag); forced chat language still wins; missing GUI defaults to English. `/chat/text` and `/chat/voice` accept only exact `en` / `de` / `hu` for `gui_language` (422 otherwise).
 - Help-panel Web Search examples include a real subject so they still match after the bare-deixis gate; bare `was ist` / `what is` / `mi az` stay in matching vocab only.
 - Shared `ö` / `ü` alone are not a clear German signal; HU/DE STT hints beat umlaut-only text.
+- Working Memory turns are sent as chronological `user` / `assistant` chat roles (limit 8, oldest-first); personal facts stay in the untrusted system block; reply-language instruction still last-wins.
 
 ## [Unreleased] 2026-09-04
 

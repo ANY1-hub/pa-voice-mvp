@@ -439,10 +439,10 @@ async def test_skill_exception_falls_through_to_llm(
 async def test_personal_utterance_writes_semantic_facts(
     mock_llm, mock_tts, mock_working_memory, mock_semantic_memory
 ):
-    """A first-person preference must be stored in Semantic Memory after the reply."""
+    """A first-person preference must be stored in Semantic Memory (extract before reply)."""
     mock_llm.generate_response.side_effect = [
-        "I'll remember that you like espresso.",
         '{"facts":[{"content":"User likes espresso","entities":["espresso"]}]}',
+        "I'll remember that you like espresso.",
     ]
     mock_semantic_memory.add_fact = AsyncMock()
 
@@ -468,8 +468,8 @@ async def test_fact_extraction_failure_does_not_break_turn(
 ):
     """A failed fact-extract call must not hide the assistant reply."""
     mock_llm.generate_response.side_effect = [
-        "Nice to meet you, Tony.",
         RuntimeError("extract down"),
+        "Nice to meet you, Tony.",
     ]
 
     orch = ChatOrchestrator(
@@ -490,8 +490,8 @@ async def test_semantic_add_fact_failure_does_not_break_turn(
 ):
     """A Semantic Memory write error after extraction must not hide the reply."""
     mock_llm.generate_response.side_effect = [
-        "Got it.",
         '{"facts":[{"content":"User likes tea","entities":["tea"]}]}',
+        "Got it.",
     ]
     mock_semantic_memory.add_fact = AsyncMock(side_effect=RuntimeError("write down"))
 
@@ -553,9 +553,12 @@ async def test_german_turn_overrides_working_memory_english_lock(
 
     messages = mock_llm.generate_response.await_args.args[0]
     system = messages[0]["content"]
-    assert "stick to English" in system
-    assert system.index("Reply in German") > system.index("stick to English")
+    assistant_bits = "\n".join(
+        m["content"] for m in messages if m.get("role") == "assistant"
+    )
+    assert "stick to English" in assistant_bits
     assert reply_language_instruction("de") in system
+    assert "stick to English" not in system
 
 
 @pytest.mark.asyncio
@@ -571,8 +574,12 @@ async def test_hungarian_turn_overrides_working_memory_english_lock(
 
     messages = mock_llm.generate_response.await_args.args[0]
     system = messages[0]["content"]
-    assert system.index("Reply in Hungarian") > system.index("stick to English")
+    assistant_bits = "\n".join(
+        m["content"] for m in messages if m.get("role") == "assistant"
+    )
+    assert "stick to English" in assistant_bits
     assert reply_language_instruction("hu") in system
+    assert "stick to English" not in system
 
 
 @pytest.mark.asyncio
