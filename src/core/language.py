@@ -136,8 +136,7 @@ def detect_clear_response_language(
         return "de"
     if _EN_STRONG.search(text):
         return "en"
-    if any(c in _SHARED_UMLAUTS for c in text):
-        return "de"
+    # Shared ö/ü alone are not a clear DE signal (Hungarian uses them too).
     return heuristic_language(text)
 
 
@@ -163,10 +162,16 @@ def detect_response_language(
     Returns:
         One of ``"en"``, ``"de"``, ``"hu"``.
     """
+    text_stripped = _without_ignored(text, ignore)
     clear = detect_clear_response_language(text, ignore=ignore)
     if clear:
         return clear
     hint_code = _hint_code(hint)
+    # HU/DE STT hints beat shared ö/ü-only text; shared umlauts then prefer DE.
+    if hint_code in {"de", "hu"}:
+        return hint_code
+    if any(c in _SHARED_UMLAUTS for c in text_stripped):
+        return "de"
     if hint_code:
         return hint_code
     return "en"

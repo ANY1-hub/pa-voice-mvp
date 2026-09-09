@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - WebSearch `can_handle` returns false when the post-trigger remainder is empty or a lone deictic (`das` / `this` / `that` / `diese`|`dieser`|`dieses` / `ez` / `az` / …), so the registry falls through to the LLM.
 - Weak or garbage utterances fall back to `gui_language` (Help flag); forced chat language still wins; missing GUI defaults to English. `/chat/text` and `/chat/voice` accept only exact `en` / `de` / `hu` for `gui_language` (422 otherwise).
+- Help-panel Web Search examples include a real subject so they still match after the bare-deixis gate; bare `was ist` / `what is` / `mi az` stay in matching vocab only.
+- Shared `ö` / `ü` alone are not a clear German signal; HU/DE STT hints beat umlaut-only text.
 
 ## [Unreleased] 2026-09-04
 

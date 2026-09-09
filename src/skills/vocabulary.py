@@ -265,6 +265,48 @@ WEB_SEARCH: dict[str, list[str]] = {
 
 WEB_SEARCH_EXTRA = ["search", "lookup", "suche", "finde", "nachschlagen", "keress"]
 
+# Help-panel examples must include a real subject so WebSearch can_handle
+# still claims them after the empty/deixis gate (bare "what is" / "was ist" /
+# "mi az" fall through to the LLM by design).
+WEB_SEARCH_HELP: dict[str, list[str]] = {
+    "en": [
+        "search for the capital of France",
+        "look up Albert Einstein",
+        "look that up on Wikipedia",
+        "google RAG",
+        "find out what RAG means",
+        "what is RAG",
+        "who is Angela Merkel",
+        "search the web for Python",
+        "can you search for Budapest",
+        "search the internet for FastAPI",
+    ],
+    "de": [
+        "suche nach der Hauptstadt von Frankreich",
+        "suche im internet nach RAG",
+        "schlag nach Angela Merkel",
+        "finde heraus was RAG ist",
+        "google RAG",
+        "was ist RAG",
+        "wer ist Angela Merkel",
+        "recherchiere Python",
+        "such mal nach Budapest",
+        "im web suchen nach FastAPI",
+    ],
+    "hu": [
+        "keress rá a francia fővárosra",
+        "keresd meg Albert Einsteint",
+        "googlezd a RAG-ot",
+        "nézz utána a RAG-nak",
+        "mi az a RAG",
+        "ki az Angela Merkel",
+        "keress az interneten a Pythonról",
+        "tudakold meg Budapestet",
+        "keresés RAG",
+        "utánanéznél a FastAPI-nak",
+    ],
+}
+
 # ---------------------------------------------------------------------------
 # Active recall
 # ---------------------------------------------------------------------------
@@ -530,7 +572,7 @@ def help_catalog(lang: str) -> dict[str, list[str]]:
             + REMINDERS_LOOKUP[lang]
             + REMINDERS_DELETE[lang]
         ),
-        "web_search": WEB_SEARCH[lang],
+        "web_search": WEB_SEARCH_HELP[lang],
         "active_recall": ACTIVE_RECALL[lang],
         "personal_facts": PERSONAL_FACTS[lang],
     }
