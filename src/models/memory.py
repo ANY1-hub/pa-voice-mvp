@@ -68,6 +68,9 @@ class SemanticMemoryFact(BaseModel):
         created_at: Creation timestamp (UTC).
         last_accessed: Last access timestamp (UTC).
         embedding: Optional vector embedding for similarity search.
+        language: Optional ISO language tag of the original text.
+        slot: Optional durable slot id (e.g. ``name``); succession uses ``valid_to``.
+        valid_to: When set, this fact is superseded and must not win recall.
     """
 
     id: str = Field(default_factory=lambda: str(uuid4()))
@@ -79,3 +82,5 @@ class SemanticMemoryFact(BaseModel):
     last_accessed: datetime = Field(default_factory=now_utc)
     embedding: list[float] | None = None
     language: str | None = None
+    slot: str | None = None
+    valid_to: datetime | None = None

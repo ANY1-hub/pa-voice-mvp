@@ -391,6 +391,7 @@ def get_orchestrator(
     semantic_memory: Annotated[SemanticMemory, Depends(get_semantic_memory)],
     skill_registry: Annotated[SkillRegistry, Depends(get_skill_registry)],
     current_user: Annotated[User, Depends(get_current_ready_user)],
+    user_repository: Annotated[UserRepository, Depends(get_user_repository)],
 ) -> ChatOrchestrator:
     """Wire a ChatOrchestrator for the current authenticated user.
 
@@ -402,6 +403,7 @@ def get_orchestrator(
         semantic_memory: User-scoped semantic memory.
         skill_registry: Registry of available skills for the current user.
         current_user: Ready user (password + display name already set).
+        user_repository: User store for display_name updates from name utterances.
 
     Returns:
         Fully wired ``ChatOrchestrator``.
@@ -414,4 +416,5 @@ def get_orchestrator(
         semantic_memory=semantic_memory,
         skill_registry=skill_registry,
         display_name=current_user.display_name,
+        user_repository=user_repository,
     )

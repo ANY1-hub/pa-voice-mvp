@@ -8,7 +8,7 @@ from typing import Any
 
 from src.memory.semantic_memory import SemanticMemory
 from src.models.memory import SemanticMemoryFact
-from src.services.memory_facts import ADDRESS_FACT_PREFIX
+from src.services.memory_facts import ADDRESS_FACT_PREFIX, is_identity_name_fact
 from src.skills.base import Skill, SkillResult
 from src.skills.replies import reply_language, t
 from src.skills.vocabulary import (
@@ -94,6 +94,19 @@ class ActiveRecallSkill(Skill):
                 handled=True,
             )
 
+        display_name = deps.get("display_name")
+        # Name questions: User.display_name only (leftover SM names must not win).
+        if _NAME_RE.search(user_text):
+            if display_name:
+                return SkillResult(
+                    response_text=t(_REPLIES, lang, "address_as", name=display_name),
+                    handled=True,
+                )
+            return SkillResult(
+                response_text=t(_REPLIES, lang, "empty_all"),
+                handled=True,
+            )
+
         try:
             facts = await self.semantic_memory.search(query=query, limit=6)
         except Exception:
@@ -107,7 +120,7 @@ class ActiveRecallSkill(Skill):
             query,
             facts,
             lang,
-            display_name=deps.get("display_name"),
+            display_name=display_name,
         )
 
     def _extract_query(self, user_text: str) -> str:
@@ -135,7 +148,10 @@ class ActiveRecallSkill(Skill):
             seen.add(address.casefold())
             lines.append(f"- {address}")
         for fact in facts:
-            if about_user and fact.content.startswith(ADDRESS_FACT_PREFIX):
+            if about_user and (
+                fact.content.startswith(ADDRESS_FACT_PREFIX)
+                or is_identity_name_fact(fact.content)
+            ):
                 continue
             key = fact.content.strip().casefold()
             if key in seen:

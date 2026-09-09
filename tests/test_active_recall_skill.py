@@ -94,8 +94,8 @@ async def test_execute_dedupes_identical_fact_lines():
 
 
 @pytest.mark.asyncio
-async def test_execute_name_question_searches_about_the_user():
-    """A name question must look up personal facts, not a leftover topic string."""
+async def test_execute_name_question_uses_display_name_without_sm_search():
+    """Name questions answer from User.display_name only; SM is not searched."""
     mock_sem = MagicMock()
     mock_sem.search = AsyncMock(return_value=[])
     skill = ActiveRecallSkill(semantic_memory=mock_sem)
@@ -106,8 +106,7 @@ async def test_execute_name_question_searches_about_the_user():
     )
     assert result.handled is True
     assert "Akosh" in result.response_text
-    mock_sem.search.assert_awaited()
-    assert mock_sem.search.await_args.kwargs["query"] == ""
+    mock_sem.search.assert_not_awaited()
 
 
 @pytest.mark.asyncio

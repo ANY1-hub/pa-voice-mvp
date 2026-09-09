@@ -61,22 +61,43 @@ class SemanticMemory:
         self.collection = collection
         self.embeddings = embeddings_adapter
 
+    @staticmethod
+    def _current_only_clause() -> dict:
+        """Mongo clause: fact is current (no valid_to / still open)."""
+        return {
+            "$or": [
+                {"valid_to": {"$exists": False}},
+                {"valid_to": None},
+            ]
+        }
+
+    def _user_current_filter(self, extra: dict | None = None) -> dict:
+        """user_id + current-only, optionally merged with more predicates."""
+        query: dict = {"user_id": self.user_id, **self._current_only_clause()}
+        if extra:
+            query.update(extra)
+        return query
+
     async def add_fact(
         self,
         fact: str,
         importance: float = 0.7,
         entities: list[str] | None = None,
         language: str | None = None,
+        slot: str | None = None,
     ) -> SemanticMemoryFact:
         """Store a new long-term fact.
 
         Performs security validation and optionally creates an embedding.
+        When ``slot`` is set (Decision 002), any prior *current* fact for this
+        user and slot is closed with ``valid_to`` before the insert (succession).
 
         Args:
             fact: Text content of the fact.
             importance: Importance score in ``[0.0, 1.0]`` (default ``0.7``).
             entities: Optional list of entity names involved in the fact.
             language: Optional ISO language tag of the original text.
+            slot: Optional durable slot id (e.g. ``name``).
 
         Returns:
             The created ``SemanticMemoryFact`` (also persisted when a collection
@@ -99,6 +120,15 @@ class SemanticMemory:
                 logger.exception("Embedding failed for fact – storing without vector")
                 embedding = None
 
+        now = datetime.now(UTC)
+
+        # 2b. Slot succession: close prior current rows for this user+slot
+        if slot and self.collection is not None:
+            await self.collection.update_many(
+                self._user_current_filter({"slot": slot}),
+                {"$set": {"valid_to": now}},
+            )
+
         # 3. Model validation
         memory_fact = SemanticMemoryFact(
             user_id=self.user_id,
@@ -107,6 +137,8 @@ class SemanticMemory:
             entities_involved=entities or [],
             embedding=embedding,
             language=language,
+            slot=slot,
+            valid_to=None,
         )
 
         # 4. Persistence (skip insert if this user already has the same text)
@@ -272,7 +304,7 @@ class SemanticMemory:
         vector_hits: list[tuple[float, SemanticMemoryFact]] = []
         text_hits: list[tuple[float, SemanticMemoryFact]] = []
 
-        cursor = self.collection.find({"user_id": self.user_id})
+        cursor = self.collection.find(self._user_current_filter())
         async for doc in cursor:
             assign_stable_id(doc)
             doc.pop("_id", None)
@@ -315,7 +347,7 @@ class SemanticMemory:
         if self.collection is None:
             return []
         cursor = (
-            self.collection.find({"user_id": self.user_id})
+            self.collection.find(self._user_current_filter())
             .sort("importance_score", -1)
             .limit(limit)
         )
@@ -334,10 +366,7 @@ class SemanticMemory:
 
         cursor = (
             self.collection.find(
-                {
-                    "user_id": self.user_id,
-                    "content": contains_regex(query),
-                }
+                self._user_current_filter({"content": contains_regex(query)})
             )
             .sort("importance_score", -1)
             .limit(limit)

@@ -12,6 +12,7 @@ import time
 from dataclasses import dataclass, field
 from uuid import uuid4
 
+from src.auth.repository import UserRepository
 from src.core.language import (
     detect_clear_response_language,
     detect_response_language,
@@ -21,7 +22,12 @@ from src.memory.semantic_memory import SemanticMemory
 from src.memory.working_memory import WorkingMemory
 from src.security.guardrails import process_user_message
 from src.services.llm.base import LLMAdapter, LLMResult, as_llm_result
-from src.services.memory_facts import FACT_IMPORTANCE, extract_personal_facts
+from src.services.memory_facts import (
+    FACT_IMPORTANCE,
+    display_name_from_name_fact,
+    extract_personal_facts,
+    is_name_slot_fact,
+)
 from src.services.stt.base import STTAdapter
 from src.services.tts.base import TTSAdapter
 from src.skills.base import SkillResult
@@ -158,6 +164,7 @@ class ChatOrchestrator:
         semantic_memory: SemanticMemory | None = None,
         skill_registry: SkillRegistry | None = None,
         display_name: str | None = None,
+        user_repository: UserRepository | None = None,
     ) -> None:
         """Wire the adapters used for one chat turn.
 
@@ -169,6 +176,7 @@ class ChatOrchestrator:
             semantic_memory: Optional long-term fact store.
             skill_registry: Optional skills store for the current user.
             display_name: Preferred name Jarvis should use, if known.
+            user_repository: Optional user store for display_name updates.
         """
         self.llm = llm
         self.stt = stt
@@ -177,6 +185,7 @@ class ChatOrchestrator:
         self.semantic_memory = semantic_memory
         self.skill_registry = skill_registry
         self.display_name = display_name
+        self.user_repository = user_repository
 
     async def process(
         self,
@@ -604,11 +613,27 @@ class ChatOrchestrator:
             facts = await extract_personal_facts(self.llm, user_text)
             for fact in facts:
                 try:
+                    slot = "name" if is_name_slot_fact(fact.content) else None
+                    if slot:
+                        preferred = display_name_from_name_fact(
+                            fact.content, fact.entities
+                        )
+                        if preferred:
+                            self.display_name = preferred
+                            if (
+                                self.user_repository is not None
+                                and self.working_memory is not None
+                            ):
+                                await self.user_repository.set_display_name(
+                                    self.working_memory.user_id,
+                                    preferred,
+                                )
                     await self.semantic_memory.add_fact(
                         fact=fact.content,
                         importance=FACT_IMPORTANCE,
                         entities=fact.entities,
                         language=fact.language,
+                        slot=slot,
                     )
                 except Exception:
                     logger.exception("Failed to store extracted fact")

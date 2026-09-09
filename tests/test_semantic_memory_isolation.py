@@ -43,14 +43,31 @@ def _fact(
     }
 
 
+def _field_ops_match(doc: dict, key: str, ops: dict) -> bool:
+    """Match one field against Mongo operators used by current-only search."""
+    if "$exists" in ops and bool(ops["$exists"]) != (key in doc):
+        return False
+    if "$regex" in ops:
+        flags = re.IGNORECASE if "i" in str(ops.get("$options", "")) else 0
+        if re.search(ops["$regex"], str(doc.get(key, "")), flags) is None:
+            return False
+    return not ("$ne" in ops and doc.get(key) == ops["$ne"])
+
+
 def _doc_matches(doc: dict, query: dict) -> bool:
-    """Apply a subset of Mongo equality / $regex matching used by search."""
+    """Apply Mongo equality / $regex / $or / $exists used by current-only search."""
     for key, value in query.items():
-        if isinstance(value, dict) and "$regex" in value:
-            flags = re.IGNORECASE if "i" in str(value.get("$options", "")) else 0
-            if re.search(value["$regex"], str(doc.get(key, "")), flags) is None:
+        if key == "$or":
+            if not any(_doc_matches(doc, clause) for clause in value):
                 return False
-        elif doc.get(key) != value:
+            continue
+        if isinstance(value, dict) and any(k.startswith("$") for k in value):
+            if not _field_ops_match(doc, key, value):
+                return False
+            continue
+        if isinstance(value, dict):
+            continue
+        if doc.get(key) != value:
             return False
     return True
 

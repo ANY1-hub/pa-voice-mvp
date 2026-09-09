@@ -16,6 +16,67 @@ logger = logging.getLogger(__name__)
 FACT_IMPORTANCE = 0.75
 ADDRESS_FACT_PREFIX = "The user prefers to be addressed as"
 
+_NAME_SLOT_FACT_RE = re.compile(
+    r"\buser'?s?\s+name\s+is\b|"
+    r"\buser\s+is\s+called\b|"
+    r"\bich\s+hei(?:ss|ß)e\b|"
+    r"\ba\s+nevem\b|"
+    r"\bmein\s+name\s+ist\b",
+    re.IGNORECASE,
+)
+_BARE_PERSON_NAME_RE = re.compile(
+    r"^[A-Za-zÀ-ÖØ-öø-ÿÁÉÍÓÖŐÚÜŰáéíóöőúüű][A-Za-zÀ-ÖØ-öø-ÿÁÉÍÓÖŐÚÜŰáéíóöőúüű'\-]*"
+    r"(?:\s+[A-Za-zÀ-ÖØ-öø-ÿÁÉÍÓÖŐÚÜŰáéíóöőúüű][A-Za-zÀ-ÖØ-öø-ÿÁÉÍÓÖŐÚÜŰáéíóöőúüű'\-]*){0,2}$"
+)
+
+
+def is_identity_name_fact(content: str) -> bool:
+    """True when a Semantic Memory line is a leftover identity/name claim."""
+    text = (content or "").strip()
+    if not text:
+        return False
+    if text.startswith(ADDRESS_FACT_PREFIX):
+        return True
+    if _NAME_SLOT_FACT_RE.search(text):
+        return True
+    bare = text.rstrip(".").strip()
+    return bool(_BARE_PERSON_NAME_RE.fullmatch(bare))
+
+
+_NAME_VALUE_RE = re.compile(
+    r"(?:"
+    r"user'?s?\s+name\s+is\s+|"
+    r"user\s+is\s+called\s+|"
+    r"ich\s+hei(?:ss|ß)e\s+|"
+    r"mein\s+name\s+ist\s+|"
+    r"a\s+nevem\s*"
+    r")(.+)$",
+    re.IGNORECASE,
+)
+
+
+def is_name_slot_fact(content: str) -> bool:
+    """True when extracted content belongs in the durable ``name`` slot.
+
+    Covers EN / DE / HU name statements (not English-only).
+    """
+    return bool(_NAME_SLOT_FACT_RE.search(content or ""))
+
+
+def display_name_from_name_fact(
+    content: str, entities: list[str] | None = None
+) -> str | None:
+    """Pull the preferred name from a name-slot fact or its entities."""
+    for ent in entities or []:
+        cleaned = (ent or "").strip()
+        if cleaned:
+            return cleaned
+    match = _NAME_VALUE_RE.search((content or "").strip().rstrip("."))
+    if match:
+        return match.group(1).strip(" :,-").strip() or None
+    return None
+
+
 # Cheap gate so greetings do not pay a second LLM call.
 _PERSONAL_CUE = re.compile(
     r"\b("

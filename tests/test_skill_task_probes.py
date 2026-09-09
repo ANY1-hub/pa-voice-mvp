@@ -170,7 +170,12 @@ def test_probe_reminders_delete_cancels_and_drops_summary(
 
 
 def test_probe_recall_reads_semantic_fact(probe_client: TestClient, probe_auth: tuple):
-    """Active recall must surface a fact previously stored in Semantic Memory."""
+    """Active recall must surface a fact previously stored in Semantic Memory.
+
+    Ask about the topic token that appears in the stored sentence. A bare
+    "about me" remainder is the substring "me", which does not match
+    arbitrary personal facts under text search.
+    """
     headers, _user_id = probe_auth
     seeded = probe_client.post(
         "/api/v1/memory/semantic",
@@ -186,7 +191,7 @@ def test_probe_recall_reads_semantic_fact(probe_client: TestClient, probe_auth: 
     res = probe_client.post(
         "/api/v1/chat/text",
         headers=headers,
-        json={"text": "what do you know about me", "language": "en"},
+        json={"text": "what do you know about espresso", "language": "en"},
     )
     assert res.status_code == 200, res.text
     assert "espresso" in res.json()["response"].lower()
