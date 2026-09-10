@@ -122,7 +122,7 @@ uvicorn src.main:app --reload
 
 Checks:
 
-1. `GET http://127.0.0.1:8000/health` → ok
+1. `GET http://127.0.0.1:8000/health` → 200 `status: ok` (503 if Mongo is unreachable)
 2. Write a fact via memory API (`working_memory` / `semantic_memory`)
 3. Restart the app → data still present
 4. Recreate the container **with the same volume** → data still present

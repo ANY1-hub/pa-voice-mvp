@@ -1,4 +1,4 @@
-﻿# AGENTS.md — pa-voice-mvp (Jarvis)
+# AGENTS.md — pa-voice-mvp (Jarvis)
 
 Standing handbook for coding agents. Keep this short. No secrets, no session handoffs, no NEXUS-in-product.
 
@@ -11,6 +11,28 @@ Personal voice PA MVP (Masterschool). Repo: ANY1-hub/pa-voice-mvp. Working branc
 - This-month MVP: 2-level WM+SM, notes, reminders, tenant isolation, voice EN/DE/HU.
 - Out of scope unless a task explicitly says otherwise: 4-level Brain, family sharing, travel-time, video, LLM skill-router, WebSockets, NEXUS-as-product.
 
+## Do-not-repeat (MVP)
+Canonical collaborator-memory recall phrase (any LLM/agent with NEXUS): `pa-voice-mvp do-not-repeat`.
+Same rules apply when you only have this file:
+
+**Method**
+1. Absolutes live here + NEXUS phrase above.
+2. Open fixes go through an approved Slice-Brief (not drive-by patches).
+3. Regressions are locked by tests/mutations — memory alone is not a control.
+
+**Absolutes**
+- Never `uv` / sync from WSL against this Windows `.venv`.
+- Wipe/tests only on a DB whose name contains `test` (`jarvis_test`); never production `jarvis_db`.
+- One exclusive pytest at a time on shared NAS `jarvis_test` (agent Shells can double-invoke).
+- A green suite is a claim until a property mutation goes red; negatives need a control twin.
+- Isolation: two real users. Do not mock away orchestrator/JWT on chat seams. Do not compensate production bugs in tests.
+- Prompt-injection blocklist is a heuristic, not a control — wrap/spotlight untrusted text as data.
+- No weak/placeholder `SECRET_KEY` at runtime. Never commit secrets.
+- Tenant isolation always. Commit only after full suite + coverage floor (file/`--no-cov` is TDD loop only).
+
+**Open security backlog (REVIEWEXTERN 2026-09-07)** — treat as Slice-Brief queue, do not invent:
+P1-3 login rate limit; P1-5 audio size before body; P1-7 CI deps=image; P1-2 blocklist whitespace; then P2 (mypy in CI first). Already done: P0-1 SECRET_KEY placeholder reject; P1-1 superuser mutation-proof tests; P1-4 health+DB; P1-6 ffmpeg timeout; P2-5 missing model key.
+
 ## Environment
 - Local path (Ákos laptop): `C:\Users\nyiry\DEV\pa-voice-mvp`
 - Use Windows `.venv` / project tooling; never `uv` from WSL for this tree.
@@ -19,13 +41,12 @@ Personal voice PA MVP (Masterschool). Repo: ANY1-hub/pa-voice-mvp. Working branc
 ## Quality loop (Grok Bot team)
 Live: Coordinator-Bot (dispatcher; only coding voice to user) → Test-Manager (writes + runs tests) → Code-Writer1 (product only after failing test names) → Code-Write-Manager (audit only).
 
-Non-trivial work: **Slice-Brief** first (goal, out-of-scope, architecture, security/threats, docs duty) approved by Ákos before tests/code. Use the shared skills Slice Brief and Threat Pass when available in the agent host.
+Non-trivial work: **Slice-Brief** first (goal, out-of-scope, architecture, security/threats, docs duty) approved by Ákos before tests/code. Use shared skills Slice Brief and Threat Pass when available.
 
 Done gates:
-- TDD loop may use names then file with --no-cov for speed.
-- Commit / CI-ok only when Test-Manager reports **full suite pass with the project coverage floor** (same as CI). File-only / --no-cov is never a commit signal.
-- Tests-only: full-suite+coverage pass → commit tests.
-- Product patch: Code-Write-Manager three lines rchitecture ok | security ok | clean+docs ok **and** Test-Manager full-suite+coverage pass → commit.
+- TDD loop may use names then file with `--no-cov` for speed.
+- Commit / CI-ok only when Test-Manager reports **full suite pass with the project coverage floor** (same as CI). File-only / `--no-cov` is never a commit signal.
+- Product patch: Code-Write-Manager three lines `architecture ok | security ok | clean+docs ok` **and** Test-Manager full-suite+coverage pass → commit.
 
 User pushes unless they ask the coordinator to push. `STOP` voids Writer assignments. Jobsuche is a separate bot, not this loop.
 

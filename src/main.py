@@ -3,8 +3,9 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from src.api.routes.admin import router as admin_router
@@ -14,7 +15,7 @@ from src.api.routes.memory import router as memory_router
 from src.api.routes.notes import router as notes_router
 from src.api.routes.reminders import router as reminders_router
 from src.api.routes.skills import router as skills_router
-from src.db.mongodb import close_mongo_connection, connect_to_mongo
+from src.db.mongodb import close_mongo_connection, connect_to_mongo, db_client
 from src.tasks.scheduler import start_scheduler, stop_scheduler
 
 
@@ -54,11 +55,31 @@ app.include_router(reminders_router, prefix="/api/v1/reminders", tags=["reminder
 
 @app.get("/health")
 async def health_check():
-    """Simple health check endpoint.
+    """Readiness probe: cheap Mongo ping before claiming ok.
 
     Returns:
-        Dict with ``status`` and a short message.
+        200 + ``status: ok`` when Mongo answers ``ping``; otherwise 503 with an
+        honest non-ok status. Body never includes secrets or connection URIs.
     """
+    client = db_client.client
+    if client is None:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={
+                "status": "unavailable",
+                "message": "Database not connected",
+            },
+        )
+    try:
+        await client.admin.command("ping")
+    except Exception:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={
+                "status": "unavailable",
+                "message": "Database unreachable",
+            },
+        )
     return {"status": "ok", "message": "Jarvis backend is running"}
 
 

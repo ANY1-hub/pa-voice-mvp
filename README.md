@@ -137,6 +137,8 @@ Open http://localhost:5500 — the UI calls the API on port **8000** on the same
 
 **Ports:** humans use **5500** (UI) and **8000** (API). Pytest starts uvicorn on an ephemeral port and sets `window.JARVIS_API_BASE` so it cannot steal or confuse those two. FastAPI also serves the UI at http://localhost:8000 (Docker); that is not the local two-terminal workflow.
 
+`GET /health` is readiness: it cheap-pings Mongo and returns **200** `status: ok` only when the DB is reachable; otherwise **503** with an honest non-ok status (no secrets in the body).
+
 Piper voice models must be present (see [docs/piper-voice-setup.md](docs/piper-voice-setup.md)).
 
 Voice UI bootstrap is tested with a headless browser (Playwright). The `playwright` extra does **not** download an engine; run `playwright install chromium` (default). If that binary is missing, the chromium family falls back to installed Chrome or Edge. Another engine: `playwright install firefox` then `JARVIS_E2E_BROWSER=firefox pytest tests/test_voice_ui_bootstrap.py`.
