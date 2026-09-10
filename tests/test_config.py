@@ -19,6 +19,8 @@ def test_settings_defaults(monkeypatch):
     assert settings.mongodb_db_name == "jarvis_db"
     assert settings.openai_api_key is None
     assert settings.access_token_expire_minutes == 1440
+    assert settings.login_max_attempts == 5
+    assert settings.login_window_seconds == 900
 
 
 def test_settings_override_from_values():

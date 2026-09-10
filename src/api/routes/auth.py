@@ -2,7 +2,7 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from motor.motor_asyncio import AsyncIOMotorCollection
 from pymongo.errors import DuplicateKeyError
 
@@ -12,6 +12,7 @@ from src.api.deps import (
     get_user_repository,
 )
 from src.auth.jwt import create_access_token
+from src.auth.login_limiter import login_limiter
 from src.auth.password import hash_password, verify_password
 from src.auth.repository import UserRepository
 from src.memory.semantic_memory import SemanticMemory
@@ -91,23 +92,50 @@ async def register(
     return user.to_public()
 
 
+def _client_ip(request: Request) -> str:
+    """Peer address for the login window; no X-Forwarded-For (MVP has no proxy)."""
+    if request.client is None:
+        return "unknown"
+    return request.client.host or "unknown"
+
+
 @router.post("/login")
 async def login(
     payload: UserLogin,
+    request: Request,
     repo: UserRepository = Depends(get_user_repository),  # noqa: B008
 ) -> dict:
     """Authenticate and return a JWT access token.
 
     Args:
         payload: Login credentials (email + password).
+        request: Incoming request (client IP for the failure window).
         repo: Injected user repository.
 
     Returns:
         Dict with ``access_token`` and ``token_type`` (``\"bearer\"``).
     """
+    ip = _client_ip(request)
+    email = str(payload.email)
+    retry_after = login_limiter.blocked(ip, email)
+    if retry_after is not None:
+        logger.warning(
+            "login_rate_limited ip=%s email=%s retry_after=%s",
+            ip,
+            email.lower(),
+            retry_after,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many login attempts. Try again later.",
+            headers={"Retry-After": str(retry_after)},
+        )
+
     user = await repo.get_by_email(payload.email)
 
     if user is None or not verify_password(payload.password, user.hashed_password):
+        login_limiter.record_failure(ip, email)
+        logger.warning("login_failed ip=%s email=%s", ip, email.lower())
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -119,6 +147,7 @@ async def login(
             detail="User account is inactive",
         )
 
+    login_limiter.clear(ip, email)
     access_token = create_access_token(
         subject=user.id, token_version=user.token_version
     )

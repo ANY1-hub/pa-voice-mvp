@@ -2,7 +2,7 @@
 
 from functools import lru_cache
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Explicit weak placeholders (case/trim insensitive; padded variants also fail).
@@ -34,6 +34,8 @@ class Settings(BaseSettings):
         piper_voice_en: Path to British-English Piper voice.
         piper_voice_de: Path to German Piper voice.
         piper_voice_hu: Path to Hungarian Piper voice.
+        login_max_attempts: Failed logins per IP+email before 429.
+        login_window_seconds: Sliding window for that cap (default 15 min).
     """
 
     # --- Secrets ---
@@ -54,6 +56,8 @@ class Settings(BaseSettings):
     piper_voice_en: str = "voice_models/piper/en_GB-alan-medium.onnx"
     piper_voice_de: str = "voice_models/piper/de_DE-thorsten-medium.onnx"
     piper_voice_hu: str = "voice_models/piper/hu_HU-anna-medium.onnx"
+    login_max_attempts: int = Field(default=5, ge=1)
+    login_window_seconds: int = Field(default=900, ge=1)
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -47,7 +47,7 @@ JWT + bcrypt. Multi-user isolation enforced on every memory and chat route.
 |--------|-----------------------------------|----------------------------------------------------------|
 | GET    | `/api/v1/auth/bootstrap-status`   | Public – `{ needs_bootstrap: bool }`                     |
 | POST   | `/api/v1/auth/register`           | Only when 0 users; first user = SuperUser                |
-| POST   | `/api/v1/auth/login`              | Returns access token                                     |
+| POST   | `/api/v1/auth/login`              | Returns access token; **429** after repeated failures     |
 | GET    | `/api/v1/auth/me`                 | Current user (`must_change_password`, `display_name`, `timezone`) |
 | POST   | `/api/v1/auth/change-password`    | Change password; clears `must_change_password`           |
 | POST   | `/api/v1/auth/display-name`       | Set preferred name (how Jarvis should address the user)  |
