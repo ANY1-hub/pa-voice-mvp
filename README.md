@@ -106,10 +106,9 @@ Trigger phrases (EN / DE / HU) for Notes, Reminders, Web Search and Active Recal
 git clone https://github.com/ANY1-hub/pa-voice-mvp.git
 cd pa-voice-mvp
 
-# Create virtual environment and install (uv is the only package manager)
-uv venv .venv
-source .venv/bin/activate   # or .venv\Scripts\activate on Windows
-uv pip install -e ".[dev]"
+# Create virtual environment and install from the lock (uv is the only package manager)
+uv sync --extra dev
+# Windows: .venv\Scripts\activate   Linux/macOS: source .venv/bin/activate
 playwright install chromium   # default Voice UI engine (firefox / webkit optional)
 
 # Copy env and set MONGODB_URI (local Docker or NAS).

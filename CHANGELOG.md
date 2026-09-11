@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] 2026-09-11
 
+### Security
+- `uv.lock` cryptography 49.0.0 → 50.0.1 (PYSEC-2026-3552). CI already installs with `uv sync --frozen`; README Getting Started now uses `uv sync --extra dev` instead of floating `uv pip install`.
+
 ### Added
 - `POST /api/v1/chat/voice` rejects bodies over 10 MB **before** parse (413). Speak button shows remaining WAV-budget seconds (327) while recording and auto-stops at 0.
 
