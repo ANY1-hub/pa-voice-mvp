@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `POST /api/v1/chat/voice` rejects bodies over 10 MB **before** parse (413). Speak button shows remaining WAV-budget seconds (327) while recording and auto-stops at 0.
 
+### Fixed
+- Voice UI on `:5500` cache-busts `audio.js` and `main.css` with the Speak-countdown query so `boot()` cannot import a stale `audio.js` (login form stayed hidden).
+
 ## [Unreleased] 2026-09-10
 
 ### Added

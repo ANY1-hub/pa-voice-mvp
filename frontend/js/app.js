@@ -18,7 +18,7 @@ import {
 } from "./auth.js?v=2026-08-21-tz";
 import { sendText, sendVoice, setStatus, resetChatTimestamps, appendMessage, syncEmptyState } from "./chat.js";
 import { initSidebar } from "./sidebar.js";
-import { startRecordingSession, setSpeakingHandlers, stopTts, playBase64Audio, wavBudgetSeconds } from "./audio.js";
+import { startRecordingSession, setSpeakingHandlers, stopTts, playBase64Audio, wavBudgetSeconds } from "./audio.js?v=2026-09-11-speak-countdown";
 import { applyI18n, getChatLang, getLang, setChatLang, setLang, t } from "./i18n.js";
 import { API_BASE } from "./config.js?v=2026-08-21-signin";
 
