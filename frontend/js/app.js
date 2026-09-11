@@ -18,7 +18,7 @@ import {
 } from "./auth.js?v=2026-08-21-tz";
 import { sendText, sendVoice, setStatus, resetChatTimestamps, appendMessage, syncEmptyState } from "./chat.js";
 import { initSidebar } from "./sidebar.js";
-import { startRecordingSession, setSpeakingHandlers, stopTts, playBase64Audio, wavBudgetSeconds } from "./audio.js?v=2026-09-11-speak-countdown";
+import { startRecordingSession, setSpeakingHandlers, stopTts, playBase64Audio, wavBudgetSeconds, speakCountdownShouldShow } from "./audio.js?v=2026-09-11-speak-countdown-20";
 import { applyI18n, getChatLang, getLang, setChatLang, setLang, t } from "./i18n.js";
 import { API_BASE } from "./config.js?v=2026-08-21-signin";
 
@@ -558,21 +558,35 @@ function clearSpeakCountdown() {
     micIcon()?.classList.remove("hidden");
 }
 
+function paintSpeakCountdown(remaining) {
+    if (speakCountdownShouldShow(remaining)) {
+        if (speakCountdown) {
+            speakCountdown.textContent = String(remaining);
+            speakCountdown.classList.remove("hidden");
+        }
+        micIcon()?.classList.add("hidden");
+        return;
+    }
+    speakCountdown?.classList.add("hidden");
+    if (speakCountdown) speakCountdown.textContent = "";
+    micIcon()?.classList.remove("hidden");
+}
+
 function startSpeakCountdown() {
     let remaining = wavBudgetSeconds();
-    if (speakCountdown) {
-        speakCountdown.textContent = String(remaining);
-        speakCountdown.classList.remove("hidden");
-    }
-    micIcon()?.classList.add("hidden");
+    paintSpeakCountdown(remaining);
     countdownTimer = setInterval(() => {
         remaining -= 1;
-        if (remaining <= 0) {
-            if (speakCountdown) speakCountdown.textContent = "0";
+        if (remaining < 0) {
             void finishRecording();
             return;
         }
-        if (speakCountdown) speakCountdown.textContent = String(remaining);
+        if (remaining === 0) {
+            paintSpeakCountdown(0);
+            void finishRecording();
+            return;
+        }
+        paintSpeakCountdown(remaining);
     }, 1000);
 }
 

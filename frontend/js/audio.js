@@ -27,6 +27,22 @@ export function wavBudgetSeconds(maxBytes = MAX_AUDIO_UPLOAD_BYTES) {
     return Math.floor(maxBytes / WAV_BYTES_PER_SEC);
 }
 
+/** Show remaining seconds on the Speak button only in this last window. */
+export const SPEAK_COUNTDOWN_VISIBLE_SECONDS = 20;
+
+/**
+ * Whether the Speak button should show remaining seconds (last 20 s of budget).
+ * @param {number} remaining
+ * @returns {boolean}
+ */
+export function speakCountdownShouldShow(remaining) {
+    return (
+        Number.isFinite(remaining)
+        && remaining >= 0
+        && remaining <= SPEAK_COUNTDOWN_VISIBLE_SECONDS
+    );
+}
+
 /** Currently playing TTS element (if any). */
 let currentTts = null;
 

@@ -1,12 +1,13 @@
 """Slice-Brief 9 UX: remaining WAV-budget seconds on the Speak button.
 
 16 kHz mono 16-bit PCM → 32000 bytes/s. Floor(MAX_AUDIO_BYTES / 32000) = 327
-so an auto-stopped clip stays under the 10 MB upload cap. Idle: mic visible,
-countdown hidden. Recording: digits visible, mic hidden.
+so an auto-stopped clip stays under the 10 MB upload cap. Idle and early
+recording: mic visible, countdown hidden. Digits only in the last 20 seconds.
 """
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from playwright.sync_api import expect, sync_playwright
@@ -75,6 +76,8 @@ def test_audio_js_exports_wav_budget_seconds():
     """Frontend must export the same floor(bytes/rate) the button counts down."""
     src = (_FRONTEND / "js" / "audio.js").read_text(encoding="utf-8")
     assert "export function wavBudgetSeconds" in src
+    assert "export function speakCountdownShouldShow" in src
+    assert "SPEAK_COUNTDOWN_VISIBLE_SECONDS = 20" in src
 
 
 def test_idle_speak_button_hides_countdown_shows_mic():
@@ -94,8 +97,38 @@ def test_idle_speak_button_hides_countdown_shows_mic():
         server.shutdown()
 
 
-def test_recording_shows_wav_budget_seconds_on_speak_button():
-    """Click-to-speak must show remaining whole seconds and hide the mic icon."""
+def test_speak_countdown_helper_only_last_twenty_seconds():
+    """Digits belong in the last 20 s of WAV budget, not at 327 or 21."""
+    server, origin = _serve_frontend()
+    try:
+        with sync_playwright() as playwright:
+            browser = _launch_headless(playwright)
+            page = browser.new_page(viewport={"width": 1280, "height": 800})
+            page.goto(origin, wait_until="domcontentloaded")
+            shown = page.evaluate("""async () => {
+                    const m = await import("./js/audio.js?v=2026-09-11-speak-countdown-20");
+                    return {
+                        vis: m.SPEAK_COUNTDOWN_VISIBLE_SECONDS,
+                        full: m.speakCountdownShouldShow(327),
+                        early: m.speakCountdownShouldShow(21),
+                        late: m.speakCountdownShouldShow(20),
+                        one: m.speakCountdownShouldShow(1),
+                        zero: m.speakCountdownShouldShow(0),
+                    };
+                }""")
+            assert shown["vis"] == 20
+            assert shown["full"] is False
+            assert shown["early"] is False
+            assert shown["late"] is True
+            assert shown["one"] is True
+            assert shown["zero"] is True
+            browser.close()
+    finally:
+        server.shutdown()
+
+
+def test_recording_keeps_mic_until_last_twenty_seconds():
+    """Click-to-speak must keep the mic; digits stay hidden at the start of the budget."""
     server, origin = _serve_frontend()
     try:
         with sync_playwright() as playwright:
@@ -110,12 +143,11 @@ def test_recording_shows_wav_budget_seconds_on_speak_button():
             _open_app_with_long_chat(page, origin)
             page.evaluate(_FAKE_MIC)
             page.locator("#speakBtn").click()
-            countdown = page.locator("#speakCountdown")
-            expect(countdown).to_be_visible()
-            text = countdown.inner_text().strip()
-            assert text.isdigit(), f"countdown must be remaining seconds, got {text!r}"
-            assert int(text) == _WAV_BUDGET_SECONDS
-            expect(page.locator("#speakBtn .mic-icon")).to_be_hidden()
+            expect(page.locator("#speakBtn")).to_have_class(
+                re.compile(r"\brecording\b")
+            )
+            expect(page.locator("#speakCountdown")).to_be_hidden()
+            expect(page.locator("#speakBtn .mic-icon")).to_be_visible()
             browser.close()
     finally:
         server.shutdown()

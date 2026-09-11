@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Voice UI on `:5500` cache-busts `audio.js` and `main.css` with the Speak-countdown query so `boot()` cannot import a stale `audio.js` (login form stayed hidden).
+- Speak-button countdown digits show only in the last 20 seconds of the WAV budget; the mic stays until then.
 
 ## [Unreleased] 2026-09-10
 
