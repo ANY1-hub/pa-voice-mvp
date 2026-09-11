@@ -66,7 +66,7 @@ JWT + bcrypt. Multi-user isolation enforced on every memory and chat route.
 | Method | Path                      | Description                                      |
 |--------|---------------------------|--------------------------------------------------|
 | POST   | `/api/v1/chat/text`       | Text message → Memory context → LLM → TTS        |
-| POST   | `/api/v1/chat/voice`      | Audio upload → STT → Memory → LLM → TTS          |
+| POST   | `/api/v1/chat/voice`      | Audio upload → STT → Memory → LLM → TTS; **413** over 10 MB (before parse) |
 
 Both require `Authorization: Bearer <token>`.
 

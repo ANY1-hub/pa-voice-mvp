@@ -18,7 +18,7 @@ import {
 } from "./auth.js?v=2026-08-21-tz";
 import { sendText, sendVoice, setStatus, resetChatTimestamps, appendMessage, syncEmptyState } from "./chat.js";
 import { initSidebar } from "./sidebar.js";
-import { startRecordingSession, setSpeakingHandlers, stopTts, playBase64Audio } from "./audio.js";
+import { startRecordingSession, setSpeakingHandlers, stopTts, playBase64Audio, wavBudgetSeconds } from "./audio.js";
 import { applyI18n, getChatLang, getLang, setChatLang, setLang, t } from "./i18n.js";
 import { API_BASE } from "./config.js?v=2026-08-21-signin";
 
@@ -40,6 +40,7 @@ const changePasswordError   = document.getElementById("changePasswordError");
 const displayNameError      = document.getElementById("displayNameError");
 const speakBtn              = document.getElementById("speakBtn");
 const speakHint             = document.getElementById("speakHint");
+const speakCountdown        = document.getElementById("speakCountdown");
 const recIndicator          = document.getElementById("recIndicator");
 const speakingIndicator     = document.getElementById("speakingIndicator");
 const textInput             = document.getElementById("textInput");
@@ -61,6 +62,7 @@ let isRecording = false;
 let isProcessing = false;
 let isStarting = false;
 let currentStop = null;
+let countdownTimer = null;
 let dueTimer = null;
 const DUE_POLL_MS = 15000;
 
@@ -542,26 +544,64 @@ helpCloseBtn.addEventListener("click", () => {
 // ------------------------------------------------------------------
 // Voice / Text
 // ------------------------------------------------------------------
+function micIcon() {
+    return speakBtn?.querySelector(".mic-icon");
+}
+
+function clearSpeakCountdown() {
+    if (countdownTimer !== null) {
+        clearInterval(countdownTimer);
+        countdownTimer = null;
+    }
+    speakCountdown?.classList.add("hidden");
+    if (speakCountdown) speakCountdown.textContent = "";
+    micIcon()?.classList.remove("hidden");
+}
+
+function startSpeakCountdown() {
+    let remaining = wavBudgetSeconds();
+    if (speakCountdown) {
+        speakCountdown.textContent = String(remaining);
+        speakCountdown.classList.remove("hidden");
+    }
+    micIcon()?.classList.add("hidden");
+    countdownTimer = setInterval(() => {
+        remaining -= 1;
+        if (remaining <= 0) {
+            if (speakCountdown) speakCountdown.textContent = "0";
+            void finishRecording();
+            return;
+        }
+        if (speakCountdown) speakCountdown.textContent = String(remaining);
+    }, 1000);
+}
+
+async function finishRecording() {
+    if (!isRecording) return;
+    isRecording = false;
+    clearSpeakCountdown();
+    speakBtn.classList.remove("recording");
+    recIndicator.classList.add("hidden");
+    speakHint.textContent = t("speakHint");
+
+    setProcessing(true);
+    setStatus("Converting & thinking…");
+    try {
+        const wavBlob = await currentStop();
+        await sendVoice(wavBlob);
+    } catch (err) {
+        setStatus(err.message || "Voice request failed", true);
+    } finally {
+        currentStop = null;
+        setProcessing(false);
+    }
+}
+
 speakBtn.addEventListener("click", async () => {
     if (isProcessing || isStarting) return;
 
     if (isRecording) {
-        isRecording = false;
-        speakBtn.classList.remove("recording");
-        recIndicator.classList.add("hidden");
-        speakHint.textContent = t("speakHint");
-
-        setProcessing(true);
-        setStatus("Converting & thinking…");
-        try {
-            const wavBlob = await currentStop();
-            await sendVoice(wavBlob);
-        } catch (err) {
-            setStatus(err.message || "Voice request failed", true);
-        } finally {
-            currentStop = null;
-            setProcessing(false);
-        }
+        await finishRecording();
         return;
     }
 
@@ -575,7 +615,9 @@ speakBtn.addEventListener("click", async () => {
         recIndicator.classList.remove("hidden");
         speakHint.textContent = t("speakRecording");
         setStatus(t("listening"));
+        startSpeakCountdown();
     } catch (err) {
+        clearSpeakCountdown();
         setStatus("Microphone access denied or unavailable", true);
     } finally {
         isStarting = false;

@@ -733,6 +733,14 @@ body {
 
 .mic-icon { width: 18px; height: 18px; }
 
+.speak-countdown {
+    font-size: 0.7rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    letter-spacing: -0.02em;
+}
+
 .rec-dot {
     position: absolute;
     top: 2px;

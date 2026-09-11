@@ -12,6 +12,21 @@
  * avoids native ffmpeg installs on end-user machines.
  */
 
+/** 16 kHz mono 16-bit PCM — the WAV we actually POST. */
+export const WAV_SAMPLE_RATE = 16000;
+export const WAV_BYTES_PER_SEC = WAV_SAMPLE_RATE * 2;
+/** Same cap as ``MAX_AUDIO_BYTES`` on the server (10 MiB). */
+export const MAX_AUDIO_UPLOAD_BYTES = 10 * 1024 * 1024;
+
+/**
+ * Whole seconds of 16 kHz mono 16-bit WAV that fit under the upload cap.
+ * @param {number} [maxBytes]
+ * @returns {number}
+ */
+export function wavBudgetSeconds(maxBytes = MAX_AUDIO_UPLOAD_BYTES) {
+    return Math.floor(maxBytes / WAV_BYTES_PER_SEC);
+}
+
 /** Currently playing TTS element (if any). */
 let currentTts = null;
 

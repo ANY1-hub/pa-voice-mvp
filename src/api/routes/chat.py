@@ -27,6 +27,32 @@ ALLOWED_AUDIO_CONTENT_TYPES = {
 _GUI_LANGUAGES = frozenset({"en", "de", "hu"})
 
 
+_AUDIO_READ_CHUNK = 64 * 1024
+
+
+async def _read_audio_capped(audio: UploadFile) -> bytes:
+    """Read the upload in chunks; 413 as soon as it exceeds MAX_AUDIO_BYTES."""
+    chunks: list[bytes] = []
+    total = 0
+    while True:
+        piece = await audio.read(_AUDIO_READ_CHUNK)
+        if not piece:
+            break
+        total += len(piece)
+        if total > MAX_AUDIO_BYTES:
+            raise HTTPException(
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                detail=f"Audio exceeds limit of {MAX_AUDIO_BYTES // (1024 * 1024)} MB",
+            )
+        chunks.append(piece)
+    if total == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Empty audio file",
+        )
+    return b"".join(chunks)
+
+
 def _require_gui_language(value: str | None) -> str | None:
     """Accept only exact ``en`` / ``de`` / ``hu``, or omit (``None``)."""
     if value is None:
@@ -167,17 +193,7 @@ async def chat_voice(
             detail=f"Unsupported audio type: {content_type}",
         )
 
-    audio_bytes = await audio.read()
-    if len(audio_bytes) == 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Empty audio file",
-        )
-    if len(audio_bytes) > MAX_AUDIO_BYTES:
-        raise HTTPException(
-            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail=f"Audio exceeds limit of {MAX_AUDIO_BYTES // (1024 * 1024)} MB",
-        )
+    audio_bytes = await _read_audio_capped(audio)
 
     try:
         result = await orchestrator.process(

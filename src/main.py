@@ -15,6 +15,7 @@ from src.api.routes.memory import router as memory_router
 from src.api.routes.notes import router as notes_router
 from src.api.routes.reminders import router as reminders_router
 from src.api.routes.skills import router as skills_router
+from src.api.voice_upload_limit import VoiceUploadLimitMiddleware
 from src.db.mongodb import close_mongo_connection, connect_to_mongo, db_client
 from src.tasks.scheduler import start_scheduler, stop_scheduler
 
@@ -35,7 +36,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Jarvis MVP Backend", lifespan=lifespan)
 
-# Allow CORS for vanilla HTML frontend
+# Inner: 413 oversized /chat/voice before parse. Outer: CORS (last add).
+app.add_middleware(VoiceUploadLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
