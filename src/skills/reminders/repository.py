@@ -4,17 +4,16 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime
+from typing import Any
 
-from motor.motor_asyncio import AsyncIOMotorCollection
-
-from src.db.mongodb import contains_regex, mongo_document
+from src.db.mongodb import MotorColl, contains_regex, mongo_document
 from src.models.reminder import Reminder
 from src.security.guardrails import validate_memory_write
 
 logger = logging.getLogger(__name__)
 
 
-def _persist_doc(reminder: Reminder) -> dict:
+def _persist_doc(reminder: Reminder) -> dict[str, Any]:
     """Insert document: UUID ``_id``, BSON dates for due/fired/created."""
     doc = mongo_document(reminder)
     for key in ("due_at", "fired_at", "created_at", "last_accessed"):
@@ -24,7 +23,7 @@ def _persist_doc(reminder: Reminder) -> dict:
     return doc
 
 
-def _from_doc(doc: dict) -> Reminder:
+def _from_doc(doc: dict[str, Any]) -> Reminder:
     """Map a Mongo document to Reminder, dropping ``_id``."""
     doc.pop("_id", None)
     return Reminder.model_validate(doc)
@@ -36,7 +35,7 @@ class ReminderRepository:
     def __init__(
         self,
         user_id: str,
-        collection: AsyncIOMotorCollection | None = None,
+        collection: MotorColl | None = None,
     ) -> None:
         self.user_id = user_id
         self.collection = collection
@@ -85,12 +84,12 @@ class ReminderRepository:
         if self.collection is None:
             return []
 
-        filters: dict = {"user_id": self.user_id}
+        filters: dict[str, Any] = {"user_id": self.user_id}
         if status:
             filters["status"] = status
 
         if due_from is not None or due_to is not None:
-            due_filter: dict = {}
+            due_filter: dict[str, Any] = {}
             if due_from is not None:
                 due_filter["$gte"] = due_from
             if due_to is not None:
@@ -120,7 +119,7 @@ class ReminderRepository:
         if self.collection is None:
             return []
 
-        filters: dict = {
+        filters: dict[str, Any] = {
             "user_id": self.user_id,
             "content": contains_regex(query),
         }
@@ -209,7 +208,7 @@ class ReminderRepository:
 
 
 async def claim_due_reminders(
-    collection: AsyncIOMotorCollection,
+    collection: MotorColl,
     now: datetime,
     *,
     user_id: str | None = None,
@@ -221,7 +220,7 @@ async def claim_due_reminders(
     claimed at most once via find_one_and_update.
     """
     claimed: list[Reminder] = []
-    filters: dict = {
+    filters: dict[str, Any] = {
         "status": "pending",
         "due_at": {"$lte": now},
         "$or": [{"fired_at": None}, {"fired_at": {"$exists": False}}],

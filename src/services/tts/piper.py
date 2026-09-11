@@ -102,12 +102,14 @@ class PiperTTSAdapter(TTSAdapter):
 
     def _chunk_to_pcm(self, chunk: object) -> bytes:
         """Extract raw 16-bit PCM bytes from a Piper chunk."""
-        if hasattr(chunk, "audio_int16_bytes"):
-            return chunk.audio_int16_bytes  # type: ignore[attr-defined]
+        raw = getattr(chunk, "audio_int16_bytes", None)
+        if isinstance(raw, bytes | bytearray):
+            return bytes(raw)
         if isinstance(chunk, bytes | bytearray):
             return bytes(chunk)
-        if hasattr(chunk, "audio_bytes"):
-            return bytes(chunk.audio_bytes)  # type: ignore[attr-defined]
+        audio_bytes = getattr(chunk, "audio_bytes", None)
+        if isinstance(audio_bytes, bytes | bytearray):
+            return bytes(audio_bytes)
         raise TypeError(f"Unsupported Piper chunk type: {type(chunk)!r}")
 
     def _pcm_to_wav(self, pcm: bytes, sample_rate: int) -> bytes:

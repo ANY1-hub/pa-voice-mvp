@@ -59,7 +59,7 @@ class LLMAdapter(ABC):
         self,
         messages: list[dict[str, str]],
         **kwargs: Any,
-    ) -> str:
+    ) -> str | LLMResult:
         """Generate a response from a list of chat messages.
 
         Args:

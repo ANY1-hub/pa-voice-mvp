@@ -1,5 +1,6 @@
 """FastAPI application entrypoint."""
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -7,6 +8,8 @@ from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.responses import Response
+from starlette.types import Scope
 
 from src.api.routes.admin import router as admin_router
 from src.api.routes.auth import router as auth_router
@@ -21,7 +24,7 @@ from src.tasks.scheduler import start_scheduler, stop_scheduler
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Application lifespan: connect DB + start background jobs on startup.
 
     Args:
@@ -55,8 +58,8 @@ app.include_router(notes_router, prefix="/api/v1/notes", tags=["notes"])
 app.include_router(reminders_router, prefix="/api/v1/reminders", tags=["reminders"])
 
 
-@app.get("/health")
-async def health_check():
+@app.get("/health", response_model=None)
+async def health_check() -> dict[str, str] | JSONResponse:
     """Readiness probe: cheap Mongo ping before claiming ok.
 
     Returns:
@@ -88,7 +91,7 @@ async def health_check():
 class FrontendStaticFiles(StaticFiles):
     """Do not cache HTML/JS/CSS; stale Voice UI JS shows the wrong auth form."""
 
-    async def get_response(self, path: str, scope):
+    async def get_response(self, path: str, scope: Scope) -> Response:
         response = await super().get_response(path, scope)
         lowered = path.lower()
         if lowered.endswith((".js", ".css", ".html")) or lowered in {

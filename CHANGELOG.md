@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] 2026-09-11
 
+### Changed
+- CI runs ``mypy src`` (strict, Python 3.12). Untyped third-party libs are ignored via overrides.
+
 ### Security
 - `uv.lock` cryptography 49.0.0 → 50.0.1 (PYSEC-2026-3552). CI already installs with `uv sync --frozen`; README Getting Started now uses `uv sync --extra dev` instead of floating `uv pip install`.
 - Prompt-injection blocklist collapses whitespace and strips format/control (zero-width) characters before matching. Still a UX guard, not a control.

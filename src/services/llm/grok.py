@@ -1,7 +1,7 @@
 """Grok (xAI) implementation for Language Model."""
 
 import json
-from typing import Any
+from typing import Any, cast
 
 from openai import AsyncOpenAI
 
@@ -33,7 +33,7 @@ class GrokLLMAdapter(LLMAdapter):
         self,
         messages: list[dict[str, str]],
         **kwargs: Any,
-    ) -> str:
+    ) -> str | LLMResult:
         """Generate a response from a list of chat messages.
 
         Args:
@@ -45,7 +45,7 @@ class GrokLLMAdapter(LLMAdapter):
         """
         response = await self.client.chat.completions.create(
             model=self.model,
-            messages=messages,
+            messages=cast(Any, messages),
             **kwargs,
         )
         usage = getattr(response, "usage", None)
@@ -82,7 +82,7 @@ class GrokLLMAdapter(LLMAdapter):
 
         response = await self.client.chat.completions.create(
             model=self.model,
-            messages=messages,
+            messages=cast(Any, messages),
             response_format={"type": "json_object"},
             temperature=0.1,
         )
@@ -90,6 +90,7 @@ class GrokLLMAdapter(LLMAdapter):
         content = response.choices[0].message.content or "{}"
         try:
             data = json.loads(content)
-            return data.get("entities", [])
+            entities = data.get("entities", [])
+            return entities if isinstance(entities, list) else []
         except json.JSONDecodeError:
             return []

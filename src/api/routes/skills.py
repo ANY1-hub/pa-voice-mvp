@@ -1,5 +1,7 @@
 """Public skill metadata (help-panel vocabulary)."""
 
+from typing import Any
+
 from fastapi import APIRouter, Query
 
 from src.skills.vocabulary import help_catalog
@@ -10,7 +12,7 @@ router = APIRouter()
 @router.get("/phrases")
 async def skill_phrases(
     lang: str = Query(default="en", min_length=2, max_length=2),
-) -> dict:
+) -> dict[str, Any]:
     """Return the ten canonical trigger phrases per skill for one language.
 
     Public: the help panel needs this before/without extra auth hops.

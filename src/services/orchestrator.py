@@ -9,6 +9,7 @@ from __future__ import annotations
 import base64
 import logging
 import time
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from uuid import uuid4
 
@@ -140,7 +141,7 @@ class ChatResult:
         return (self.prompt_tokens or 0) + (self.completion_tokens or 0)
 
 
-def _wm_items_to_role_messages(items) -> list[dict[str, str]]:
+def _wm_items_to_role_messages(items: Iterable[object]) -> list[dict[str, str]]:
     """Map ``User:`` / ``Jarvis:`` WM lines to chronological chat roles."""
     messages: list[dict[str, str]] = []
     for item in items:

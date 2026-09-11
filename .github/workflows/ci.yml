@@ -46,6 +46,9 @@ jobs:
       - name: Black
         run: uv run black --check src tests
 
+      - name: Mypy
+        run: uv run mypy src
+
       - name: Playwright browser (default engine)
         run: uv run playwright install chromium --with-deps
 

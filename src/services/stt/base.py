@@ -10,7 +10,9 @@ class STTAdapter(ABC):
     """
 
     @abstractmethod
-    async def transcribe(self, audio_bytes: bytes, language: str | None = None) -> str:
+    async def transcribe(
+        self, audio_bytes: bytes, language: str | None = None
+    ) -> str | tuple[str, str | None]:
         """Transcribe raw audio bytes to text.
 
         Args:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
@@ -112,7 +112,7 @@ async def list_due_reminders(
 async def acknowledge_reminder(
     reminder_id: str,
     repo: Annotated[ReminderRepository, Depends(get_reminder_repository)],
-) -> dict:
+) -> dict[str, Any]:
     """Mark a due reminder as done so it is not spoken again."""
     updated = await repo.acknowledge(reminder_id)
     if updated is None:

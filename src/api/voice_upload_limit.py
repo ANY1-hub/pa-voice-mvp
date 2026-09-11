@@ -8,6 +8,10 @@ no ``receive``. A lying/omitted length is capped while reading.
 from __future__ import annotations
 
 import json
+from collections.abc import MutableMapping
+from typing import Any
+
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from src.services.orchestrator import MAX_AUDIO_BYTES
 
@@ -19,14 +23,14 @@ class _BodyTooLarge(Exception):
     """Streamed body crossed MAX_AUDIO_BYTES."""
 
 
-def _header(scope: dict, name: bytes) -> bytes | None:
+def _header(scope: Scope, name: bytes) -> bytes | None:
     for key, value in scope.get("headers") or []:
         if key == name:
-            return value
+            return bytes(value)
     return None
 
 
-def _content_length(scope: dict) -> int | None:
+def _content_length(scope: Scope) -> int | None:
     raw = _header(scope, b"content-length")
     if raw is None:
         return None
@@ -36,7 +40,7 @@ def _content_length(scope: dict) -> int | None:
         return None
 
 
-async def _send_413(send) -> None:
+async def _send_413(send: Send) -> None:
     payload = json.dumps({"detail": _DETAIL}).encode("utf-8")
     await send(
         {
@@ -54,12 +58,12 @@ async def _send_413(send) -> None:
 class _CappedReceive:
     """Count http.request bytes; raise when they exceed the cap."""
 
-    def __init__(self, receive, cap: int) -> None:
+    def __init__(self, receive: Receive, cap: int) -> None:
         self._receive = receive
         self._cap = cap
         self._total = 0
 
-    async def __call__(self) -> dict:
+    async def __call__(self) -> MutableMapping[str, Any]:
         message = await self._receive()
         if message.get("type") == "http.request":
             self._total += len(message.get("body") or b"")
@@ -71,10 +75,10 @@ class _CappedReceive:
 class VoiceUploadLimitMiddleware:
     """ASGI gate for voice uploads only (single uvicorn worker)."""
 
-    def __init__(self, app) -> None:
+    def __init__(self, app: ASGIApp) -> None:
         self.app = app
 
-    async def __call__(self, scope, receive, send):
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope.get("type") != "http" or scope.get("method") != "POST":
             await self.app(scope, receive, send)
             return

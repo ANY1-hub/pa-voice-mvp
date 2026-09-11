@@ -4,11 +4,11 @@ import logging
 import math
 import re
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
-from motor.motor_asyncio import AsyncIOMotorCollection
 from pymongo.errors import DuplicateKeyError
 
-from src.db.mongodb import contains_regex, mongo_document
+from src.db.mongodb import MotorColl, contains_regex, mongo_document
 from src.models.memory import SemanticMemoryFact, assign_stable_id
 from src.security.guardrails import validate_memory_write
 from src.services.embeddings.base import EmbeddingsAdapter
@@ -46,7 +46,7 @@ class SemanticMemory:
     def __init__(
         self,
         user_id: str,
-        collection: AsyncIOMotorCollection | None = None,
+        collection: MotorColl | None = None,
         embeddings_adapter: EmbeddingsAdapter | None = None,
     ) -> None:
         """Initialize Semantic Memory for a specific user.
@@ -62,7 +62,7 @@ class SemanticMemory:
         self.embeddings = embeddings_adapter
 
     @staticmethod
-    def _current_only_clause() -> dict:
+    def _current_only_clause() -> dict[str, Any]:
         """Mongo clause: fact is current (no valid_to / still open)."""
         return {
             "$or": [
@@ -71,9 +71,11 @@ class SemanticMemory:
             ]
         }
 
-    def _user_current_filter(self, extra: dict | None = None) -> dict:
+    def _user_current_filter(
+        self, extra: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """user_id + current-only, optionally merged with more predicates."""
-        query: dict = {"user_id": self.user_id, **self._current_only_clause()}
+        query: dict[str, Any] = {"user_id": self.user_id, **self._current_only_clause()}
         if extra:
             query.update(extra)
         return query
@@ -451,7 +453,7 @@ class SemanticMemory:
             return
 
         cursor = self.collection.find({"user_id": self.user_id})
-        groups: dict[str, list[dict]] = {}
+        groups: dict[str, list[dict[str, Any]]] = {}
 
         async for doc in cursor:
             # Normalize for comparison
@@ -467,7 +469,7 @@ class SemanticMemory:
 
             # Prefer a copy that still has an embedding so search can find it,
             # then highest importance, then most recent last_accessed.
-            def sort_key(d: dict) -> tuple:
+            def sort_key(d: dict[str, Any]) -> tuple[object, ...]:
                 has_emb = 1 if d.get("embedding") else 0
                 imp = d.get("importance_score", 0.0)
                 accessed = d.get("last_accessed") or ""

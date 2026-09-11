@@ -1,5 +1,7 @@
 """API routes for Working Memory and Semantic Memory."""
 
+from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -41,7 +43,7 @@ class SemanticMemoryRequest(BaseModel):
 async def add_working_memory(
     request: WorkingMemoryRequest,
     mem: WorkingMemory = Depends(get_working_memory),  # noqa: B008
-):
+) -> dict[str, Any]:
     """Add a new item to the user's Working Memory.
 
     Args:
@@ -70,7 +72,7 @@ async def retrieve_working_memory(
     query: str | None = Query(default=None),
     limit: int = Query(default=20, ge=1, le=100),
     mem: WorkingMemory = Depends(get_working_memory),  # noqa: B008
-):
+) -> dict[str, Any]:
     """Retrieve recent Working Memory items for the current user.
 
     Args:
@@ -94,7 +96,7 @@ async def retrieve_working_memory(
 async def add_semantic_memory(
     request: SemanticMemoryRequest,
     mem: SemanticMemory = Depends(get_semantic_memory),  # noqa: B008
-):
+) -> dict[str, Any]:
     """Add a new long-term fact to the user's Semantic Memory.
 
     Args:
@@ -124,7 +126,7 @@ async def search_semantic_memory(
     query: str = Query(..., min_length=1),
     limit: int = Query(default=10, ge=1, le=50),
     mem: SemanticMemory = Depends(get_semantic_memory),  # noqa: B008
-):
+) -> dict[str, Any]:
     """Search Semantic Memory for the current user (vector or text).
 
     Args:

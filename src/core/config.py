@@ -98,4 +98,4 @@ def get_settings() -> Settings:
     Returns:
         Application-wide ``Settings`` singleton (loaded once per process).
     """
-    return Settings()
+    return Settings()  # type: ignore[call-arg]

@@ -4,12 +4,11 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from motor.motor_asyncio import AsyncIOMotorCollection
 
 from src.auth.jwt import decode_access_token
 from src.auth.repository import UserRepository
 from src.core.config import get_settings
-from src.db.mongodb import db_client
+from src.db.mongodb import MotorColl, db_client
 from src.memory.semantic_memory import SemanticMemory
 from src.memory.working_memory import WorkingMemory
 from src.models.user import User
@@ -39,7 +38,7 @@ _tts_adapter: PiperTTSAdapter | None = None
 _llm_adapter: OpenAILLMAdapter | None = None
 
 
-def get_users_collection() -> AsyncIOMotorCollection | None:
+def get_users_collection() -> MotorColl | None:
     """Return the users collection or ``None`` if DB is not connected.
 
     Returns:
@@ -50,7 +49,7 @@ def get_users_collection() -> AsyncIOMotorCollection | None:
     return db_client.db["users"]
 
 
-def get_working_memory_collection() -> AsyncIOMotorCollection | None:
+def get_working_memory_collection() -> MotorColl | None:
     """Return the working_memory collection or ``None`` if DB is not connected.
 
     Returns:
@@ -61,7 +60,7 @@ def get_working_memory_collection() -> AsyncIOMotorCollection | None:
     return db_client.db["working_memory"]
 
 
-def get_semantic_memory_collection() -> AsyncIOMotorCollection | None:
+def get_semantic_memory_collection() -> MotorColl | None:
     """Return the semantic_memory collection or ``None`` if DB is not connected.
 
     Returns:
@@ -72,7 +71,7 @@ def get_semantic_memory_collection() -> AsyncIOMotorCollection | None:
     return db_client.db["semantic_memory"]
 
 
-def get_notes_collection() -> AsyncIOMotorCollection | None:
+def get_notes_collection() -> MotorColl | None:
     """Return the notes collection or ``None`` if DB is not connected.
 
     Returns:
@@ -83,7 +82,7 @@ def get_notes_collection() -> AsyncIOMotorCollection | None:
     return db_client.db["notes"]
 
 
-def get_reminders_collection() -> AsyncIOMotorCollection | None:
+def get_reminders_collection() -> MotorColl | None:
     """Return the reminders collection or ``None`` if DB is not connected.
 
     Returns:
@@ -98,7 +97,7 @@ def get_reminders_collection() -> AsyncIOMotorCollection | None:
 
 
 def get_user_repository(
-    collection: Annotated[AsyncIOMotorCollection | None, Depends(get_users_collection)],
+    collection: Annotated[MotorColl | None, Depends(get_users_collection)],
 ) -> UserRepository:
     """Provide a UserRepository instance with the injected collection.
 
@@ -279,9 +278,7 @@ async def get_current_user_id(
 
 def get_working_memory(
     user_id: Annotated[str, Depends(get_current_user_id)],
-    collection: Annotated[
-        AsyncIOMotorCollection | None, Depends(get_working_memory_collection)
-    ],
+    collection: Annotated[MotorColl | None, Depends(get_working_memory_collection)],
 ) -> WorkingMemory:
     """Provide a WorkingMemory instance for the current user.
 
@@ -297,9 +294,7 @@ def get_working_memory(
 
 def get_semantic_memory(
     user_id: Annotated[str, Depends(get_current_user_id)],
-    collection: Annotated[
-        AsyncIOMotorCollection | None, Depends(get_semantic_memory_collection)
-    ],
+    collection: Annotated[MotorColl | None, Depends(get_semantic_memory_collection)],
     embeddings: Annotated[
         OpenAIEmbeddingsAdapter | None, Depends(get_embeddings_adapter)
     ],
@@ -323,7 +318,7 @@ def get_semantic_memory(
 
 def get_note_repository(
     user_id: Annotated[str, Depends(get_current_user_id)],
-    collection: Annotated[AsyncIOMotorCollection | None, Depends(get_notes_collection)],
+    collection: Annotated[MotorColl | None, Depends(get_notes_collection)],
 ) -> NoteRepository:
     """Provide a NoteRepository instance for the current user.
 
@@ -339,9 +334,7 @@ def get_note_repository(
 
 def get_reminder_repository(
     user_id: Annotated[str, Depends(get_current_user_id)],
-    collection: Annotated[
-        AsyncIOMotorCollection | None, Depends(get_reminders_collection)
-    ],
+    collection: Annotated[MotorColl | None, Depends(get_reminders_collection)],
 ) -> ReminderRepository:
     return ReminderRepository(user_id=user_id, collection=collection)
 

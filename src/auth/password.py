@@ -14,7 +14,7 @@ def hash_password(plain_password: str) -> str:
     Returns:
         Bcrypt hash string suitable for storage.
     """
-    return pwd_context.hash(plain_password)
+    return str(pwd_context.hash(plain_password))
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -27,4 +27,4 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Returns:
         ``True`` if the password matches, otherwise ``False``.
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    return bool(pwd_context.verify(plain_password, hashed_password))

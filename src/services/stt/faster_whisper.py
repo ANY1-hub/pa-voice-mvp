@@ -135,7 +135,9 @@ class FasterWhisperSTTAdapter(STTAdapter):
         finally:
             wav_path.unlink(missing_ok=True)
 
-    async def transcribe(self, audio_bytes: bytes, language: str | None = None) -> str:
+    async def transcribe(
+        self, audio_bytes: bytes, language: str | None = None
+    ) -> str | tuple[str, str | None]:
         """Transcribe audio asynchronously via the thread-pool worker.
 
         Args:

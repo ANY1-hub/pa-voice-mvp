@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime
+from typing import Any
 
-from motor.motor_asyncio import AsyncIOMotorCollection
-
-from src.db.mongodb import contains_regex, mongo_document
+from src.db.mongodb import MotorColl, contains_regex, mongo_document
 from src.models.note import Note
 from src.security.guardrails import validate_memory_write
 
@@ -20,7 +19,7 @@ class NoteRepository:
     def __init__(
         self,
         user_id: str,
-        collection: AsyncIOMotorCollection | None = None,
+        collection: MotorColl | None = None,
     ) -> None:
         """Initialize the repository for one user.
 
@@ -85,7 +84,7 @@ class NoteRepository:
         if self.collection is None:
             return []
 
-        filters: dict = {"user_id": self.user_id}
+        filters: dict[str, Any] = {"user_id": self.user_id}
         if query:
             # Simple OR on title or content
             filters["$or"] = [

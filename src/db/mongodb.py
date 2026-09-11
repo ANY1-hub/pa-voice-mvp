@@ -1,6 +1,10 @@
 """MongoDB connection management using Motor (async)."""
 
+from __future__ import annotations
+
 import re
+from collections.abc import Mapping, Sequence
+from typing import Any, TypeAlias
 
 from motor.motor_asyncio import (
     AsyncIOMotorClient,
@@ -10,6 +14,11 @@ from motor.motor_asyncio import (
 from pydantic import BaseModel
 
 from src.core.config import get_settings
+
+JsonDoc: TypeAlias = dict[str, Any]
+MotorColl: TypeAlias = AsyncIOMotorCollection[JsonDoc]
+MotorClientT: TypeAlias = AsyncIOMotorClient[JsonDoc]
+MotorDbT: TypeAlias = AsyncIOMotorDatabase[JsonDoc]
 
 
 def contains_regex(query: str) -> dict[str, str]:
@@ -21,7 +30,7 @@ def contains_regex(query: str) -> dict[str, str]:
     return {"$regex": re.escape(query), "$options": "i"}
 
 
-def mongo_document(model: BaseModel, extra: dict | None = None) -> dict:
+def mongo_document(model: BaseModel, extra: dict[str, Any] | None = None) -> JsonDoc:
     """Dump a model for insert so Mongo ``_id`` is the application UUID.
 
     Empty-database / greenfield: one identifier, no ObjectId leak.
@@ -35,7 +44,7 @@ def mongo_document(model: BaseModel, extra: dict | None = None) -> dict:
     return doc
 
 
-async def _ensure_unique_id_index(collection: AsyncIOMotorCollection) -> None:
+async def _ensure_unique_id_index(collection: MotorColl) -> None:
     """Unique, non-sparse index on application ``id``.
 
     Recreates the index once if it was sparse or missing. Documents without
@@ -51,9 +60,9 @@ async def _ensure_unique_id_index(collection: AsyncIOMotorCollection) -> None:
     await collection.create_index("id", unique=True)
 
 
-async def _ensure_unique_user_content_index(collection: AsyncIOMotorCollection) -> None:
+async def _ensure_unique_user_content_index(collection: MotorColl) -> None:
     """At most one semantic fact per (user_id, content). Collapse extras first."""
-    pipeline = [
+    pipeline: Sequence[Mapping[str, Any]] = [
         {
             "$group": {
                 "_id": {"user_id": "$user_id", "content": "$content"},
@@ -88,8 +97,8 @@ class MongoDB:
         db: Selected database handle, or ``None`` before connect / after close.
     """
 
-    client: AsyncIOMotorClient | None = None
-    db: AsyncIOMotorDatabase | None = None
+    client: MotorClientT | None = None
+    db: MotorDbT | None = None
 
 
 db_client = MongoDB()

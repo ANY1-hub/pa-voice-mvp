@@ -1,9 +1,9 @@
 """Authentication routes: register, login, me."""
 
 import logging
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from motor.motor_asyncio import AsyncIOMotorCollection
 from pymongo.errors import DuplicateKeyError
 
 from src.api.deps import (
@@ -15,6 +15,7 @@ from src.auth.jwt import create_access_token
 from src.auth.login_limiter import login_limiter
 from src.auth.password import hash_password, verify_password
 from src.auth.repository import UserRepository
+from src.db.mongodb import MotorColl
 from src.memory.semantic_memory import SemanticMemory
 from src.models.user import (
     ChangePasswordRequest,
@@ -36,7 +37,7 @@ router = APIRouter()
 @router.get("/bootstrap-status")
 async def bootstrap_status(
     repo: UserRepository = Depends(get_user_repository),  # noqa: B008
-) -> dict:
+) -> dict[str, Any]:
     """Report whether the first SuperUser account still needs to be created."""
     count = await repo.count()
     return {"needs_bootstrap": count == 0}
@@ -104,7 +105,7 @@ async def login(
     payload: UserLogin,
     request: Request,
     repo: UserRepository = Depends(get_user_repository),  # noqa: B008
-) -> dict:
+) -> dict[str, Any]:
     """Authenticate and return a JWT access token.
 
     Args:
@@ -213,7 +214,7 @@ async def set_display_name(
     payload: DisplayNameRequest,
     current_user: User = Depends(get_current_user),  # noqa: B008
     repo: UserRepository = Depends(get_user_repository),  # noqa: B008
-    semantic_collection: AsyncIOMotorCollection | None = Depends(  # noqa: B008
+    semantic_collection: MotorColl | None = Depends(  # noqa: B008
         get_semantic_memory_collection
     ),
 ) -> UserPublic:

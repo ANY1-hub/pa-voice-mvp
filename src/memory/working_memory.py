@@ -1,10 +1,9 @@
 """Working Memory – short-term context with TTL and importance scoring."""
 
 from datetime import UTC, datetime
+from typing import Any
 
-from motor.motor_asyncio import AsyncIOMotorCollection
-
-from src.db.mongodb import contains_regex, mongo_document
+from src.db.mongodb import MotorColl, contains_regex, mongo_document
 from src.models.memory import WorkingMemoryItem, assign_stable_id
 from src.security.guardrails import validate_memory_write
 
@@ -15,7 +14,7 @@ class WorkingMemory:
     def __init__(
         self,
         user_id: str,
-        collection: AsyncIOMotorCollection | None = None,
+        collection: MotorColl | None = None,
     ) -> None:
         """Initialize Working Memory for a specific user.
 
@@ -94,7 +93,7 @@ class WorkingMemory:
             return []
 
         now = datetime.now(UTC)
-        filters: dict = {
+        filters: dict[str, Any] = {
             "user_id": self.user_id,
             "$or": [
                 {"expires_at": {"$gt": now}},

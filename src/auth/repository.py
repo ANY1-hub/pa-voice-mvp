@@ -1,15 +1,15 @@
 """User repository – MongoDB access for authentication."""
 
-from motor.motor_asyncio import AsyncIOMotorCollection
+from typing import Any
 
-from src.db.mongodb import mongo_document
+from src.db.mongodb import MotorColl, mongo_document
 from src.models.user import User
 
 
 class UserRepository:
     """CRUD operations for the users collection."""
 
-    def __init__(self, collection: AsyncIOMotorCollection | None = None) -> None:
+    def __init__(self, collection: MotorColl | None = None) -> None:
         """Initialize the repository.
 
         Args:
@@ -18,7 +18,7 @@ class UserRepository:
         """
         self.collection = collection
 
-    async def create(self, user: User, *, extra: dict | None = None) -> User:
+    async def create(self, user: User, *, extra: dict[str, Any] | None = None) -> User:
         """Insert a new user.
 
         Args:
@@ -119,7 +119,7 @@ class UserRepository:
         """
         if self.collection is None:
             return None
-        update_fields: dict = {}
+        update_fields: dict[str, Any] = {}
         if is_active is not None:
             update_fields["is_active"] = is_active
         if is_superuser is not None:

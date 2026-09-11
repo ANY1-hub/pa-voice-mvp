@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from src.services.llm.base import LLMAdapter
+from src.services.llm.base import LLMAdapter, LLMResult
 
 
 class GeminiLLMAdapter(LLMAdapter):
@@ -27,7 +27,7 @@ class GeminiLLMAdapter(LLMAdapter):
         self,
         messages: list[dict[str, str]],
         **kwargs: Any,
-    ) -> str:
+    ) -> str | LLMResult:
         """Generate a response from a list of chat messages.
 
         Args:

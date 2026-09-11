@@ -55,3 +55,11 @@ def test_readme_does_not_teach_floating_uv_pip_install():
     """Getting Started must not tell clones to ignore the lock."""
     assert 'uv pip install -e ".[dev]"' not in _README
     assert "uv sync" in _README
+
+
+def test_ci_runs_mypy_on_src():
+    """REVIEWEXTERN P2-1: strict mypy must actually run in CI.
+
+    Mutation: drop the mypy step so this goes red.
+    """
+    assert "mypy src" in _CI
