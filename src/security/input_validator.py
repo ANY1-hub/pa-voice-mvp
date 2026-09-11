@@ -1,5 +1,7 @@
 """Input validation and sanitization layer (Prompt Injection protection etc.)."""
 
+import re
+import unicodedata
 from typing import Any
 
 from .exceptions import InputValidationError
@@ -33,6 +35,19 @@ ROLE_PREFIX_PATTERNS: list[str] = [
 ]
 
 
+def _for_blocklist(text: str) -> str:
+    """Lowercase, drop format/control chars, collapse whitespace for matching only."""
+    kept: list[str] = []
+    for ch in text:
+        if ch in "\t\n\r ":
+            kept.append(ch)
+            continue
+        if unicodedata.category(ch) in {"Cf", "Cc", "Cs"}:
+            continue
+        kept.append(ch)
+    return re.sub(r"\s+", " ", "".join(kept)).strip().lower()
+
+
 def sanitize_user_input(text: str) -> str:
     """Basic sanitization of user input.
 
@@ -50,7 +65,7 @@ def sanitize_user_input(text: str) -> str:
     if not isinstance(text, str):
         raise InputValidationError("Input must be a string")
 
-    lowered = text.lower()
+    lowered = _for_blocklist(text)
     for pattern in DANGEROUS_PATTERNS:
         if pattern in lowered:
             raise InputValidationError(

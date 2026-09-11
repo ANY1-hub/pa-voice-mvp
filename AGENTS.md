@@ -31,7 +31,7 @@ Same rules apply when you only have this file:
 - Tenant isolation always. Commit only after full suite + coverage floor (file/`--no-cov` is TDD loop only).
 
 **Open security backlog (REVIEWEXTERN 2026-09-07)** — treat as Slice-Brief queue, do not invent:
-P1-2 blocklist whitespace; then P2 (mypy in CI first). Already done: P0-1 SECRET_KEY placeholder reject; P1-1 superuser mutation-proof tests; P1-3 login rate limit; P1-4 health+DB; P1-5 audio size before body; P1-6 ffmpeg timeout; P1-7 CI deps=image; P2-5 missing model key.
+P2 (mypy in CI first). Already done: P0-1 SECRET_KEY placeholder reject; P1-1 superuser mutation-proof tests; P1-2 blocklist whitespace; P1-3 login rate limit; P1-4 health+DB; P1-5 audio size before body; P1-6 ffmpeg timeout; P1-7 CI deps=image; P2-5 missing model key.
 
 ## Environment
 - Local path (Ákos laptop): `C:\Users\nyiry\DEV\pa-voice-mvp`
