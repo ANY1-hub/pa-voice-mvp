@@ -19,6 +19,7 @@ from src.api.routes.notes import router as notes_router
 from src.api.routes.reminders import router as reminders_router
 from src.api.routes.skills import router as skills_router
 from src.api.voice_upload_limit import VoiceUploadLimitMiddleware
+from src.core.config import get_settings
 from src.db.mongodb import close_mongo_connection, connect_to_mongo, db_client
 from src.tasks.scheduler import start_scheduler, stop_scheduler
 
@@ -43,10 +44,10 @@ app = FastAPI(title="Jarvis MVP Backend", lifespan=lifespan)
 app.add_middleware(VoiceUploadLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=list(get_settings().cors_origins),
     allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS", "PATCH"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])

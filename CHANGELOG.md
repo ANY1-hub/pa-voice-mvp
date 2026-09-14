@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] 2026-09-11
 
 ### Changed
+- CORS allow-list for the Voice UI (`http://127.0.0.1:5500`, `http://localhost:5500`); no more `Access-Control-Allow-Origin: *`. Extra origins via ``CORS_ORIGINS``.
 - CI runs ``mypy src`` (strict, Python 3.12). Untyped third-party libs are ignored via overrides.
 - Startup creates a ``user_id`` index on ``working_memory``, ``notes``, and ``reminders`` so tenant finds are not a collection scan.
 

@@ -126,6 +126,7 @@ uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 # Terminal 2 – from project root
 cd frontend
 python -m http.server 5500
+# Open http://127.0.0.1:5500 (CORS allow-list: this origin and http://localhost:5500)
 ```
 
 Open http://localhost:5500 — the UI calls the API on port **8000** on the same hostname. It never requests `/api/...` from the static server. If the backend is down, the page shows an error (it does not become a second login form).

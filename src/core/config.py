@@ -36,6 +36,7 @@ class Settings(BaseSettings):
         piper_voice_hu: Path to Hungarian Piper voice.
         login_max_attempts: Failed logins per IP+email before 429.
         login_window_seconds: Sliding window for that cap (default 15 min).
+        cors_origins: Browser origins allowed to call the API (Voice UI :5500).
     """
 
     # --- Secrets ---
@@ -58,6 +59,12 @@ class Settings(BaseSettings):
     piper_voice_hu: str = "voice_models/piper/hu_HU-anna-medium.onnx"
     login_max_attempts: int = Field(default=5, ge=1)
     login_window_seconds: int = Field(default=900, ge=1)
+    cors_origins: list[str] = Field(
+        default_factory=lambda: [
+            "http://127.0.0.1:5500",
+            "http://localhost:5500",
+        ]
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -89,6 +96,21 @@ class Settings(BaseSettings):
                 f"SECRET_KEY must be at least {_MIN_SECRET_KEY_LEN} characters"
             )
         return cleaned
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def _parse_cors_origins(cls, value: object) -> list[str]:
+        """Comma-separated env or list; never allow ``*``."""
+        if isinstance(value, str):
+            parts = [item.strip() for item in value.split(",")]
+        elif isinstance(value, list):
+            parts = [str(item).strip() for item in value]
+        else:
+            raise ValueError("CORS_ORIGINS must be a list or comma-separated string")
+        origins = [item.rstrip("/") for item in parts if item]
+        if any(item == "*" for item in origins):
+            raise ValueError("CORS_ORIGINS must not include *")
+        return origins
 
 
 @lru_cache

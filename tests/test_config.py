@@ -21,6 +21,9 @@ def test_settings_defaults(monkeypatch):
     assert settings.access_token_expire_minutes == 1440
     assert settings.login_max_attempts == 5
     assert settings.login_window_seconds == 900
+    assert "http://127.0.0.1:5500" in settings.cors_origins
+    assert "http://localhost:5500" in settings.cors_origins
+    assert "*" not in settings.cors_origins
 
 
 def test_settings_override_from_values(monkeypatch):
