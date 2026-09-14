@@ -100,6 +100,22 @@ class UserRepository:
             users.append(User.model_validate(doc))
         return users
 
+    async def count_active_superusers(self, *, exclude_id: str | None = None) -> int:
+        """Count users who are both SuperUser and active.
+
+        Args:
+            exclude_id: Optional user UUID to leave out of the count.
+
+        Returns:
+            Number of remaining active SuperUsers (0 when no collection).
+        """
+        if self.collection is None:
+            return 0
+        query: dict[str, Any] = {"is_superuser": True, "is_active": True}
+        if exclude_id is not None:
+            query["id"] = {"$ne": exclude_id}
+        return await self.collection.count_documents(query)
+
     async def update(
         self,
         user_id: str,

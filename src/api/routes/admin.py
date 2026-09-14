@@ -106,16 +106,13 @@ async def update_user(
     would_demote = payload.is_superuser is False
     would_deactivate = payload.is_active is False
     if would_demote or would_deactivate:
-        users = await repo.list_users(limit=500)
-        target = next((u for u in users if u.id == user_id), None)
+        target = await repo.get_by_id(user_id)
         if target is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found",
             )
-        remaining_supers = [
-            u for u in users if u.id != user_id and u.is_superuser and u.is_active
-        ]
+        remaining = await repo.count_active_superusers(exclude_id=user_id)
         target_still_super = (
             target.is_superuser
             if payload.is_superuser is None
@@ -124,7 +121,7 @@ async def update_user(
         target_still_active = (
             target.is_active if payload.is_active is None else payload.is_active
         )
-        if not remaining_supers and not (target_still_super and target_still_active):
+        if remaining == 0 and not (target_still_super and target_still_active):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Cannot remove the last active SuperUser",

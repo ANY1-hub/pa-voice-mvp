@@ -271,6 +271,68 @@ def test_admin_patch_user_ok(client):
     assert data["is_superuser"] is True
 
 
+def test_admin_patch_ignores_truncated_list_users(client, monkeypatch):
+    """REVIEWEXTERN P2-7: PATCH must not 404 just because list_users is empty.
+
+    Mutation M1: looking up the target in list_users(limit=…) must go red.
+    """
+    headers = _make_superuser_headers(client)
+    create = client.post(
+        "/api/v1/admin/users",
+        headers=headers,
+        json={
+            "email": f"second-super-{uuid.uuid4().hex[:8]}@example.com",
+            "password": "SecurePass123!",
+            "is_superuser": True,
+        },
+    )
+    assert create.status_code == 201, create.text
+    other_id = create.json()["id"]
+
+    async def _empty(self, limit: int = 100):
+        return []
+
+    monkeypatch.setattr("src.auth.repository.UserRepository.list_users", _empty)
+    response = client.patch(
+        f"/api/v1/admin/users/{other_id}",
+        headers=headers,
+        json={"is_superuser": False},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["is_superuser"] is False
+
+
+def test_admin_patch_does_not_false_last_super_when_list_hides_others(
+    client, monkeypatch
+):
+    """Other SuperUsers past a truncated list must still count as remaining."""
+    headers = _make_superuser_headers(client)
+    create = client.post(
+        "/api/v1/admin/users",
+        headers=headers,
+        json={
+            "email": f"hidden-super-{uuid.uuid4().hex[:8]}@example.com",
+            "password": "SecurePass123!",
+            "is_superuser": True,
+        },
+    )
+    assert create.status_code == 201, create.text
+    target_id = create.json()["id"]
+    target = type("U", (), {"id": target_id, "is_superuser": True, "is_active": True})()
+
+    async def _only_target(self, limit: int = 100):
+        return [target]
+
+    monkeypatch.setattr("src.auth.repository.UserRepository.list_users", _only_target)
+    response = client.patch(
+        f"/api/v1/admin/users/{target_id}",
+        headers=headers,
+        json={"is_superuser": False},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["is_superuser"] is False
+
+
 def test_admin_cannot_demote_last_superuser(client):
     """Demoting or deactivating the last active SuperUser must be rejected."""
     headers = _make_superuser_headers(client)
