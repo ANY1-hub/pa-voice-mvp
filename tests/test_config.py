@@ -14,7 +14,7 @@ def test_settings_defaults(monkeypatch):
         _env_file=None,
     )
 
-    assert settings.llm_model == "gpt-4o-mini"
+    assert settings.llm_model == "gpt-5-mini"
     assert settings.embedding_model == "text-embedding-3-small"
     assert settings.mongodb_db_name == "jarvis_db"
     assert settings.openai_api_key is None

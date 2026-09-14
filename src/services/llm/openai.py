@@ -12,7 +12,7 @@ from src.services.llm.base import LLMAdapter, LLMResult
 class OpenAILLMAdapter(LLMAdapter):
     """OpenAI-based LLM adapter.
 
-    Uses the model configured in Settings (default: gpt-4o-mini).
+    Uses the model configured in Settings (default: gpt-5-mini).
     """
 
     def __init__(self, api_key: str | None = None, model: str | None = None) -> None:
