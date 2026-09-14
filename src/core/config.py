@@ -46,7 +46,7 @@ class Settings(BaseSettings):
 
     # --- Non-secret configuration ---
     mongodb_db_name: str = "jarvis_db"
-    llm_model: str = "gpt-4o-mini"
+    llm_model: str = "gpt-5-mini"
     embedding_model: str = "text-embedding-3-small"
     grok_model: str = "grok-2-latest"
     access_token_expire_minutes: int = 1440  # 24 hours
