@@ -11,6 +11,17 @@ from src.models.user import User, UserAdminCreate, UserAdminUpdate, UserPublic
 router = APIRouter()
 
 
+def _hash_password(plain: str) -> str:
+    """Hash or 422 without putting the password in the body."""
+    try:
+        return hash_password(plain)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
+
+
 def _to_public(user: User) -> UserPublic:
     return user.to_public()
 
@@ -58,7 +69,7 @@ async def create_user(
 
     user = User(
         email=payload.email.lower(),
-        hashed_password=hash_password(payload.password),
+        hashed_password=_hash_password(payload.password),
         is_superuser=payload.is_superuser,
         is_active=payload.is_active,
         must_change_password=True,  # force change on first login

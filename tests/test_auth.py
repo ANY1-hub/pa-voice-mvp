@@ -26,6 +26,19 @@ def test_register_success(client):
     assert data["must_change_password"] is False
 
 
+def test_register_rejects_password_over_72_utf8_bytes(client):
+    """Register must 422 when the password exceeds bcrypt's 72-byte input."""
+    wipe_users()
+    email = f"long-{uuid.uuid4().hex[:10]}@example.com"
+    response = client.post(
+        "/api/v1/auth/register",
+        json={"email": email, "password": "A" * 90},
+    )
+    assert response.status_code == 422, response.text
+    assert "A" * 90 not in response.text
+    assert "72" in response.text.lower()
+
+
 def test_register_duplicate_email(client):
     """Registering the same email twice: second attempt is closed (403), not 409.
 

@@ -35,6 +35,39 @@ def test_verify_password_wrong():
     assert verify_password("wrong-password", hashed) is False
 
 
+def test_hash_password_rejects_over_72_utf8_bytes():
+    """REVIEWEXTERN P2-6: bcrypt must not silently truncate past 72 bytes.
+
+    Mutation M1: hashing 'A'*90 without a byte check must go red
+    (today verify(p) and verify(p[:72]) would both be True).
+    """
+    overlong = "A" * 90
+    with pytest.raises(ValueError, match="72 bytes"):
+        hash_password(overlong)
+
+
+def test_hash_and_verify_72_ascii_bytes():
+    """Control: exactly 72 ASCII bytes still hashes and verifies."""
+    plain = "A" * 72
+    hashed = hash_password(plain)
+    assert verify_password(plain, hashed) is True
+    assert verify_password(plain[:-1] + "B", hashed) is False
+
+
+def test_verify_password_rejects_over_72_utf8_bytes():
+    """Overlong login must not match a 72-byte prefix hash."""
+    hashed = hash_password("A" * 72)
+    assert verify_password("A" * 90, hashed) is False
+
+
+def test_hash_password_counts_umlauts_as_utf8_bytes():
+    """Umlauts are 2 bytes; 37×ä is 74 bytes and must be rejected."""
+    with pytest.raises(ValueError, match="72 bytes"):
+        hash_password("ä" * 37)
+    hashed = hash_password("ä" * 36)
+    assert verify_password("ä" * 36, hashed) is True
+
+
 # ---------------------------------------------------------------------------
 # jwt
 # ---------------------------------------------------------------------------

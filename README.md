@@ -35,7 +35,7 @@ A local-first, privacy-centric voice assistant that actively learns and maintain
 - STT: faster-whisper
 - TTS: Piper (multi-voice)
 - LLM (MVP): OpenAI (temporary) → later local / Adapter Pattern
-- Auth: JWT + bcrypt
+- Auth: JWT + bcrypt (passwords >72 UTF-8 bytes are rejected, not truncated)
 
 ## Authentication
 

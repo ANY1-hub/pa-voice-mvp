@@ -34,6 +34,17 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def _hash_password(plain: str) -> str:
+    """Hash or 422 without putting the password in the body."""
+    try:
+        return hash_password(plain)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
+
+
 @router.get("/bootstrap-status")
 async def bootstrap_status(
     repo: UserRepository = Depends(get_user_repository),  # noqa: B008
@@ -78,7 +89,7 @@ async def register(
 
     user = User(
         email=payload.email.lower(),
-        hashed_password=hash_password(payload.password),
+        hashed_password=_hash_password(payload.password),
         is_superuser=True,
         must_change_password=False,
     )
@@ -191,7 +202,7 @@ async def change_password(
 
     updated = await repo.update_password(
         current_user.id,
-        hashed_password=hash_password(payload.new_password),
+        hashed_password=_hash_password(payload.new_password),
         must_change_password=False,
     )
     if updated is None:
