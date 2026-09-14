@@ -47,7 +47,9 @@ def test_add_working_memory_injection(client, auth_headers):
         },
     )
     assert response.status_code == 400
-    assert "prompt injection detected" in response.json()["detail"].lower()
+    detail = response.json()["detail"]
+    assert "prompt injection detected" in detail.lower()
+    assert "ignore all previous rules" not in detail.lower()
 
 
 def test_add_semantic_memory_success(client, auth_headers):

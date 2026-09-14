@@ -23,17 +23,18 @@ def test_settings_defaults(monkeypatch):
     assert settings.login_window_seconds == 900
 
 
-def test_settings_override_from_values():
+def test_settings_override_from_values(monkeypatch):
     """Settings can be constructed with explicit values."""
+    monkeypatch.delenv("LLM_MODEL", raising=False)
     settings = Settings(
         openai_api_key="sk-test",
-        llm_model="gpt-4o",
+        llm_model="gpt-5-mini",
         mongodb_db_name="test_db",
         secret_key="unit-test-only-secret-key-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
         _env_file=None,
     )
     assert settings.openai_api_key == "sk-test"
-    assert settings.llm_model == "gpt-4o"
+    assert settings.llm_model == "gpt-5-mini"
     assert settings.mongodb_db_name == "test_db"
 
 

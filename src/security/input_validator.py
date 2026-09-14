@@ -1,10 +1,15 @@
 """Input validation and sanitization layer (Prompt Injection protection etc.)."""
 
+import logging
 import re
 import unicodedata
 from typing import Any
 
 from .exceptions import InputValidationError
+
+logger = logging.getLogger(__name__)
+
+_CLIENT_REJECTION = "Potential prompt injection detected"
 
 # Conservative MVP blocklist inspired by common direct prompt-injection patterns
 # (see PayloadsAllTheThings / Prompt Injection). Prefer low false-positive phrases.
@@ -68,15 +73,13 @@ def sanitize_user_input(text: str) -> str:
     lowered = _for_blocklist(text)
     for pattern in DANGEROUS_PATTERNS:
         if pattern in lowered:
-            raise InputValidationError(
-                f"Potential prompt injection detected: '{pattern}'"
-            )
+            logger.warning("prompt injection blocked pattern=%r", pattern)
+            raise InputValidationError(_CLIENT_REJECTION)
     for prefix in ROLE_PREFIX_PATTERNS:
         for line in lowered.splitlines():
             if line.lstrip().startswith(prefix):
-                raise InputValidationError(
-                    f"Potential prompt injection detected: '{prefix}'"
-                )
+                logger.warning("prompt injection blocked pattern=%r", prefix)
+                raise InputValidationError(_CLIENT_REJECTION)
 
     return text.strip()
 
