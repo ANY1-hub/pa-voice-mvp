@@ -74,20 +74,73 @@ _TIME_RE = re.compile(
     re.IGNORECASE,
 )
 
-# Relative wait: "in 2 minutes", "in 5 Minuten", "in einer Stunde", "2 perc múlva"
+# Relative wait: "in 2 minutes", "in two/zwei Minuten", "két perc múlva"
+_WORD_TO_INT: dict[str, int] = {
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+    "six": 6,
+    "seven": 7,
+    "eight": 8,
+    "nine": 9,
+    "ten": 10,
+    "eins": 1,
+    "zwei": 2,
+    "drei": 3,
+    "vier": 4,
+    "fünf": 5,
+    "fuenf": 5,
+    "sechs": 6,
+    "sieben": 7,
+    "acht": 8,
+    "neun": 9,
+    "zehn": 10,
+    "egy": 1,
+    "két": 2,
+    "ket": 2,
+    "kettő": 2,
+    "ketto": 2,
+    "három": 3,
+    "harom": 3,
+    "négy": 4,
+    "negy": 4,
+    "öt": 5,
+    "ot": 5,
+    "hat": 6,
+    "hét": 7,
+    "het": 7,
+    "nyolc": 8,
+    "kilenc": 9,
+    "tíz": 10,
+    "tiz": 10,
+}
+_WORD_ALT = "|".join(
+    sorted((re.escape(w) for w in _WORD_TO_INT), key=len, reverse=True)
+)
 _RELATIVE_IN = re.compile(
     r"\bin\s+(?:einer|einem|one|a)\s+"
     r"(minutes?|mins?|minuten|minute|hours?|hrs?|stunden|stunde)\b",
     re.IGNORECASE,
 )
 _RELATIVE_N = re.compile(
-    r"\bin\s+(\d+)\s*" r"(minutes?|mins?|minuten|minute|hours?|hrs?|stunden|stunde)\b",
+    rf"\bin\s+(\d+|{_WORD_ALT})\s*"
+    r"(minutes?|mins?|minuten|minute|hours?|hrs?|stunden|stunde)\b",
     re.IGNORECASE,
 )
 _RELATIVE_HU = re.compile(
-    r"\b(\d+)\s*(perc|óra)\s*múlva\b",
+    rf"\b(\d+|{_WORD_ALT})\s*(perc|óra)\s*múlva\b",
     re.IGNORECASE,
 )
+
+
+def _parse_count(raw: str) -> int:
+    """Parse a digit or EN/DE/HU number word (~1–10) to int."""
+    cleaned = raw.strip().casefold()
+    if cleaned.isdigit():
+        return int(cleaned)
+    return _WORD_TO_INT[cleaned]
 
 
 def _now_utc() -> datetime:
@@ -120,13 +173,13 @@ def _unit_to_delta(n: int, unit: str) -> timedelta:
 
 
 def _parse_relative_duration(text: str, now: datetime) -> datetime | None:
-    """Parse 'in N minutes' / 'in einer Stunde' / 'N perc múlva'."""
+    """Parse 'in N minutes' / 'in two minutes' / 'in einer Stunde' / 'N perc múlva'."""
     m = _RELATIVE_HU.search(text)
     if m:
-        return now + _unit_to_delta(int(m.group(1)), m.group(2))
+        return now + _unit_to_delta(_parse_count(m.group(1)), m.group(2))
     m = _RELATIVE_N.search(text)
     if m:
-        return now + _unit_to_delta(int(m.group(1)), m.group(2))
+        return now + _unit_to_delta(_parse_count(m.group(1)), m.group(2))
     m = _RELATIVE_IN.search(text)
     if m:
         return now + _unit_to_delta(1, m.group(1))
@@ -350,8 +403,8 @@ _REPLIES: dict[str, dict[str, str]] = {
     "en": {
         "need_content": "I need a bit more content for the reminder.",
         "save_fail": "Sorry, I could not save the reminder.",
-        "created": "Got it. I'll remind you{due}: {content}",
-        "created_due": " on {due}",
+        "created": "Got it. Reminder noted: {content}",
+        "created_due": "Got it. I'll remind you on {due}: {content}",
         "list_fail": "Sorry, I could not retrieve your reminders.",
         "list_empty": "You have no pending reminders.",
         "list_header": "Here are your pending reminders:",
@@ -376,8 +429,8 @@ _REPLIES: dict[str, dict[str, str]] = {
     "de": {
         "need_content": "Ich brauche etwas mehr Inhalt für die Erinnerung.",
         "save_fail": "Sorry, ich konnte die Erinnerung nicht speichern.",
-        "created": "Alles klar. Ich erinnere dich{due}: {content}",
-        "created_due": " am {due}",
+        "created": "Alles klar. Erinnerung notiert: {content}",
+        "created_due": "Alles klar. Ich erinnere dich am {due}: {content}",
         "list_fail": "Sorry, ich konnte deine Erinnerungen nicht laden.",
         "list_empty": "Du hast keine offenen Erinnerungen.",
         "list_header": "Hier sind deine offenen Erinnerungen:",
@@ -402,8 +455,8 @@ _REPLIES: dict[str, dict[str, str]] = {
     "hu": {
         "need_content": "Kicsit több tartalom kell az emlékeztetőhöz.",
         "save_fail": "Sajnos nem tudtam menteni az emlékeztetőt.",
-        "created": "Rendben. Emlékeztetlek{due}: {content}",
-        "created_due": " ekkor: {due}",
+        "created": "Rendben. Emlékeztető feljegyezve: {content}",
+        "created_due": "Rendben. Emlékeztetlek ekkor: {due}: {content}",
         "list_fail": "Sajnos nem tudtam lekérni az emlékeztetőket.",
         "list_empty": "Nincs függő emlékeztetőd.",
         "list_header": "Ezek a függő emlékeztetőid:",
@@ -525,20 +578,62 @@ class RemindersSkill(Skill):
     # Create
     # ------------------------------------------------------------------
 
+    async def _merge_llm_create_slots(
+        self,
+        user_text: str,
+        content: str,
+        due_at: datetime | None,
+    ) -> tuple[str, datetime | None]:
+        """Optionally enrich content/due from the LLM slot extractor."""
+        if self.llm is None:
+            return content, due_at
+        llm_content, llm_due = await extract_reminder_slots(
+            self.llm, user_text, _now_utc(), timezone=self.timezone
+        )
+        if llm_content:
+            content = llm_content
+        if llm_due is not None:
+            due_at = llm_due
+        return content, due_at
+
+    def _reminder_fact_summary(self, content: str, due_at: datetime | None) -> str:
+        """Build the Semantic Memory one-liner for a new reminder."""
+        summary = f"{REMINDER_FACT_PREFIX} {content[:200]}"
+        if due_at is not None:
+            summary += f" (due {_format_due(due_at, self.timezone)})"
+        return summary
+
+    async def _maybe_store_reminder_fact(self, summary: str) -> None:
+        """Best-effort SM write for a reminder summary. Never raises."""
+        if self.semantic_memory is None:
+            return
+        try:
+            await self.semantic_memory.add_fact(
+                fact=summary,
+                importance=0.6,
+                entities=["reminder"],
+            )
+        except Exception:
+            logger.exception("Failed to write reminder summary to semantic memory")
+
+    def _created_confirm_text(
+        self, lang: str, content: str, due_at: datetime | None
+    ) -> str:
+        """Confirm create; due-claim phrasing only when ``due_at`` is set."""
+        content_snip = content[:120]
+        if due_at is not None:
+            return _t(
+                lang,
+                "created_due",
+                due=_format_due(due_at, self.timezone),
+                content=content_snip,
+            )
+        return _t(lang, "created", content=content_snip)
+
     async def _create_reminder(self, user_text: str, lang: str) -> SkillResult:
         due_at = _parse_due(user_text, self.timezone)
-        content = _strip_date_tokens(user_text)
-        if not content:
-            content = user_text.strip()
-
-        if self.llm is not None:
-            llm_content, llm_due = await extract_reminder_slots(
-                self.llm, user_text, _now_utc(), timezone=self.timezone
-            )
-            if llm_content:
-                content = llm_content
-            if llm_due is not None:
-                due_at = llm_due
+        content = _strip_date_tokens(user_text) or user_text.strip()
+        content, due_at = await self._merge_llm_create_slots(user_text, content, due_at)
 
         if len(content) < 2:
             return SkillResult(
@@ -557,32 +652,10 @@ class RemindersSkill(Skill):
                 handled=True,
             )
 
-        summary = f"{REMINDER_FACT_PREFIX} {reminder.content[:200]}"
-        if due_at:
-            summary += f" (due {_format_due(due_at, self.timezone)})"
-
-        if self.semantic_memory is not None:
-            try:
-                await self.semantic_memory.add_fact(
-                    fact=summary,
-                    importance=0.6,
-                    entities=["reminder"],
-                )
-            except Exception:
-                logger.exception("Failed to write reminder summary to semantic memory")
-
-        due_part = (
-            _t(lang, "created_due", due=_format_due(due_at, self.timezone))
-            if due_at
-            else ""
-        )
+        summary = self._reminder_fact_summary(reminder.content, due_at)
+        await self._maybe_store_reminder_fact(summary)
         return SkillResult(
-            response_text=_t(
-                lang,
-                "created",
-                due=due_part,
-                content=reminder.content[:120],
-            ),
+            response_text=self._created_confirm_text(lang, reminder.content, due_at),
             handled=True,
             memory_writes=[{"content": summary, "importance": 0.6}],
         )
