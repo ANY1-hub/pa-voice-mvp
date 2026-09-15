@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `POST /api/v1/chat/voice` rejects bodies over 10 MB **before** parse (413). Speak button shows remaining WAV-budget seconds (327) while recording and auto-stops at 0.
 
 ### Fixed
+- ActiveRecall and Orchestrator ``Relevant personal facts`` omit Reminder/Notes skill-summary SM lines (`User set a reminder:` / `User saved a note`); skills still write those summaries.
 - Reminder relative dues accept EN/DE/HU number words (~1–10, e.g. `two` / `zwei` / `két`); confirm claims a scheduled reminder only when `due_at` is set.
 - Voice UI on `:5500` cache-busts `audio.js` and `main.css` with the Speak-countdown query so `boot()` cannot import a stale `audio.js` (login form stayed hidden).
 - Speak-button countdown digits show only in the last 20 seconds of the WAV budget; the mic stays until then.

@@ -28,6 +28,7 @@ from src.services.memory_facts import (
     display_name_from_name_fact,
     extract_personal_facts,
     is_name_slot_fact,
+    is_skill_summary_fact,
 )
 from src.services.stt.base import STTAdapter
 from src.services.tts.base import TTSAdapter
@@ -519,8 +520,12 @@ class ChatOrchestrator:
         if self.semantic_memory is not None:
             try:
                 facts = await self.semantic_memory.search(query=query, limit=5)
-                if facts:
-                    lines = [f"- {fact.content}" for fact in facts]
+                lines = [
+                    f"- {fact.content}"
+                    for fact in facts
+                    if not is_skill_summary_fact(fact.content)
+                ]
+                if lines:
                     parts.append(
                         "Relevant personal facts:" + chr(10) + chr(10).join(lines)
                     )

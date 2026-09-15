@@ -8,7 +8,11 @@ from typing import Any
 
 from src.memory.semantic_memory import SemanticMemory
 from src.models.memory import SemanticMemoryFact
-from src.services.memory_facts import ADDRESS_FACT_PREFIX, is_identity_name_fact
+from src.services.memory_facts import (
+    ADDRESS_FACT_PREFIX,
+    is_identity_name_fact,
+    is_skill_summary_fact,
+)
 from src.skills.base import Skill, SkillResult
 from src.skills.replies import reply_language, t
 from src.skills.vocabulary import (
@@ -148,6 +152,8 @@ class ActiveRecallSkill(Skill):
             seen.add(address.casefold())
             lines.append(f"- {address}")
         for fact in facts:
+            if is_skill_summary_fact(fact.content):
+                continue
             if about_user and (
                 fact.content.startswith(ADDRESS_FACT_PREFIX)
                 or is_identity_name_fact(fact.content)

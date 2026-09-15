@@ -95,8 +95,21 @@ def test_probe_reminders_create_persists(probe_client: TestClient, probe_auth: t
 def test_probe_reminders_delete_cancels_and_drops_summary(
     probe_client: TestClient, probe_auth: tuple
 ):
-    """A delete turn must cancel the reminder and drop its semantic summary."""
+    """Delete cancels the reminder and drops its SM summary (Mongo proof).
+
+    Slice-Brief 9: skill-summary facts are omitted from ActiveRecall, so
+    presence/absence of ``User set a reminder:`` must be proven in Mongo
+    (not by dumping summaries through ``what do you know about me``).
+    """
     headers, user_id = probe_auth
+    summary_query = {
+        "user_id": user_id,
+        "content": {
+            "$regex": r"^User set a reminder:.*dentist",
+            "$options": "i",
+        },
+    }
+
     created = probe_client.post(
         "/api/v1/chat/text",
         headers=headers,
@@ -111,26 +124,20 @@ def test_probe_reminders_delete_cancels_and_drops_summary(
         )
         assert pending is not None
         assert "dentist" in pending["content"].lower()
-        summary = client[db_name]["semantic_memory"].find_one(
-            {
-                "user_id": user_id,
-                "content": {
-                    "$regex": r"^User set a reminder:.*dentist",
-                    "$options": "i",
-                },
-            }
-        )
+        summary = client[db_name]["semantic_memory"].find_one(summary_query)
         assert (
             summary is not None
         ), "create must write the SM summary or delete is vacuous"
 
+        # ActiveRecall must not surface skill-summary writebacks (Brief 9).
         before = probe_client.post(
             "/api/v1/chat/text",
             headers=headers,
             json={"text": "what do you know about me", "language": "en"},
         )
         assert before.status_code == 200, before.text
-        assert "dentist" in before.json()["response"].lower()
+        assert "dentist" not in before.json()["response"].lower()
+        assert "user set a reminder:" not in before.json()["response"].lower()
 
         deleted = probe_client.post(
             "/api/v1/chat/text",
@@ -147,16 +154,8 @@ def test_probe_reminders_delete_cancels_and_drops_summary(
         doc = client[db_name]["reminders"].find_one({"id": pending["id"]})
         assert doc is not None
         assert doc.get("status") == "cancelled"
-        leftover = client[db_name]["semantic_memory"].find_one(
-            {
-                "user_id": user_id,
-                "content": {
-                    "$regex": r"^User set a reminder:.*dentist",
-                    "$options": "i",
-                },
-            }
-        )
-        assert leftover is None
+        leftover = client[db_name]["semantic_memory"].find_one(summary_query)
+        assert leftover is None, "delete must drop the SM reminder summary"
     finally:
         client.close()
 
@@ -167,6 +166,7 @@ def test_probe_reminders_delete_cancels_and_drops_summary(
     )
     assert after.status_code == 200, after.text
     assert "dentist" not in after.json()["response"].lower()
+    assert "user set a reminder:" not in after.json()["response"].lower()
 
 
 def test_probe_recall_reads_semantic_fact(probe_client: TestClient, probe_auth: tuple):

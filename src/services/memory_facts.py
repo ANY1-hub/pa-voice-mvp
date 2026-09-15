@@ -16,6 +16,20 @@ logger = logging.getLogger(__name__)
 FACT_IMPORTANCE = 0.75
 ADDRESS_FACT_PREFIX = "The user prefers to be addressed as"
 
+# Reminder / Notes skill writebacks (keep writing; omit from personal-fact surfaces).
+SKILL_SUMMARY_PREFIXES: tuple[str, ...] = (
+    "User set a reminder:",
+    "User saved a note:",
+    "User saved a note titled",
+)
+
+
+def is_skill_summary_fact(content: str) -> bool:
+    """True when a Semantic Memory line is a Reminder/Notes skill summary."""
+    text = (content or "").strip()
+    return any(text.startswith(prefix) for prefix in SKILL_SUMMARY_PREFIXES)
+
+
 _NAME_SLOT_FACT_RE = re.compile(
     r"\buser'?s?\s+name\s+is\b|"
     r"\buser\s+is\s+called\b|"
