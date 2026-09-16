@@ -608,6 +608,7 @@ async function finishRecording() {
     } finally {
         currentStop = null;
         setProcessing(false);
+        textInput.focus();
     }
 }
 
@@ -650,6 +651,7 @@ sendBtn.addEventListener("click", async () => {
         setStatus(err.message || "Request failed", true);
     } finally {
         setProcessing(false);
+        textInput.focus();
     }
 });
 

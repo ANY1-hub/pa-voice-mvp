@@ -17,6 +17,8 @@ import unicodedata
 
 NOTES_CREATE: dict[str, list[str]] = {
     "en": [
+        "remember that I",
+        "remember that",
         "remember this",
         "save a note",
         "make a note",
@@ -26,6 +28,8 @@ NOTES_CREATE: dict[str, list[str]] = {
         "add a note",
     ],
     "de": [
+        "erinnere dich",
+        "erinner dich",
         "merk dir das",
         "merk dir",
         "schreib auf",

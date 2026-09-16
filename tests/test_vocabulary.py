@@ -123,12 +123,24 @@ def test_german_reminder_create_is_not_stolen_by_recall():
 
 
 def test_personal_fact_phrases_are_not_stolen_by_skills():
-    """Memory phrases must reach the LLM path, not Notes/Reminders/Search/Recall."""
+    """Help-catalog personal facts stay off Reminders/Search/Recall.
+
+    Slice-Brief 11: durable remember-that intents (e.g. EN ``remember that I``)
+    are owned by Notes. Other catalog personal_facts phrases must still reach
+    the LLM path (no skill handler), never Reminders/WebSearch/ActiveRecall.
+    """
+    notes_owned = {"remember that i"}
     registry = _registry()
     for lang in ("en", "de", "hu"):
         for phrase in help_catalog(lang)["personal_facts"]:
             assert looks_personal(phrase) is True, phrase
             found = registry.find_handler(phrase)
+            if phrase.casefold() in notes_owned:
+                assert found is not None and found.name == "notes", (
+                    f"{lang!r} {phrase!r} expected notes, got "
+                    f"{getattr(found, 'name', None)}"
+                )
+                continue
             assert (
                 found is None
             ), f"{lang!r} {phrase!r} stolen by {getattr(found, 'name', None)}"

@@ -20,9 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Prompt-injection blocklist collapses whitespace and strips format/control (zero-width) characters before matching. Still a UX guard, not a control.
 
 ### Added
+- Notes create vocabulary accepts DE „erinnere dich…“ and EN „remember that I…“ (distinct from Reminder „erinnere mich…“ / timed due).
 - `POST /api/v1/chat/voice` rejects bodies over 10 MB **before** parse (413). Speak button shows remaining WAV-budget seconds (327) while recording and auto-stops at 0.
 
 ### Fixed
+- Chat composer returns focus to `#textInput` after a text or voice Jarvis reply finishes.
 - WebSearch replies list DuckDuckGo results only; personal Semantic Memory is no longer woven into the search answer (ActiveRecall remains the personal-fact surface).
 - ActiveRecall and Orchestrator ``Relevant personal facts`` omit Reminder/Notes skill-summary SM lines (`User set a reminder:` / `User saved a note`); skills still write those summaries.
 - Reminder relative dues accept EN/DE/HU number words (~1–10, e.g. `two` / `zwei` / `két`); confirm claims a scheduled reminder only when `due_at` is set.
