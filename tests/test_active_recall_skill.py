@@ -217,3 +217,88 @@ async def test_execute_german_recall_replies_in_german():
     assert result.handled is True
     assert "weiß" in result.response_text.lower() or "Das weiß" in result.response_text
     assert "Here's what I know" not in result.response_text
+
+
+@pytest.mark.asyncio
+async def test_leading_greeting_does_not_become_the_recall_topic():
+    """Live walk 2026-09-16: 'Hallo, was weisst Du über mich?' must recall me, not Hallo.
+
+    A greeting before the trigger is leftover after phrase strip and must not
+    become empty_topic '{query}'. Control: a topic that is the word Hallo
+    still searches Hallo.
+    """
+    mock_sem = MagicMock()
+    mock_sem.search = AsyncMock(return_value=[])
+    skill = ActiveRecallSkill(semantic_memory=mock_sem)
+
+    result = await skill.execute(
+        user_text="Hallo, was weisst Du über mich?",
+        user_id="u1",
+    )
+    assert result.handled is True
+    assert "gespeichert: 'Hallo'" not in result.response_text
+    assert "Hallo" not in result.response_text
+    query = mock_sem.search.call_args.kwargs["query"]
+    assert query.lower() not in {"hallo", "hallo,"}
+    assert query.lower() in {"", "mich", "mir", "me"}
+
+    mock_sem.search.reset_mock()
+    topic = await skill.execute(
+        user_text="Was weißt du über Hallo?",
+        user_id="u1",
+    )
+    topic_query = mock_sem.search.call_args.kwargs["query"]
+    assert "hallo" in topic_query.lower()
+    assert "gespeichert: 'Hallo'" in topic.response_text
+
+
+@pytest.mark.asyncio
+async def test_leading_greeting_keeps_a_real_topic():
+    """Greeting plus topic must search the topic, not the greeting."""
+    mock_sem = MagicMock()
+    mock_sem.search = AsyncMock(return_value=[])
+    skill = ActiveRecallSkill(semantic_memory=mock_sem)
+
+    await skill.execute(
+        user_text="Hallo, was weißt du über Ildi?",
+        user_id="u1",
+    )
+    query = mock_sem.search.call_args.kwargs["query"]
+    assert "ildi" in query.lower()
+    assert "hallo" not in query.lower()
+
+
+def test_can_handle_greeting_then_german_recall():
+    """Spoken 'Hallo, …' plus a recall question is still ActiveRecall."""
+    skill = ActiveRecallSkill()
+    assert skill.can_handle("Hallo, was weisst Du über mich?") is True
+    assert skill.can_handle("Hallo") is False
+
+
+def test_can_handle_hungarian_recall_including_tuds_typo():
+    """Live walk 2026-09-16: 'mit tuds rolam' must still be ActiveRecall.
+
+    Canonical 'mit tudsz rólam' already matches. Dropped -sz and missing
+    accent are typed/STT forms of the same intent. Control: first-person
+    'mit tudok' is not recall.
+    """
+    skill = ActiveRecallSkill()
+    assert skill.can_handle("mit tudsz rólam") is True
+    assert skill.can_handle("mit tuds rolam") is True
+    assert skill.can_handle("Mit tuds rólam?") is True
+    assert skill.can_handle("mit tudok rólam") is False
+
+
+@pytest.mark.asyncio
+async def test_hungarian_tuds_typo_recalls_the_user_in_hungarian():
+    """Dropped -sz must recall 'you', not fall through to the LLM path."""
+    mock_sem = MagicMock()
+    mock_sem.search = AsyncMock(return_value=[])
+    skill = ActiveRecallSkill(semantic_memory=mock_sem)
+
+    result = await skill.execute(user_text="mit tuds rolam", user_id="u1")
+    assert result.handled is True
+    query = mock_sem.search.call_args.kwargs["query"]
+    assert query.lower() in {"", "rólam", "rolam", "nekem"}
+    assert "személyes" in result.response_text.lower()
+    assert "Here's what I know" not in result.response_text

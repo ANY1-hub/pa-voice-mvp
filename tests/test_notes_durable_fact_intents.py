@@ -72,6 +72,19 @@ def test_reminder_due_intent_still_selects_reminders_control():
     assert notes.can_handle(utterance) is False
 
 
+def test_birthday_remind_blob_is_not_a_note():
+    """Live walk: 'dir merkst' + 'erinnert daran' is a reminder, not a note."""
+    utterance = (
+        "ich möchte, dass du ihren Geburtstag dir merkst und mich "
+        "eine Woche vorher erinnert daran, er ist jedes Jahr am 29. August."
+    )
+    handler = _registry().find_handler(utterance)
+    assert handler is not None
+    assert handler.name == "reminders"
+    notes = NotesSkill(repository=NoteRepository(user_id="u1"))
+    assert notes.can_handle(utterance) is False
+
+
 @pytest.mark.asyncio
 async def test_active_recall_still_surfaces_personal_fact_control():
     """Control twin: ActiveRecall about-you still shows a real personal fact."""

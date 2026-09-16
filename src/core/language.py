@@ -17,7 +17,8 @@ _NAME_ACCENT_CHARS = set("áéíóúöüőűÁÉÍÓÚÖÜŐŰ")
 _NAMES_PATH = Path(__file__).resolve().parent / "data" / "hungarian_given_names.json"
 _HU_WORDS = re.compile(
     r"\b(hogy|nem|egy|és|vagy|ez|az|igen|köszönöm|sziasztok|szia|tudom|rólam|kérem|"
-    r"elmentettem|emlékeztess|jegyzeteld|milyen|holnap|kérlek|köszi|miért)\b",
+    r"elmentettem|emlékeztess|jegyzeteld|milyen|holnap|kérlek|köszi|miért|"
+    r"tudsz|tuds|rolam)\b",
     re.IGNORECASE,
 )
 # Short agenda/smalltalk without ő/ű. Do not list bare van/mi/ma (English collisions).

@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] 2026-09-16
+
+### Fixed
+- ActiveRecall no longer treats a leading greeting as the topic: ``Hallo, was weisst Du über mich?`` recalls you, not ``Hallo``. A topic that *is* the word Hallo still searches Hallo.
+- ActiveRecall Hungarian ``mit tudsz rólam`` also matches typed/STT ``mit tuds rolam`` (dropped ``-sz``, no accent).
+- Birthday-style DE create (``erinnert daran`` / ``mich erinnert``, not Notes ``merk dir``) routes to Reminders. Named months (``29. August``) plus ``eine Woche vorher`` set ``due_at`` to the next future week-before. No Google/Apple/.ics.
+
 ## [Unreleased] 2026-09-11
 
 ### Changed

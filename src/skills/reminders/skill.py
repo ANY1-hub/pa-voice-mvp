@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, tzinfo
 from difflib import SequenceMatcher
 from typing import Any
 
@@ -49,6 +49,61 @@ _TOMORROW = re.compile(r"\b(tomorrow|morgen|holnap)\b", re.IGNORECASE)
 _TODAY = re.compile(r"\b(today|heute|ma)\b", re.IGNORECASE)
 _NUMERIC_DATE = re.compile(r"\b(\d{1,2})[./](\d{1,2})(?:[./](\d{2,4}))?\b")
 _DAY_AFTER = re.compile(r"\b(übermorgen|day after tomorrow)\b", re.IGNORECASE)
+
+_MONTH_INDEX: dict[str, int] = {
+    "january": 1,
+    "januar": 1,
+    "január": 1,
+    "february": 2,
+    "februar": 2,
+    "február": 2,
+    "march": 3,
+    "märz": 3,
+    "marz": 3,
+    "március": 3,
+    "marcius": 3,
+    "april": 4,
+    "április": 4,
+    "aprilis": 4,
+    "may": 5,
+    "mai": 5,
+    "május": 5,
+    "majus": 5,
+    "june": 6,
+    "juni": 6,
+    "június": 6,
+    "junius": 6,
+    "july": 7,
+    "juli": 7,
+    "július": 7,
+    "julius": 7,
+    "august": 8,
+    "augusztus": 8,
+    "september": 9,
+    "october": 10,
+    "oktober": 10,
+    "október": 10,
+    "november": 11,
+    "december": 12,
+    "dezember": 12,
+}
+_MONTH_ALT = "|".join(
+    sorted((re.escape(n) for n in _MONTH_INDEX), key=len, reverse=True)
+)
+_NAMED_DAY_MONTH = re.compile(
+    rf"\b(\d{{1,2}})\.?\s+({_MONTH_ALT})\b",
+    re.IGNORECASE,
+)
+_NAMED_MONTH_DAY = re.compile(
+    rf"\b({_MONTH_ALT})\s+(\d{{1,2}})\b",
+    re.IGNORECASE,
+)
+_WEEK_BEFORE = re.compile(
+    r"\b(?:(?:eine?|1)\s+)?woche\s+vorher\b|"
+    r"\ba\s+week\s+before\b|"
+    r"\b(?:egy\s+)?héttel\s+(?:korábban|el[oöő]bb)\b",
+    re.IGNORECASE,
+)
 
 _WEEKDAYS = {
     "monday": 0,
@@ -186,6 +241,34 @@ def _parse_relative_duration(text: str, now: datetime) -> datetime | None:
     return None
 
 
+def _named_month_date(text: str, year: int, tz: tzinfo) -> datetime | None:
+    """Parse '29. August' / 'August 29' in ``year``, or None."""
+    named = _NAMED_DAY_MONTH.search(text)
+    if named:
+        day = int(named.group(1))
+        month = _MONTH_INDEX[named.group(2).casefold()]
+    else:
+        named = _NAMED_MONTH_DAY.search(text)
+        if not named:
+            return None
+        month = _MONTH_INDEX[named.group(1).casefold()]
+        day = int(named.group(2))
+    try:
+        return datetime(year, month, day, tzinfo=tz)
+    except ValueError:
+        return None
+
+
+def _roll_future(base: datetime, now_local: datetime) -> datetime:
+    """If ``base`` is already past, use the same calendar day next year."""
+    if base > now_local:
+        return base
+    try:
+        return base.replace(year=base.year + 1)
+    except ValueError:
+        return base + timedelta(days=365)
+
+
 def _parse_due(text: str, timezone: str | None = None) -> datetime | None:  # noqa: C901
     """Parse a simple relative date (+ optional time) from free text.
 
@@ -200,6 +283,7 @@ def _parse_due(text: str, timezone: str | None = None) -> datetime | None:  # no
     tz = zoneinfo_or_utc(timezone)
     now_local = now_utc.astimezone(tz)
     base: datetime | None = None
+    roll_year = False
 
     numeric = _NUMERIC_DATE.search(text)
     if numeric:
@@ -216,6 +300,11 @@ def _parse_due(text: str, timezone: str | None = None) -> datetime | None:  # no
             base = datetime(year, month, day, tzinfo=tz)
         except ValueError:
             base = None
+
+    if base is None:
+        base = _named_month_date(text, now_local.year, tz)
+        if base is not None:
+            roll_year = True
 
     if base is None and _DAY_AFTER.search(text):
         base = (now_local + timedelta(days=2)).replace(
@@ -259,6 +348,11 @@ def _parse_due(text: str, timezone: str | None = None) -> datetime | None:  # no
     if t:
         hour, minute = t
         base = base.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    if _WEEK_BEFORE.search(text):
+        base = base - timedelta(days=7)
+        roll_year = True
+    if roll_year:
+        base = _roll_future(base, now_local)
     return to_utc(base)
 
 
@@ -271,6 +365,9 @@ def _strip_date_tokens(text: str) -> str:
     cleaned = _WEEKDAY_RE.sub("", cleaned)
     cleaned = _TIME_RE.sub("", cleaned)
     cleaned = _NUMERIC_DATE.sub("", cleaned)
+    cleaned = _NAMED_DAY_MONTH.sub("", cleaned)
+    cleaned = _NAMED_MONTH_DAY.sub("", cleaned)
+    cleaned = _WEEK_BEFORE.sub("", cleaned)
     cleaned = _RELATIVE_HU.sub("", cleaned)
     cleaned = _RELATIVE_N.sub("", cleaned)
     cleaned = _RELATIVE_IN.sub("", cleaned)

@@ -32,6 +32,17 @@ _FILLER_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Leading leftover after trigger strip is not a topic
+# ("Hallo, was weißt du über mich?" → me, not Hallo).
+_LEADING_GREETING_RE = re.compile(
+    r"^\s*(?:"
+    r"sziasztok|guten(?:\s+(?:morgen|tag|abend))?|"
+    r"hallo|hello|hey(?:\s+there)?|hi(?:\s+there)?|"
+    r"moin|servus|szia|helló"
+    r")(?:\s+jarvis)?\s*[,!.]*\s*",
+    re.IGNORECASE,
+)
+
 _REPLIES: dict[str, dict[str, str]] = {
     "en": {
         "no_memory": "I have no long-term memory available right now.",
@@ -62,7 +73,7 @@ _REPLIES: dict[str, dict[str, str]] = {
     },
 }
 
-_YOU_TOKENS = {"me", "mich", "mir", "rólam", "nekem"}
+_YOU_TOKENS = {"me", "mich", "mir", "rólam", "rolam", "nekem"}
 
 
 class ActiveRecallSkill(Skill):
@@ -132,9 +143,13 @@ class ActiveRecallSkill(Skill):
         if _NAME_RE.search(user_text):
             return ""
         text = user_text.strip()
+        strip_greeting = bool(_LEADING_GREETING_RE.match(text))
         # Remove the first matching trigger phrase
         text = _TRIGGER_RE.sub("", text, count=1).strip(" :?,-").strip()
         text = _FILLER_RE.sub("", text).strip()
+        if strip_greeting:
+            text = _LEADING_GREETING_RE.sub("", text, count=1).strip(" :?,-").strip()
+            text = _FILLER_RE.sub("", text).strip()
         return text
 
     def _format_response(

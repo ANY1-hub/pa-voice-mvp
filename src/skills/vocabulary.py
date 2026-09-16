@@ -171,6 +171,14 @@ REMINDERS_CREATE_EXTRA = [
     "add a reminder",
     "erinnerung für",
     "erinnerung an",
+    # Spoken invert: "erinnert daran" / "mich erinnert" (not Notes "merk dir").
+    "erinnert daran",
+    "erinnere mich daran",
+    "erinnert mich",
+    "remind me about",
+    "remind me of",
+    "emlékeztess rá",
+    "emlékeztess engem",
 ]
 REMINDERS_LIST_EXTRA = [
     "show reminders",
@@ -381,6 +389,11 @@ ACTIVE_RECALL_EXTRA = [
     "was weißt du noch über",
     "was weißt du noch von",
     *NAME_RECALL_PHRASES,
+    # Typed/STT: Hungarian 2nd-person -sz often dropped (tudsz → tuds).
+    "mit tuds rólam",
+    "mit tuds erről",
+    "mit tuds még rólam",
+    "mit tuds",
 ]
 
 # ---------------------------------------------------------------------------

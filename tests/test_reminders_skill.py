@@ -209,6 +209,59 @@ def test_can_handle_create_intents():
     assert skill.can_handle("just chatting") is False
 
 
+_ILDI_BIRTHDAY = (
+    "Ihr die ist meine Freundin und ich möchte, dass du ihren Geburtstag "
+    "dir merkst und mich, ich sag meine Woche vorher, erinnert daran, "
+    "er ist jedes Jahr am 29. August."
+)
+
+
+def test_can_handle_birthday_week_before_without_erinner_mich():
+    """Live walk 2026-09-16: 'erinnert daran' + named date is create, not LLM.
+
+    'dir merkst' is not Notes 'merk dir'. Control: 'erinnere dich dass…' stays
+    notes; incidental 'daran erinnert' is not create.
+    """
+    skill = RemindersSkill(repository=ReminderRepository(user_id="u1"))
+    assert skill.can_handle(_ILDI_BIRTHDAY) is True
+    assert skill.can_handle("erinnere dich dass ich allergisch bin") is False
+    assert skill.can_handle("Sie hat mich daran erinnert, dass es regnet.") is False
+
+
+def test_registry_birthday_utterance_selects_reminders_not_notes():
+    """First-match registry: birthday-remind blob must not fall through to LLM."""
+    from src.skills.notes.repository import NoteRepository
+    from src.skills.notes.skill import NotesSkill
+
+    registry = SkillRegistry()
+    registry.register(NotesSkill(repository=NoteRepository(user_id="u1")))
+    registry.register(RemindersSkill(repository=ReminderRepository(user_id="u1")))
+    found = registry.find_handler(_ILDI_BIRTHDAY)
+    assert found is not None
+    assert found.name == "reminders"
+
+
+@pytest.mark.asyncio
+async def test_birthday_week_before_parses_named_month_and_offset():
+    """29 August + eine Woche vorher → next future week-before, not a fake calendar."""
+    repo = ReminderRepository(user_id="u1", collection=None)
+    skill = RemindersSkill(repository=repo, timezone="UTC")
+    now = datetime(2026, 9, 16, 18, 0, tzinfo=UTC)
+    with (
+        patch("src.skills.reminders.skill._now_utc", return_value=now),
+        patch.object(repo, "create", wraps=repo.create) as spy,
+    ):
+        result = await skill.execute(user_text=_ILDI_BIRTHDAY, user_id="u1")
+    assert result.handled is True
+    spy.assert_awaited()
+    due = spy.await_args.kwargs.get("due_at")
+    assert due is not None
+    assert due == datetime(2027, 8, 22, tzinfo=UTC)
+    assert "2027-08-22" in result.response_text
+    assert ".ics" not in result.response_text.lower()
+    assert "google" not in result.response_text.lower()
+
+
 def test_can_handle_list_intents():
     """Skill must claim list-reminders utterances in EN/DE."""
     skill = RemindersSkill(repository=ReminderRepository(user_id="u1"))

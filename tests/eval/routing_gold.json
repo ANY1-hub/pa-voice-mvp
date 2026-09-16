@@ -122,6 +122,13 @@
       "tag": "canonical"
     },
     {
+      "id": "de-remind-birthday-week-before",
+      "lang": "de",
+      "text": "ich möchte, dass du ihren Geburtstag dir merkst und mich eine Woche vorher erinnert daran, er ist jedes Jahr am 29. August.",
+      "expected": "reminders",
+      "tag": "gappy"
+    },
+    {
       "id": "de-remind-erinnere-an",
       "lang": "de",
       "text": "Erinnere mich an den Zahnarzt morgen",
@@ -281,6 +288,13 @@
       "text": "mit tudsz rólam",
       "expected": "active_recall",
       "tag": "canonical"
+    },
+    {
+      "id": "hu-recall-tuds-typo",
+      "lang": "hu",
+      "text": "mit tuds rolam",
+      "expected": "active_recall",
+      "tag": "gappy"
     },
     {
       "id": "hu-recall-not-remind",
