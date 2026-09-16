@@ -16,7 +16,7 @@ _SHARED_UMLAUTS = set("öüÖÜ")
 _NAME_ACCENT_CHARS = set("áéíóúöüőűÁÉÍÓÚÖÜŐŰ")
 _NAMES_PATH = Path(__file__).resolve().parent / "data" / "hungarian_given_names.json"
 _HU_WORDS = re.compile(
-    r"\b(hogy|nem|egy|és|vagy|ez|az|igen|köszönöm|szia|tudom|rólam|kérem|"
+    r"\b(hogy|nem|egy|és|vagy|ez|az|igen|köszönöm|sziasztok|szia|tudom|rólam|kérem|"
     r"elmentettem|emlékeztess|jegyzeteld|milyen|holnap|kérlek|köszi|miért)\b",
     re.IGNORECASE,
 )
@@ -35,6 +35,7 @@ _DE_STRONG = re.compile(
     r"\b(ich|nicht|und|wir|eine|für|bitte|danke|bin|haben|keine?|"
     r"aber|oder|wenn|weil|dass|mein|meine|mir|dir|wie|geht|"
     r"notiz|merke?|heute|steht|"
+    r"hallo|guten|servus|moin|"
     r"woher|wohin|wofür|worauf|woran|womit|wodurch|worum|"
     r"weshalb|wieso|warum|wann|wessen|welche[rsn]?|"
     r"nein|hast|diese[nrms]?)\b",
@@ -42,7 +43,7 @@ _DE_STRONG = re.compile(
 )
 _EN_STRONG = re.compile(
     r"\b(the|and|you|what|how|have|this|that|with|your|"
-    r"don't|can't|hello|thanks|tell|about|story|please|"
+    r"don't|can't|hello|hi|hey|thanks|tell|about|story|please|"
     r"remind|today|are|short|minutes?|once|stretch|me)\b",
     re.IGNORECASE,
 )

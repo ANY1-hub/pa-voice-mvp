@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `POST /api/v1/chat/voice` rejects bodies over 10 MB **before** parse (413). Speak button shows remaining WAV-budget seconds (327) while recording and auto-stops at 0.
 
 ### Fixed
+- Clear response-language detection treats bare DE/EN/HU greetings (`hallo` / `guten …` / `servus` / `moin`, `hi` / `hey`, `sziasztok`) as language signals; `Hallo` stays German and is not merged with `hello`.
 - Chat composer returns focus to `#textInput` after a text or voice Jarvis reply finishes.
 - WebSearch replies list DuckDuckGo results only; personal Semantic Memory is no longer woven into the search answer (ActiveRecall remains the personal-fact surface).
 - ActiveRecall and Orchestrator ``Relevant personal facts`` omit Reminder/Notes skill-summary SM lines (`User set a reminder:` / `User saved a note`); skills still write those summaries.
