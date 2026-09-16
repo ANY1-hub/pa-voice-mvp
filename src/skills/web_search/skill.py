@@ -1,4 +1,4 @@
-"""WebSearchSkill – memory-augmented web search via DuckDuckGo."""
+"""WebSearchSkill – web search via DuckDuckGo (no personal SM weave)."""
 
 from __future__ import annotations
 
@@ -56,21 +56,18 @@ _REPLIES: dict[str, dict[str, str]] = {
         "need_query": "I need a clearer search query.",
         "fail": "Sorry, the web search failed. Please try again later.",
         "no_results": "I could not find any results for “{query}”.",
-        "personal": "Based on what I know about you:",
         "results": "Web results for “{query}”:",
     },
     "de": {
         "need_query": "Ich brauche eine klarere Suchanfrage.",
         "fail": "Sorry, die Websuche ist fehlgeschlagen. Bitte versuche es später.",
         "no_results": "Ich konnte keine Ergebnisse für „{query}“ finden.",
-        "personal": "Basierend auf dem, was ich über dich weiß:",
         "results": "Web-Ergebnisse für „{query}“:",
     },
     "hu": {
         "need_query": "Kell egy egyértelműbb keresőkifejezés.",
         "fail": "Sajnos a webes keresés nem sikerült. Próbáld később.",
         "no_results": "Nem találtam találatot erre: „{query}”.",
-        "personal": "A rólad tudottak alapján:",
         "results": "Webes találatok erre: „{query}”:",
     },
 }
@@ -86,7 +83,7 @@ def _is_empty_or_deixis_only(remainder: str) -> bool:
 
 
 class WebSearchSkill(Skill):
-    """Perform a web search and weave in personal Semantic Memory context."""
+    """Perform a web search; reply is web results only (no personal SM)."""
 
     name = "web_search"
 
@@ -133,8 +130,7 @@ class WebSearchSkill(Skill):
         return text.strip(" :,-?")
 
     async def _run_search(self, query: str, lang: str) -> SkillResult:
-        """Fetch personal context + web results and build the reply."""
-        personal_bits = await self._fetch_personal_context(query)
+        """Fetch web results and build the reply (no personal SM block)."""
         results = await self._fetch_web_results(query)
 
         if results is None:
@@ -148,18 +144,8 @@ class WebSearchSkill(Skill):
                 handled=True,
             )
 
-        response_text = self._format_response(query, personal_bits, results, lang)
+        response_text = self._format_response(query, results, lang)
         return SkillResult(response_text=response_text, handled=True)
-
-    async def _fetch_personal_context(self, query: str) -> list[str]:
-        if self.semantic_memory is None:
-            return []
-        try:
-            facts = await self.semantic_memory.search(query=query, limit=3)
-            return [f.content for f in facts if f.content]
-        except Exception:
-            logger.exception("Failed to retrieve semantic context for search")
-            return []
 
     async def _fetch_web_results(self, query: str) -> list[dict[str, str]] | None:
         try:
@@ -171,18 +157,10 @@ class WebSearchSkill(Skill):
     def _format_response(
         self,
         query: str,
-        personal_bits: list[str],
         results: list[dict[str, str]],
         lang: str,
     ) -> str:
-        lines: list[str] = []
-        if personal_bits:
-            lines.append(t(_REPLIES, lang, "personal"))
-            for bit in personal_bits[:2]:
-                lines.append(f"• {bit[:120]}")
-            lines.append("")
-
-        lines.append(t(_REPLIES, lang, "results", query=query))
+        lines: list[str] = [t(_REPLIES, lang, "results", query=query)]
         for i, r in enumerate(results[:4], 1):
             title = r.get("title") or "Result"
             body = (r.get("body") or "")[:100]

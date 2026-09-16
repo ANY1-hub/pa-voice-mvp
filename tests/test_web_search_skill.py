@@ -1,4 +1,4 @@
-"""Unit tests for WebSearchSkill (memory-augmented DuckDuckGo)."""
+"""Unit tests for WebSearchSkill (DuckDuckGo; no personal SM weave)."""
 
 from __future__ import annotations
 
@@ -122,8 +122,8 @@ async def test_execute_no_results():
 
 
 @pytest.mark.asyncio
-async def test_execute_uses_semantic_memory_context():
-    """Relevant personal facts from Semantic Memory must appear in the reply."""
+async def test_execute_does_not_weave_semantic_memory_into_reply():
+    """Slice-Brief 10: SM personal facts must not appear in the web-search reply."""
     client = FakeSearchClient()
     mock_sem = MagicMock()
     mock_fact = MagicMock()
@@ -139,11 +139,10 @@ async def test_execute_uses_semantic_memory_context():
     )
 
     assert result.handled is True
-    mock_sem.search.assert_awaited()
-    assert (
-        "vegetarian" in result.response_text.lower()
-        or "prefer" in result.response_text.lower()
-    )
+    lower = result.response_text.lower()
+    assert "based on what i know about you" not in lower
+    assert "vegetarian" not in lower
+    assert "web results" in lower
 
 
 @pytest.mark.asyncio
