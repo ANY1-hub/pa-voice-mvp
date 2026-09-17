@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
     <title>2b J.A.R.V.I.S.</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="css/main.css?v=2026-09-11-speak-countdown-20">
+    <link rel="stylesheet" href="css/main.css?v=2026-09-17-hud-orbit">
 </head>
 <body>
     <!-- Auth (Login / Bootstrap Register) -->
@@ -136,6 +136,7 @@
             <div id="emptyGreeting" class="empty-greeting">
                 <p id="emptyGreetingText" class="empty-greeting-title"></p>
             </div>
+            <div id="chatHudWatermark" class="chat-hud-watermark" data-testid="chat-hud-watermark" aria-hidden="true"></div>
             <main id="chatContainer" class="chat-area"></main>
 
             <div id="statusLine" class="status-line hidden"></div>
@@ -159,6 +160,7 @@
                             </div>
                         </div>
                         <button id="speakBtn" class="composer-mic" data-i18n-title="speakHint" title="Click to speak" aria-label="Speak">
+                            <span id="speakOrbit" class="speak-orbit" data-testid="speak-orbit" aria-hidden="true"></span>
                             <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                 <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
                                 <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>

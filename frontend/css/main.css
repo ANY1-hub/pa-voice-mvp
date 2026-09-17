@@ -429,12 +429,30 @@ body {
 }
 
 .chat-column {
+    position: relative;
     width: 100%;
     max-width: 48rem;
     min-width: 0;
     min-height: 0;
     display: flex;
     flex-direction: column;
+}
+
+.chat-hud-watermark {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.14;
+    background: url("../assets/hud-ring.png") center center / min(72%, 26rem) no-repeat;
+}
+
+.chat-column > .empty-greeting,
+.chat-column > .chat-area,
+.chat-column > .status-line,
+.chat-column > .input-area {
+    position: relative;
+    z-index: 1;
 }
 
 .chat-column.is-empty {
@@ -623,7 +641,7 @@ body {
 }
 
 .msg.jarvis .msg-body {
-    background: rgba(0, 40, 30, 0.35);
+    background: rgba(7, 36, 53, 0.75);
     border: 1px solid rgba(0, 200, 140, 0.2);
 }
 
@@ -717,6 +735,42 @@ body {
     border-color: var(--error);
     color: var(--error);
     animation: pulse 1.2s ease-in-out infinite;
+    overflow: visible;
+}
+
+.speak-orbit {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 54px;
+    height: 54px;
+    margin-left: -27px;
+    margin-top: -27px;
+    pointer-events: none;
+    z-index: 0;
+    background: url("../assets/hud-ring.png") center / contain no-repeat;
+    opacity: 0;
+    visibility: hidden;
+    transform: scale(0.35);
+}
+
+.composer-mic.recording .speak-orbit {
+    opacity: 0.8;
+    visibility: visible;
+    transform: scale(1);
+    animation: speak-orbit-spin 2.8s linear infinite;
+}
+
+.composer-mic > .mic-icon,
+.composer-mic > .speak-countdown,
+.composer-mic > .rec-dot {
+    position: relative;
+    z-index: 1;
+}
+
+@keyframes speak-orbit-spin {
+    from { transform: scale(1) rotate(0deg); }
+    to   { transform: scale(1) rotate(360deg); }
 }
 
 .composer-tools {

@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Prompt-injection blocklist collapses whitespace and strips format/control (zero-width) characters before matching. Still a UX guard, not a control.
 
 ### Added
+- Chat HUD: faint `hud-ring.png` watermark behind bubbles (`#chatHudWatermark`); mic recording shows a tiny rotating orbit (`#speakOrbit`) that hides when idle.
 - Notes create vocabulary accepts DE „erinnere dich…“ and EN „remember that I…“ (distinct from Reminder „erinnere mich…“ / timed due).
 - `POST /api/v1/chat/voice` rejects bodies over 10 MB **before** parse (413). Speak button shows remaining WAV-budget seconds (327) while recording and auto-stops at 0.
 
