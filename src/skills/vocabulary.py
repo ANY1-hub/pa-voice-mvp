@@ -495,8 +495,32 @@ def _token_pattern(token: str) -> str:
     return re.escape(token)
 
 
+# Short definition/identity triggers: no fillers between tokens, and only at
+# utterance start (so "… mi az" / gappy "was … ist" stay conversational).
+_TIGHT_INTERROGATIVE_PHRASES = frozenset(
+    {
+        "what is",
+        "who is",
+        "was ist",
+        "wer ist",
+        "mi az",
+        "ki az",
+    }
+)
+
+
+def _is_tight_interrogative(phrase: str) -> bool:
+    """True for Gap-0 web definition/identity triggers."""
+    return fold_text(phrase.strip()) in _TIGHT_INTERROGATIVE_PHRASES
+
+
 def _max_gap(lang: str | None, phrase: str) -> int:
-    """Hungarian allows three fillers (kérlek egy új …)."""
+    """Hungarian allows three fillers (kérlek egy új …).
+
+    Short web interrogatives (what/was/mi + is/ist/az, who/wer/ki) use Gap 0.
+    """
+    if _is_tight_interrogative(phrase):
+        return 0
     if lang == "hu":
         return 3
     if lang is None and any(ord(c) > 127 for c in phrase):
@@ -554,22 +578,31 @@ def compile_phrase_regex(
     Accents are folded so STT without diacritics still hits. Tokens of
     length 6+ allow an inflection tail. Up to two filler words (three in
     Hungarian) may appear between tokens (please / kérlek egy új).
+    Short web interrogatives use Gap 0 and must start the utterance.
     """
     scored: list[tuple[int, str]] = []
     for group in groups:
         for lang, items in group.items():
-            gap = _max_gap(lang, "")
             for raw in items:
                 phrase = raw.strip()
                 if not phrase:
                     continue
-                scored.append((len(phrase), _phrase_pattern(fold_text(phrase), gap)))
+                folded = fold_text(phrase)
+                gap = _max_gap(lang, phrase)
+                pat = _phrase_pattern(folded, gap)
+                if _is_tight_interrogative(phrase):
+                    pat = "^" + pat
+                scored.append((len(phrase), pat))
     for raw in extra or []:
         phrase = raw.strip()
         if not phrase:
             continue
+        folded = fold_text(phrase)
         gap = _max_gap(None, phrase)
-        scored.append((len(phrase), _phrase_pattern(fold_text(phrase), gap)))
+        pat = _phrase_pattern(folded, gap)
+        if _is_tight_interrogative(phrase):
+            pat = "^" + pat
+        scored.append((len(phrase), pat))
     scored.sort(key=lambda item: item[0], reverse=True)
     parts = [pattern for _, pattern in scored]
     combined = r"(?i)(?<!\w)(?:" + "|".join(parts) + r")(?!\w)"
