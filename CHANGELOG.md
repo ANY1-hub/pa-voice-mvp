@@ -1,4 +1,4 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to this project will be documented in this file.
 
@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] 2026-09-16
+
+### Changed
+- `AGENTS.md`: EU AI Act compliance anchored as a standing hard boundary and security duty (Slice-Briefs must consider transparency, honest limits, risk class).
 
 ### Fixed
 - WebSearch short interrogatives (`what is` / `was ist` / `mi az`, `who is` / `wer ist` / `ki az`) match Gap 0 at utterance start only, so gappy conversational follow-ups no longer claim the skill.

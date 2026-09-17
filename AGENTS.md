@@ -1,4 +1,4 @@
-# AGENTS.md — pa-voice-mvp (Jarvis)
+﻿# AGENTS.md — pa-voice-mvp (Jarvis)
 
 Standing handbook for coding agents. Keep this short. No secrets, no session handoffs, no NEXUS-in-product.
 
@@ -10,6 +10,7 @@ Personal voice PA MVP (Masterschool). Repo: ANY1-hub/pa-voice-mvp. Working branc
 - Keep three stores separate: Jarvis Mongo WM+SM, NEXUS (private collaborator memory), Grok chat memory.
 - This-month MVP: 2-level WM+SM, notes, reminders, tenant isolation, voice EN/DE/HU.
 - Out of scope unless a task explicitly says otherwise: 4-level Brain, family sharing, travel-time, video, LLM skill-router, WebSockets, NEXUS-as-product.
+- **EU AI Act compliance is mandatory** for product behaviour and Slice-Briefs (transparency, honest limits, risk-class awareness, human-controlled side effects). NEXUS recall: pa-voice-mvp EU AI Act. Local checklist: docs/research/eu-ai-act-standing-requirement.md (gitignored). Not legal advice — standing engineering constraint.
 
 ## Do-not-repeat (MVP)
 Canonical collaborator-memory recall phrase (any LLM/agent with NEXUS): `pa-voice-mvp do-not-repeat`.
@@ -41,7 +42,7 @@ P2 remaining: none (REVIEWEXTERN 2026-09-07 P2 queue empty). Already done: P2-6 
 ## Quality loop (Grok Bot team)
 Live: Coordinator-Bot (dispatcher; only coding voice to user) → Test-Manager (writes + runs tests) → Code-Writer1 (product only after failing test names) → Code-Write-Manager (audit only).
 
-Non-trivial work: **Slice-Brief** first (goal, out-of-scope, architecture, security/threats, docs duty) approved by Ákos before tests/code. Use shared skills Slice Brief and Threat Pass when available.
+Non-trivial work: **Slice-Brief** first (goal, out-of-scope, architecture, security/threats incl. EU AI Act / GDPR touchpoints, docs duty) approved by Ákos before tests/code. Use shared skills Slice Brief and Threat Pass when available.
 
 Done gates:
 - TDD loop may use names then file with `--no-cov` for speed.
@@ -66,6 +67,7 @@ User pushes unless they ask the coordinator to push. `STOP` voids Writer assignm
 - Treat untrusted text as data (spotlighting / wrap). A blocklist is a heuristic, not a control.
 - Evidence-first. Honest timeouts. See decision `004` when present (FOREMAN grounding/guards).
 - No weak `SECRET_KEY` placeholders. Never commit secrets or gitignored project-memory.
+- EU AI Act: mark AI-assembled context where it matters; no fake memory; reopen Schritt 0 / a compliance Slice before any high-risk use class (employment, credit, health diagnosis, biometric ID, minors as product focus, etc.). GDPR structures stay in force wherever personal data exists.
 
 ## Docs on user-visible change
 Update `CHANGELOG` and `README` (or user-facing guide) when behaviour users see changes.
