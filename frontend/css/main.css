@@ -641,7 +641,7 @@ body {
 }
 
 .msg.jarvis .msg-body {
-    background: rgba(7, 36, 53, 0.75);
+    background: rgba(0, 30, 20, 0.75);
     border: 1px solid rgba(0, 200, 140, 0.2);
 }
 
@@ -755,15 +755,14 @@ body {
 }
 
 .composer-mic.recording .speak-orbit {
-    opacity: 0.8;
+    opacity: 0.9;
     visibility: visible;
     transform: scale(1);
     animation: speak-orbit-spin 2.8s linear infinite;
 }
 
 .composer-mic > .mic-icon,
-.composer-mic > .speak-countdown,
-.composer-mic > .rec-dot {
+.composer-mic > .speak-countdown {
     position: relative;
     z-index: 1;
 }
@@ -799,11 +798,13 @@ body {
     position: absolute;
     top: 2px;
     right: 2px;
+    z-index: 1;
     width: 8px;
     height: 8px;
     border-radius: 50%;
     background: var(--error);
     box-shadow: 0 0 8px var(--error);
+    transition: opacity 0.2s ease;
 }
 
 .speak-hint {
