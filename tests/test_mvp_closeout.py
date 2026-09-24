@@ -18,6 +18,8 @@ Leak scanning of the whole tree lives in ``tests/test_repo_hygiene.py``.
 
 from __future__ import annotations
 
+import hashlib
+import math
 import re
 import subprocess
 import threading
@@ -362,3 +364,106 @@ def test_decision_004_wording_is_neutral():
     assert "grounding" in doc.lower()
     assert len(doc) > 500
     assert find_internal_terms(doc) == [], find_internal_terms(doc)
+
+
+# --------------------------------------------------------------------------
+# Slice-Brief 17: CHANGELOG [0.4.0] release-reading cleanup
+# --------------------------------------------------------------------------
+
+# sha256 of the [0.3.0] section (heading through the blank line before
+# "## [0.2.0]") as released; read with universal newlines, utf-8-sig.
+_CHANGELOG_0_3_0_SHA256 = (
+    "c190d3eabf1636d2088fda1aa7c3c227dc263123e1d1b0840fd30586d731970d"
+)
+_BARE_BUDGET_NUMBER = re.compile(r"\(\s*327\s*\)")
+
+
+def _changelog_section(version: str) -> str:
+    """Return one release section: its '## [x.y.z]' heading up to the next one."""
+    text = _read("CHANGELOG.md")
+    match = re.search(
+        rf"^## \[{re.escape(version)}\].*?(?=^## \[|\Z)", text, re.S | re.M
+    )
+    assert match, f"CHANGELOG has no [{version}] section"
+    return match.group(0)
+
+
+def _subsection(section: str, title: str) -> str:
+    """Return a '### Title' block of a release section up to the next heading."""
+    match = re.search(
+        rf"^### {re.escape(title)}\s*$(.*?)(?=^##|\Z)", section, re.S | re.M
+    )
+    assert match, f"section has no '### {title}'"
+    return match.group(1)
+
+
+def _has_bare_budget_number(text: str) -> bool:
+    return bool(_BARE_BUDGET_NUMBER.search(text))
+
+
+def _frontend_wav_budget_seconds() -> int:
+    """Recompute ``wavBudgetSeconds()`` from the constants in ``audio.js``."""
+    js = (_FRONTEND / "js" / "audio.js").read_text(encoding="utf-8")
+    rate = re.search(r"WAV_SAMPLE_RATE\s*=\s*(\d+)\s*;", js)
+    cap = re.search(r"MAX_AUDIO_UPLOAD_BYTES\s*=\s*([\d\s*]+);", js)
+    assert rate and cap, "audio.js budget constants not found"
+    cap_bytes = math.prod(int(part) for part in cap.group(1).split("*"))
+    return cap_bytes // (int(rate.group(1)) * 2)
+
+
+def test_changelog_0_4_0_has_no_in_progress_phase_note():
+    """A finished release must not say Phase 5 is still in progress."""
+    section = _changelog_section("0.4.0")
+    assert "Phase 5 (Polish & Demo) in progress" not in section
+    assert not re.search(r"Phase 5\b.*\bin progress", section, re.I), re.search(
+        r".*Phase 5\b.*\bin progress.*", section, re.I
+    )
+
+
+def test_changelog_0_4_0_shell_entry_has_no_internal_wording():
+    """The shell-layout entry drops internal wording but keeps its facts."""
+    section = _changelog_section("0.4.0")
+    lowered = section.lower()
+    for phrase in ("annotated", "claude screenshot", "maintainer's"):
+        assert phrase not in lowered, f"internal wording {phrase!r} still present"
+    for fact in ("`+ New`", "Notes", "Reminders", "Chats", "document upload"):
+        assert fact in section, f"shell entry lost the fact {fact!r}"
+
+
+def test_changelog_0_4_0_changed_lists_watermark_top_right():
+    """[0.4.0] ### Changed has a bullet for the watermark moving to the top right."""
+    changed = _subsection(_changelog_section("0.4.0"), "Changed")
+    bullets = [line for line in changed.splitlines() if line.lstrip().startswith("-")]
+    assert any(
+        "watermark" in line.lower() and re.search(r"top[\s-]right", line, re.I)
+        for line in bullets
+    ), "no '### Changed' bullet mentions the watermark moving to the top right"
+
+
+def test_changelog_0_4_0_budget_seconds_are_explained():
+    """No bare '(327)'; if the number stays it is explained and matches audio.js."""
+    section = _changelog_section("0.4.0")
+    assert not _has_bare_budget_number(section), "bare '(327)' still present"
+    for line in section.splitlines():
+        if not re.search(r"\b327\b", line):
+            continue
+        assert re.search(r"16\s*kHz", line), line
+        assert "mono" in line and "16-bit" in line, line
+        assert re.search(r"10\s*Mi?B", line), line
+        assert _frontend_wav_budget_seconds() == 327, "code budget is not 327 s"
+
+
+def test_bare_budget_number_detector_control_twin():
+    """Control: the bare-number check bites on '(327)' but not on the explained form."""
+    assert _has_bare_budget_number("remaining WAV-budget seconds (327) while")
+    assert _has_bare_budget_number("seconds ( 327 )")
+    assert not _has_bare_budget_number(
+        "about 327 s (10 MB at 16 kHz mono 16-bit) while recording"
+    )
+
+
+def test_changelog_0_3_0_section_is_byte_identical():
+    """Control twin: the cleanup touches [0.4.0] only; [0.3.0] stays as released."""
+    section = _changelog_section("0.3.0")
+    digest = hashlib.sha256(section.encode("utf-8")).hexdigest()
+    assert digest == _CHANGELOG_0_3_0_SHA256, "[0.3.0] section changed"

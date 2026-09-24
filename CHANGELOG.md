@@ -15,10 +15,10 @@ MVP release (demo 18.09.2026). Consolidates the former dated Unreleased blocks.
 - MIT `LICENSE` and README License section; pyproject version `0.4.0`.
 - Chat HUD: faint `hud-ring.png` watermark behind bubbles (`#chatHudWatermark`); mic recording shows a tiny rotating orbit (`#speakOrbit`) that hides when idle.
 - Notes create vocabulary accepts DE „erinnere dich…“ and EN „remember that I…“ (distinct from Reminder „erinnere mich…“ / timed due).
-- `POST /api/v1/chat/voice` rejects bodies over 10 MB **before** parse (413). Speak button shows remaining WAV-budget seconds (327) while recording and auto-stops at 0.
+- `POST /api/v1/chat/voice` rejects bodies over 10 MiB **before** parse (413). The WAV budget is 327 s (10 MiB at 16 kHz mono 16-bit); recording auto-stops at 0 and the Speak button shows the remaining seconds in the last 20 s.
 - `POST /api/v1/auth/login` bounds failed attempts per client IP + email (default 5 in 15 minutes). Further tries return **429** with `Retry-After`. Failures are logged without the password; a successful login clears that key. Unknown emails use the same cap (no existence leak).
 - Claude-like shell: left sidebar with All notes / All reminders and a local chat-history list; chat column `max-width` so a wider viewport grows the background. `GET /api/v1/notes` and `GET /api/v1/reminders` (JWT, current user only). Chat sittings are stored in `localStorage` until a server sitting id exists.
-- Shell aligned to the maintainer's annotated Claude screenshot: `+ New`, Notes|Reminders in one row, Chats below; centered empty greeting; composer card with mic in the row and a disabled `+` for later document upload.
+- Sidebar shell layout: `+ New`, Notes|Reminders in one row, Chats below; centered empty greeting; composer card with the mic in the row and a disabled `+` for later document upload.
 - Sidebar: `+` sits on the Chats row; extra gap under Notes/Reminders. Chats can be deleted (confirm). The last user bubble can be edited until a newer user message exists; versions cycle as `n/m` like Grok.
 - Tenant isolation tests for Semantic Memory search (text, hybrid/vector, empty-query top facts): seed facts for users A and B; A's search must not return B. Tests fail if `user_id` is omitted from Mongo `find`. Production filter is unchanged.
 - Reminders delete/cancel (`delete the reminder …` / DE `lösche die Erinnerung` / HU `töröld az emlékeztetőt`): cancels the pending item and drops its Semantic Memory summary so Active Recall cannot keep a ghost. STT typos (`delet`, `habe`/`have`) still match; the LLM must not claim a delete.
@@ -79,6 +79,7 @@ MVP release (demo 18.09.2026). Consolidates the former dated Unreleased blocks.
   - Resilience tests for WebSearchSkill (backend failure, semantic/add_fact errors) and DuckDuckGoClient mapping/exception paths
 
 ### Changed
+- Chat HUD watermark sits top right instead of centered (same size, opacity and pointer-events).
 - Public showcase close-out for v0.4.0: slim recruiter-facing README (MVP status + demo 18.09.2026, CI badge, Mermaid architecture, honesty sections); honest LLM stack (OpenAI active; Grok adapter implemented but unwired; Gemini stub); Security section matches orchestrator prompt labelling (full spotlighting on roadmap); API endpoint tables and chat request/response fields in `docs/api.md`; `AGENTS.md` made public-safe with gitignored `AGENTS.local.md`; NAS setup doc uses `<NAS_LAN_IP>` and a path placeholder; decision `004` accepted-but-partial status note; `docs/memory-design.md` English with `slot`/`valid_to` and code-true dedup order.
 - `AGENTS.md`: EU AI Act compliance anchored as a standing hard boundary and security duty (Slice-Briefs must consider transparency, honest limits, risk class).
 - CORS allow-list for the Voice UI (`http://127.0.0.1:5500`, `http://localhost:5500`); no more `Access-Control-Allow-Origin: *`. Extra origins via ``CORS_ORIGINS``.
@@ -165,7 +166,7 @@ MVP release (demo 18.09.2026). Consolidates the former dated Unreleased blocks.
 - Prompt-injection blocklist collapses whitespace and strips format/control (zero-width) characters before matching. Still a UX guard, not a control.
 
 ### Notes
-- Phase 5 (Polish & Demo) in progress
+- MVP complete; demoed on 18.09.2026.
 - Public registration is closed after the first SuperUser; further accounts only via Admin API
 
 ## [0.3.0] - 2026-08-03 — Phase 4 closed
