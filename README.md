@@ -1,199 +1,127 @@
 # pa-voice-mvp
 
-**Voice-first Personal Assistant MVP** (inspired by Jarvis)
+**Voice-first personal assistant MVP** (Jarvis-inspired): speak or type in English, German, or Hungarian; get a spoken reply grounded in your own notes, reminders, and two-level memory.
 
-A local-first, privacy-centric voice assistant that actively learns and maintains personal insights.
+**Status:** MVP complete, demo 18.09.2026
 
-## Status (2026-08-19)
+[![CI](https://github.com/ANY1-hub/pa-voice-mvp/actions/workflows/ci.yml/badge.svg)](https://github.com/ANY1-hub/pa-voice-mvp/actions/workflows/ci.yml)
 
-| Phase | Status |
-|-------|--------|
-| 0 Setup & Foundation | ✅ |
-| 1 Memory Core | ✅ |
-| 2 Auth + Multi-User | ✅ |
-| 3 Voice Pipeline MVP | ✅ |
-| 4 Skills | ✅ closed |
-| **5 Polish & Demo** | **← current** |
+## Architecture
 
-## Features (MVP scope)
+```mermaid
+flowchart LR
+  UI["Browser UI\n(vanilla JS)"]
+  API["FastAPI\nJWT auth"]
+  STT["STT\nfaster-whisper"]
+  TTS["TTS\nPiper"]
+  LLM["LLM adapters\nOpenAI active\nGrok implemented, unwired\nGemini stub"]
+  Skills["Phrase-matched skills\nNotes · Reminders\nWeb Search · Active Recall"]
+  Mem["Two-level memory\nWorking + Semantic"]
+  DB[(MongoDB)]
+
+  UI --> API
+  API --> STT
+  API --> TTS
+  API --> Skills
+  API --> LLM
+  API --> Mem
+  Mem --> DB
+  Skills --> DB
+```
+
+## Features
 
 - Voice interaction (STT + TTS) with visible transcript and reply
-- Working Memory + Semantic Memory with active consolidation
-- Multi-user isolation (JWT)
-- Multi-language TTS voices (en / de / hu)
-- Browser UI with one big "Speak" button + text fallback
-- Skills: Notes, Reminders (date-aware + agenda), memory-augmented Web Search (DuckDuckGo), Active Recall
-- SuperUser bootstrap + Frontend Auth-UI (Bootstrap / Force-Change / Admin panel)
-- Robust error handling (LLM / skill / STT fallbacks, no internal error leakage)
+- Working Memory + Semantic Memory with background consolidation
+- Multi-user isolation (JWT); SuperUser bootstrap and admin panel
+- Multi-language UI and TTS voices (en / de / hu)
+- Skills: Notes, Reminders (date-aware + agenda), DuckDuckGo Web Search, Active Recall
+- Honest fallbacks when LLM / skill / STT paths fail (no internal error leakage)
 
-**Not in MVP (post-MVP):** streaming, local LLM, GDPR data-rights UI, 4-level memory, Home Assistant, complex roles matrix.
+## Stack (honest)
 
-## Tech Stack
+| Layer | Choice |
+|-------|--------|
+| Backend | FastAPI |
+| Database | MongoDB (local Docker or Synology NAS) |
+| STT | faster-whisper |
+| TTS | Piper (multi-voice) |
+| LLM (current) | OpenAI active; Grok adapter implemented (xAI via OpenAI SDK) but not wired in `src/api/deps.py`; Gemini stub (`NotImplementedError`) |
+| Auth | JWT + bcrypt |
+| Frontend | Vanilla JS + static HTTP |
 
-- Backend: FastAPI
-- Database: MongoDB Community (Docker) on Synology NAS — embeddings in documents; in-app ranking for Phase 1
-- STT: faster-whisper
-- TTS: Piper (multi-voice)
-- LLM (MVP): OpenAI (temporary) → later local / Adapter Pattern
-- Auth: JWT + bcrypt (passwords >72 UTF-8 bytes are rejected, not truncated)
+Local LLM via Ollama is on the roadmap, not in this MVP.
 
-## Authentication
-
-JWT + bcrypt. Multi-user isolation enforced on every memory and chat route.
-
-### Auth Endpoints
-
-| Method | Path                              | Description                                              |
-|--------|-----------------------------------|----------------------------------------------------------|
-| GET    | `/api/v1/auth/bootstrap-status`   | Public – `{ needs_bootstrap: bool }`                     |
-| POST   | `/api/v1/auth/register`           | Only when 0 users; first user = SuperUser                |
-| POST   | `/api/v1/auth/login`              | Returns access token; **429** after repeated failures     |
-| GET    | `/api/v1/auth/me`                 | Current user (`must_change_password`, `display_name`, `timezone`) |
-| POST   | `/api/v1/auth/change-password`    | Change password; clears `must_change_password`           |
-| POST   | `/api/v1/auth/display-name`       | Set preferred name (how Jarvis should address the user)  |
-| POST   | `/api/v1/auth/timezone`           | Store browser IANA timezone for local reminder clocks    |
-
-### Admin Endpoints (SuperUser only)
-
-| Method | Path                           | Description                          |
-|--------|--------------------------------|--------------------------------------|
-| GET    | `/api/v1/admin/users`          | List users                           |
-| POST   | `/api/v1/admin/users`          | Create user (optional `is_superuser`)|
-| PATCH  | `/api/v1/admin/users/{user_id}`| Update `is_active` / `is_superuser`  |
-
-### Chat Endpoints (Phase 3)
-
-| Method | Path                      | Description                                      |
-|--------|---------------------------|--------------------------------------------------|
-| POST   | `/api/v1/chat/text`       | Text message → Memory context → LLM → TTS        |
-| POST   | `/api/v1/chat/voice`      | Audio upload → STT → Memory → LLM → TTS; **413** over 10 MB (before parse) |
-
-Both require `Authorization: Bearer <token>`.
-
-Response shape:
-
-```json
-{
-  "transcript": "what the user said",
-  "response": "Jarvis reply",
-  "audio_base64": "..."
-}
-```
-
-### Token usage
-
-```http
-Authorization: Bearer <access_token>
-```
-
-- Lifetime: **24 hours**
-- User-ID is always a server-generated UUID v4 (client cannot supply one)
-- Email uniqueness is enforced by a MongoDB unique index created at startup
-- Memory routes are fully isolated via dependency injection
-  → see `docs/decisions/001-dependency-injection-memory.md`
-- Public registration is closed after the first SuperUser; further accounts only via Admin API
-- Admin-created users must change their password on first login (`must_change_password`)
-- After password onboarding, every user must set a preferred name (`display_name`) before chat
-
-### Skill Vocabulary
-
-Trigger phrases (EN / DE / HU) for Notes, Reminders, Web Search and Active Recall are documented in **[docs/user-guide.md](docs/user-guide.md)**.
-
-## Getting Started (Development)
+## Getting started
 
 ```bash
-# Clone the repo
 git clone https://github.com/ANY1-hub/pa-voice-mvp.git
 cd pa-voice-mvp
 
-# Create virtual environment and install from the lock (uv is the only package manager)
 uv sync --extra dev
 # Windows: .venv\Scripts\activate   Linux/macOS: source .venv/bin/activate
-playwright install chromium   # default Voice UI engine (firefox / webkit optional)
+playwright install chromium
 
-# Copy env and set MONGODB_URI (local Docker or NAS).
-# SECRET_KEY must be ≥64 random characters — replace the .env.example
-# placeholder or the app will not start.
 cp .env.example .env
+# Set MONGODB_URI and a SECRET_KEY of ≥64 random characters.
 
-# Run the backend
 uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### Frontend (Voice UI)
+Frontend (second terminal):
 
 ```bash
-# Terminal 2 – from project root
 cd frontend
 python -m http.server 5500
-# Open http://127.0.0.1:5500 (CORS allow-list: this origin and http://localhost:5500)
+# Open http://127.0.0.1:5500 — UI talks to the API on :8000
 ```
 
-Open http://localhost:5500 — the UI calls the API on port **8000** on the same hostname. It never requests `/api/...` from the static server. If the backend is down, the page shows an error (it does not become a second login form).
+Piper voice models are not in the repo; see [docs/piper-voice-setup.md](docs/piper-voice-setup.md). Mongo options: `docker-compose.yml` or [docs/nas-mongodb-setup.md](docs/nas-mongodb-setup.md).
 
-- Empty users collection → **Create SuperUser** form (not Sign in)
-- Otherwise → Login; if `must_change_password` → forced password change; then preferred name; then chat
-- SuperUser sees Admin button (user list / create / toggle active & super)
-
-**Ports:** humans use **5500** (UI) and **8000** (API). Pytest starts uvicorn on an ephemeral port and sets `window.JARVIS_API_BASE` so it cannot steal or confuse those two. FastAPI also serves the UI at http://localhost:8000 (Docker); that is not the local two-terminal workflow.
-
-`GET /health` is readiness: it cheap-pings Mongo and returns **200** `status: ok` only when the DB is reachable; otherwise **503** with an honest non-ok status (no secrets in the body).
-
-Piper voice models must be present (see [docs/piper-voice-setup.md](docs/piper-voice-setup.md)).
-
-Voice UI bootstrap is tested with a headless browser (Playwright). The `playwright` extra does **not** download an engine; run `playwright install chromium` (default). If that binary is missing, the chromium family falls back to installed Chrome or Edge. Another engine: `playwright install firefox` then `JARVIS_E2E_BROWSER=firefox pytest tests/test_voice_ui_bootstrap.py`.
-
-### Dependencies (uv only)
-
-`pyproject.toml` + `uv.lock` are the source of truth. Docker runs `uv sync --frozen --no-dev` — there is no `requirements.txt`.
+## Tests
 
 ```bash
-uv add <package>          # or: uv add --dev <package>
-uv remove <package>
-uv lock
+uv run pytest
 ```
 
-See `docs/decisions/003-uv-only-package-manager.md`.
+CI enforces a **90%** coverage floor (`--cov-fail-under=90`).
 
-### MongoDB
+## API
 
-| Setup | Docs |
-|-------|------|
-| Local Docker (mongo + app) | `docker-compose.yml` |
-| **Synology DS925+ (recommended for shared LAN DB)** | **[docs/nas-mongodb-setup.md](docs/nas-mongodb-setup.md)** + template `deploy/nas/docker-compose.mongodb.yml` |
+Endpoint tables live in **[docs/api.md](docs/api.md)** (auth, admin, chat, notes, reminders, skills, memory).
 
-Example NAS URI in `.env`:
+## Security & privacy
 
-```env
-MONGODB_URI=mongodb://pa_admin:<PASSWORD>@<NAS_IP>:27017/?authSource=admin
-MONGODB_DB_NAME=jarvis_db
-```
+- Tenant isolation on every memory and chat route (JWT `user_id`, never a client-supplied id)
+- Passwords: bcrypt; lengths over 72 UTF-8 bytes are rejected, not truncated
+- Login rate limit; no weak / placeholder `SECRET_KEY` at startup
+- Personal memory context is labelled in the system prompt as untrusted user data (not instructions) before the LLM sees it — a prompt label is not a hard control
+- Prompt-injection blocklist is a UX heuristic, not a security boundary
+- CORS allow-list for the Voice UI origins; health check never returns secrets
 
-### Piper TTS Voice Model
+## Limitations
 
-Piper requires local voice models (not included in the repo).
-See **[docs/piper-voice-setup.md](docs/piper-voice-setup.md)** for download instructions (Windows + macOS/Linux).
+- OpenAI is required for the general chat path; skills that do not need an LLM still run without a key
+- No streaming replies, no local LLM in this release, no GDPR data-rights UI
+- Semantic search ranks in-process (cosine / text); native Mongo `$vectorSearch` is deferred
+- Phrase-matched skills, not an LLM skill router
 
-Optional per-language override in `.env`:
+## Roadmap
 
-```env
-PIPER_VOICE_EN=voice_models/piper/en_GB-alan-medium.onnx
-PIPER_VOICE_DE=voice_models/piper/de_DE-thorsten-medium.onnx
-PIPER_VOICE_HU=voice_models/piper/hu_HU-anna-medium.onnx
-```
+- Local LLM (Ollama) behind the existing adapter
+- Full spotlighting (per-call random delimiter + datamarking) and stronger grounding / output guards (see `docs/decisions/004-grounding-and-guards.md`)
+- Wire the existing Grok adapter in `src/api/deps.py` (optional provider)
+- Episodic / perceptual memory levels after the two-level MVP
+- Streaming, GDPR export/delete UI, Home Assistant
 
-## Development Standards
+## Capstone context
 
-- Clean Code + Best Practices
-- Tests with edge cases for every relevant function (pytest)
-- Security by Design (aligned with ISO/IEC 27001 principles)
-- Accessibility considerations (WCAG 2.2 / ISO 40500)
-- Automated checks via Ruff, Black, mypy, pytest (CI coverage ≥ 90%)
+Built as a capstone project at the **Masterschool Institute of Technology**, programme **Software Engineering with AI**.
 
-## Project Memory
+## How this was built
 
-All major decisions are documented in the Project Memory (see internal docs or ask the maintainer).
+AI-assisted, test-driven development with separate roles for writing tests, implementing product code, and reviewing architecture / security / docs. Slice briefs and coverage gates (90%) keep changes honest. No private tooling names belong in the public docs.
 
 ## License
 
-To be defined.
+MIT — see [LICENSE](LICENSE). Copyright (c) 2026 Ákos Nyíry.

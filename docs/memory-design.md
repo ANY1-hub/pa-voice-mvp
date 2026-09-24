@@ -1,90 +1,92 @@
-# Memory Design (neuro-inspiriert)
+# Memory Design (neuro-inspired)
 
-**Inspiration:** Atkinson-Shiffrin Multi-Store Model + aktuelle Consolidation-Forschung  
-**Ziel:** Der Agent sammelt aktiv Erkenntnisse und pflegt das Wissensarchiv (Jarvis-like).
+**Inspiration:** Atkinson-Shiffrin Multi-Store Model + current consolidation research
+**Goal:** The agent actively collects insights and maintains the knowledge archive (Jarvis-like).
 
-## Aktuelle Architektur (MVP)
+## Current architecture (MVP)
 
-Zwei Memory-Ebenen:
+Two memory levels:
 
-### 1. Working Memory (kurzfristig)
+### 1. Working Memory (short-term)
 
-- Session-Kontext und letzte Interaktionen
-- Felder pro Eintrag:
+- Session context and recent interactions
+- Fields per entry:
   - `id` / Mongo ``_id`` (same UUID v4; unique index)
-  - `user_id` (UUID-String)
+  - `user_id` (UUID string)
   - `content`
   - `importance_score` (0.0 – 1.0)
   - `created_at`
   - `last_accessed`
   - `correlation_id` (optional chat-turn UUID)
-- Speicherung in MongoDB-Collection `working_memory`
-- Retrieval: nach `last_accessed` sortiert, optionaler Textfilter; abgelaufene Items (`expires_at`) werden ausgeblendet
-- TTL: 48 Stunden (`expires_at` als BSON Date + Mongo TTL-Index)
-- Vor dem Schreiben: Security-Check über `validate_memory_write`
-- Chat-Turns (Importance 0.4) bleiben kurzfristig; dauerhafte Fakten werden zusätzlich in Semantic Memory extrahiert
+- Stored in MongoDB collection `working_memory`
+- Retrieval: sorted by `last_accessed`, optional text filter; expired items (`expires_at`) are hidden
+- TTL: 48 hours (`expires_at` as BSON Date + Mongo TTL index)
+- Before write: security check via `validate_memory_write`
+- Chat turns (importance 0.4) stay short-term; durable facts are also extracted into Semantic Memory
 
-### 2. Semantic Memory (langfristig)
+### 2. Semantic Memory (long-term)
 
-- Dauerhafte User-Erkenntnisse: Präferenzen, Fakten, Muster, Wissensstand
-- Felder pro Eintrag:
+- Durable user insights: preferences, facts, patterns, knowledge state
+- Fields per entry:
   - `id` / Mongo ``_id`` (same UUID v4; unique index)
-  - `user_id` (UUID-String)
+  - `user_id` (UUID string)
   - `content`
   - `importance_score` (0.0 – 1.0)
   - `entities_involved`
   - `created_at`
   - `last_accessed`
   - `embedding` (optional)
-  - `language` (optional ISO-Tag des Originaltexts; keine Auto-Übersetzung)
-- Speicherung in MongoDB-Collection `semantic_memory`
-- Vor dem Schreiben: Security-Check über `validate_memory_write`
+  - `language` (optional ISO tag of the original text; no auto-translation)
+  - `slot` (optional durable slot id, e.g. ``name``; name-slot supersession)
+  - `valid_to` (optional datetime; when set, the fact is superseded and must not win recall)
+- Stored in MongoDB collection `semantic_memory`
+- Before write: security check via `validate_memory_write`
 
-#### Retrieval-Strategie (aktuell)
+#### Retrieval strategy (current)
 
-1. **Mit Embeddings-Adapter:** Query wird eingebettet, Ranking per Cosine Similarity **in-memory** (ausreichend für MVP-Scale).
-2. **Ohne Embeddings:** Case-insensitive Textsuche auf `content`, sortiert nach `importance_score`.
+1. **With embeddings adapter:** query is embedded; ranking by cosine similarity **in-memory** (sufficient for MVP scale).
+2. **Without embeddings:** case-insensitive text search on `content`, sorted by `importance_score`.
 
-> Native MongoDB `$vectorSearch` ist in der Community Edition seit 2025/2026 möglich, erfordert aber zusätzlichen Search-Prozess (`mongot`) und Index-Erstellung. Für den aktuellen Local-First-/NAS-Setup (reines `mongo`-Image) bleibt die in-memory-Variante bewusst aktiv. Ein späterer Wechsel ist vorbereitet.
+> Native MongoDB `$vectorSearch` is possible in Community Edition since 2025/2026, but needs an extra search process (`mongot`) and index setup. For the current local-first / NAS setup (plain `mongo` image) the in-memory path stays intentionally active. A later switch is prepared.
 
 ## Security
 
-- Jeder Write geht durch `src/security/guardrails.py` → `validate_memory_write`
-- Input-Validierung und Memory-Policy (Importance-Schwelle, erlaubte Sources)
-- User-Isolation über `user_id` (UUID) in jeder Query
-- Auth: JWT `user_id` (kein `X-User-Id` Header)
+- Every write goes through `src/security/guardrails.py` → `validate_memory_write`
+- Input validation and memory policy (importance threshold, allowed sources)
+- User isolation via `user_id` (UUID) in every query
+- Auth: JWT `user_id` (no `X-User-Id` header)
 
-## Consolidation (MVP – Minimal, erweiterbar)
+## Consolidation (MVP – minimal, extensible)
 
-Hintergrund-Job (APScheduler, alle 60 Minuten):
+Background job (APScheduler, every 60 minutes):
 
-1. **Promotion Working → Semantic**  
-   Items aus Working Memory mit `importance_score >= 0.7` werden nach Semantic Memory übernommen und danach aus Working Memory gelöscht.
+1. **Promotion Working → Semantic**
+   Working Memory items with `importance_score >= 0.7` are copied into Semantic Memory and then deleted from Working Memory.
 
-2. **SemanticMemory.consolidate()** (pro User):
-   - `_cleanup_old_entries()`: Löscht Fakten mit `importance_score < 0.25` und `last_accessed` älter als 30 Tage.
-   - `_deduplicate()`: Entfernt exakte Duplikate (normalisierter Content). Behält den Eintrag mit höchster Importance (bei Gleichstand den neueren).
-   - `_link_entities()`: **Stub** – vorbereitet für Entity-Linking (ambitionierte Version).
-   - `_detect_drift()`: **Stub** – vorbereitet für Preference-Drift-Erkennung (ambitionierte Version).
+2. **SemanticMemory.consolidate()** (per user):
+   - `_cleanup_old_entries()`: deletes facts with `importance_score < 0.25` and `last_accessed` older than 30 days.
+   - `_deduplicate()`: removes exact duplicates (normalised content). Keep order: copy with an embedding first, then highest `importance_score`, then latest `last_accessed`.
+   - `_link_entities()`: **Stub** – prepared for entity linking (ambitious version).
+   - `_detect_drift()`: **Stub** – prepared for preference-drift detection (ambitious version).
 
-Die Struktur der Methode ist bewusst so gewählt, dass die ambitionierte Version später nur die Stubs füllen muss, ohne die öffentliche API oder den Scheduler zu ändern.
+The method shape is deliberate so the ambitious version can fill the stubs later without changing the public API or the scheduler.
 
-## Spätere Erweiterung (4-Level)
+## Later extension (4-level)
 
-Geplant nach dem MVP:
+Planned after the MVP:
 
-- **Episodic Memory** – konkrete Ereignisse / Episoden
-- **Perceptual Memory** – sensorische / multimodale Eindrücke
+- **Episodic Memory** – concrete events / episodes
+- **Perceptual Memory** – sensory / multimodal impressions
 
-## Relevante Dateien
+## Relevant files
 
-| Bereich              | Datei                                      |
-|----------------------|--------------------------------------------|
-| Working Memory       | `src/memory/working_memory.py`             |
-| Semantic Memory      | `src/memory/semantic_memory.py`            |
-| Models               | `src/models/memory.py`                     |
-| Security             | `src/security/guardrails.py`, `memory_policy.py`, `input_validator.py` |
-| API                  | `src/api/routes/memory.py`                 |
-| Scheduler / Job      | `src/tasks/scheduler.py`                   |
-| Embeddings           | `src/services/embeddings/`                 |
-| Tests (Consolidation)| `tests/test_consolidation.py`              |
+| Area | File |
+|------|------|
+| Working Memory | `src/memory/working_memory.py` |
+| Semantic Memory | `src/memory/semantic_memory.py` |
+| Models | `src/models/memory.py` |
+| Security | `src/security/guardrails.py`, `memory_policy.py`, `input_validator.py` |
+| API | `src/api/routes/memory.py` |
+| Scheduler / Job | `src/tasks/scheduler.py` |
+| Embeddings | `src/services/embeddings/` |
+| Tests (Consolidation) | `tests/test_consolidation.py` |

@@ -5,133 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] 2026-09-16
+## [Unreleased]
 
-### Changed
-- `AGENTS.md`: EU AI Act compliance anchored as a standing hard boundary and security duty (Slice-Briefs must consider transparency, honest limits, risk class).
+## [0.4.0] - 2026-09-24
 
-### Fixed
-- WebSearch short interrogatives (`what is` / `was ist` / `mi az`, `who is` / `wer ist` / `ki az`) match Gap 0 at utterance start only, so gappy conversational follow-ups no longer claim the skill.
-- Recording `#recIndicator` / `.rec-dot` stays `position: absolute` on the mic circuit so the visible dot no longer shove `.mic-icon` off center (Slice-13 z-index rule no longer forces the dot to `relative`).
-- ActiveRecall no longer treats a leading greeting as the topic: ``Hallo, was weisst Du über mich?`` recalls you, not ``Hallo``. A topic that *is* the word Hallo still searches Hallo.
-- ActiveRecall Hungarian ``mit tudsz rólam`` also matches typed/STT ``mit tuds rolam`` (dropped ``-sz``, no accent).
-- Birthday-style DE create (``erinnert daran`` / ``mich erinnert``, not Notes ``merk dir``) routes to Reminders. Named months (``29. August``) plus ``eine Woche vorher`` set ``due_at`` to the next future week-before. No Google/Apple/.ics.
-
-## [Unreleased] 2026-09-11
-
-### Changed
-- CORS allow-list for the Voice UI (`http://127.0.0.1:5500`, `http://localhost:5500`); no more `Access-Control-Allow-Origin: *`. Extra origins via ``CORS_ORIGINS``.
-- CI runs ``mypy src`` (strict, Python 3.12). Untyped third-party libs are ignored via overrides.
-- Startup creates a ``user_id`` index on ``working_memory``, ``notes``, and ``reminders`` so tenant finds are not a collection scan.
-
-### Security
-- Admin PATCH no longer decides last-SuperUser / 404 from a truncated ``list_users``; it uses ``get_by_id`` and a SuperUser count query.
-- Passwords longer than 72 UTF-8 bytes are rejected (422) instead of bcrypt silently truncating.
-- Blocked chat/memory writes return a generic 400; the matched blocklist phrase is logged server-side only (not in the response body).
-- `uv.lock` cryptography 49.0.0 → 50.0.1 (PYSEC-2026-3552). CI already installs with `uv sync --frozen`; README Getting Started now uses `uv sync --extra dev` instead of floating `uv pip install`.
-- Prompt-injection blocklist collapses whitespace and strips format/control (zero-width) characters before matching. Still a UX guard, not a control.
+MVP release (demo 18.09.2026). Consolidates the former dated Unreleased blocks.
 
 ### Added
+- MIT `LICENSE` and README License section; pyproject version `0.4.0`.
 - Chat HUD: faint `hud-ring.png` watermark behind bubbles (`#chatHudWatermark`); mic recording shows a tiny rotating orbit (`#speakOrbit`) that hides when idle.
 - Notes create vocabulary accepts DE „erinnere dich…“ and EN „remember that I…“ (distinct from Reminder „erinnere mich…“ / timed due).
 - `POST /api/v1/chat/voice` rejects bodies over 10 MB **before** parse (413). Speak button shows remaining WAV-budget seconds (327) while recording and auto-stops at 0.
-
-### Fixed
-- Clear response-language detection treats bare DE/EN/HU greetings (`hallo` / `guten …` / `servus` / `moin`, `hi` / `hey`, `sziasztok`) as language signals; `Hallo` stays German and is not merged with `hello`.
-- Chat composer returns focus to `#textInput` after a text or voice Jarvis reply finishes.
-- WebSearch replies list DuckDuckGo results only; personal Semantic Memory is no longer woven into the search answer (ActiveRecall remains the personal-fact surface).
-- ActiveRecall and Orchestrator ``Relevant personal facts`` omit Reminder/Notes skill-summary SM lines (`User set a reminder:` / `User saved a note`); skills still write those summaries.
-- Reminder relative dues accept EN/DE/HU number words (~1–10, e.g. `two` / `zwei` / `két`); confirm claims a scheduled reminder only when `due_at` is set.
-- Voice UI on `:5500` cache-busts `audio.js` and `main.css` with the Speak-countdown query so `boot()` cannot import a stale `audio.js` (login form stayed hidden).
-- Speak-button countdown digits show only in the last 20 seconds of the WAV budget; the mic stays until then.
-
-## [Unreleased] 2026-09-10
-
-### Added
 - `POST /api/v1/auth/login` bounds failed attempts per client IP + email (default 5 in 15 minutes). Further tries return **429** with `Retry-After`. Failures are logged without the password; a successful login clears that key. Unknown emails use the same cap (no existence leak).
-
-## [Unreleased] 2026-09-09
-
-### Fixed
-- `GET /health` cheap-pings Mongo before claiming ok; unreachable DB returns **503** with an honest non-ok status (no secrets in the body).
-- CI Pytest job `SECRET_KEY` is a synthetic ≥64 non-placeholder (aligned with conftest) so Settings fail-fast after P0-1 does not kill CI.
-- `SECRET_KEY` fail-fast at Settings load: reject empty, whitespace-only, length under 64, and `change-me` placeholders (including the documented `.env.example` value and padded variants); app will not start until replaced.
-- Preferred name for name questions is `User.display_name`; durable SM slot `name` uses `valid_to` succession; search returns current facts only; leftover identity/name SM is filtered on about-me.
-- WebSearch `can_handle` returns false when the post-trigger remainder is empty or a lone deictic (`das` / `this` / `that` / `diese`|`dieser`|`dieses` / `ez` / `az` / …), so the registry falls through to the LLM.
-- Weak or garbage utterances fall back to `gui_language` (Help flag); forced chat language still wins; missing GUI defaults to English. `/chat/text` and `/chat/voice` accept only exact `en` / `de` / `hu` for `gui_language` (422 otherwise).
-- Help-panel Web Search examples include a real subject so they still match after the bare-deixis gate; bare `was ist` / `what is` / `mi az` stay in matching vocab only.
-- Shared `ö` / `ü` alone are not a clear German signal; HU/DE STT hints beat umlaut-only text.
-- Working Memory turns are sent as chronological `user` / `assistant` chat roles (limit 8, oldest-first); personal facts stay in the untrusted system block; reply-language instruction still last-wins.
-
-## [Unreleased] 2026-09-04
-
-### Changed
-- Pin Black 26.5.1 and Ruff 0.15.22 (pyproject, pre-commit, CI `uv sync --frozen`). CI no longer installs floating formatters that disagree with the hook.
-- Voice latency: Whisper decode uses `beam_size=1` and does not condition on previous text (short command turns). ffmpeg conversion times out after 60s. Turn logs include `stt_ms` / `reply_ms` / `tts_ms`.
-- Chat turns record monitor signals: `status`, `error_type` (`llm` / `tts`), `duration_ms`, and `tokens` (from LLM usage). Logged and returned on `/chat/text` and `/chat/voice`. TTS failure still returns text (`status=ok`, `error_type=tts`); LLM fallback is `status=error`.
-- German W-questions and short `nein` / `hast` / `diese…` count as German even without ß/ich/und, so reply language + Piper do not default to English.
-
-### Added
 - Claude-like shell: left sidebar with All notes / All reminders and a local chat-history list; chat column `max-width` so a wider viewport grows the background. `GET /api/v1/notes` and `GET /api/v1/reminders` (JWT, current user only). Chat sittings are stored in `localStorage` until a server sitting id exists.
-- Shell aligned to Ákos’s annotated Claude screenshot: `+ New`, Notes|Reminders in one row, Chats below; centered empty greeting; composer card with mic in the row and a disabled `+` for later document upload.
+- Shell aligned to the maintainer's annotated Claude screenshot: `+ New`, Notes|Reminders in one row, Chats below; centered empty greeting; composer card with mic in the row and a disabled `+` for later document upload.
 - Sidebar: `+` sits on the Chats row; extra gap under Notes/Reminders. Chats can be deleted (confirm). The last user bubble can be edited until a newer user message exists; versions cycle as `n/m` like Grok.
-
-## [Unreleased] 2026-09-02
-
-### Added
 - Tenant isolation tests for Semantic Memory search (text, hybrid/vector, empty-query top facts): seed facts for users A and B; A's search must not return B. Tests fail if `user_id` is omitted from Mongo `find`. Production filter is unchanged.
-
-### Changed
-- Prompt-injection UX blocklist: `system:` / `assistant:` match only as line-start role prefixes, so German `Mein System: läuft nicht` is not a false positive. Added DE `Ignoriere alle vorherigen Anweisungen` and HU `Hagyd figyelmen kívül az összes korábbi utasítást`. This list is UX, not a security boundary.
-- Chat wiring no longer requires `OPENAI_API_KEY` at FastAPI Depends time. Skills that do not need the LLM (Notes, list/agenda reminders, …) still run; the LLM path returns a friendly fallback instead of HTTP 500.
-- JWT signing/verification uses PyJWT + cryptography instead of `python-jose`. `python-jose` 3.5.0 still hard-depends on `ecdsa` 0.19.2, which OSV reports as GHSA-wj6h-64fc-37mp / CVE-2024-23342 / PYSEC-2026-1325 (Minerva; no planned fix). Auth behaviour (HS256, `token_version`, password-change invalidation, superuser 403) is unchanged.
-
-### Fixed
-- Missing `OPENAI_API_KEY` no longer 500s `/api/v1/chat/text` including Notes.
-- Notes create strips only a leading create-trigger prefix; interior `note` / `NOTE` / `notiz` / `jegyzet` stay in the body.
-
-## [Unreleased] 2026-08-27
-
-### Fixed
-- Chat language follows this user utterance: Detect, skill reply, and Piper stay on the same code. A stale STT/session hint no longer makes an English story speak Hungarian, or turns `Mi van ma?` / `Notiz:` into English. Assistant text is not re-classified for TTS. Hungarian given names and `display_name` are ignored when skills pick a reply language, so `Remind me … Ákos` stays English including due TTS. Help-panel flags remain GUI-only; Autodetect vs force EN/DE/HU is unchanged.
-
-## [Unreleased] 2026-08-21
-
-### Added
 - Reminders delete/cancel (`delete the reminder …` / DE `lösche die Erinnerung` / HU `töröld az emlékeztetőt`): cancels the pending item and drops its Semantic Memory summary so Active Recall cannot keep a ghost. STT typos (`delet`, `habe`/`have`) still match; the LLM must not claim a delete.
 - `POST /api/v1/auth/timezone` stores the browser IANA timezone; `UserPublic.timezone` on `/me`
-
-### Changed
-- CI / pytest coverage floor is 90% (`--cov-fail-under=90`)
-
-### Fixed
-- Open-tab due poll no longer skips the whole 15s tick while a chat turn is in flight; it retries when the turn ends. GET `/reminders/due` uses the same clock as reminder parse
-- Voice UI layout test no longer races `boot()`: it waits for auth to settle and does not call the human API on :8000, so a long chat cannot hide the header
-- Reminder questions no longer create a reminder. "Do I have a reminder?" lists pending items; "Is there anything for me today?" is today's agenda (EN/DE/HU twins included). Bare extra "reminder" / "erinnerung" no longer steals those questions
-- Spoken clock times ("at 13:30") are the user's local wall clock. `User.timezone` (IANA, from the browser at login/boot) converts to UTC for `due_at`; confirmations, agenda, and list print local `HH:MM`. Open-tab due poll can fire at the time the user said
-
-## [Unreleased] 2026-08-20
-
-### Added
 - Chat language control in the chat window: Autodetect (default) or force English / German / Hungarian. Help-panel flags are GUI-only
-
-### Fixed
-- Autodetect: Whisper is not pinned to the GUI language; German/English function words beat a stale hint so spoken German is not answered in English
-- Preferred name lives on the user record only. First-login no longer writes (or embeds) a Semantic Memory copy; Active Recall reads ``display_name``. Duplicate address facts are dropped. Semantic memory is unique on ``(user_id, content)``
-- Auth screen stays blank (error only) if the API is down — Sign in is not the fallback. ``localhost`` UI talks to ``127.0.0.1:8000`` so Windows IPv6 does not miss uvicorn
-- Dev UI on :5500 talks only to the API on :8000 (same hostname, no same-origin probe). Pytest does not use 5500/8000; it sets ``window.JARVIS_API_BASE`` on its own ephemeral server
-- Voice UI ships a favicon so ``python -m http.server 5500`` no longer logs a 404 for ``/favicon.ico``
-- Voice UI: header, microphone, and text input stay on screen when the transcript is long; only the chat area scrolls
-- LLM reply language follows the latest user message: a Working-Memory “I'll stick to English” turn no longer outranks German or Hungarian. The current-language instruction is appended after untrusted memory; conversation-language preferences are not stored as Semantic facts
-- TTS: Hungarian given names with accents (100 male + 100 female in ``src/core/data/hungarian_given_names.json``, plus display name) are ignored when guessing language; áéíóú in real Hungarian words still select the Hungarian voice
-- “What is my name?” / “Wie heiße ich?” / “Mi a nevem?” route to Active Recall, not Web Search; search transcripts are not stored as personal facts; display-name facts are replaced, not duplicated
-- Empty-DB auth screen: never show Sign in and Create SuperUser together. Dev UI stays on :5500 and calls the API on :8000; if the backend is down the user sees an error. Voice UI JS/HTML is ``Cache-Control: no-store``
-- Empty-DB SuperUser setup: FastAPI serves the Voice UI at ``/`` (same origin as the API). A headless-browser test (Playwright engine via ``JARVIS_E2E_BROWSER``, default chromium; Chrome/Edge if the Playwright build is missing) opens the real page on an empty users collection and fails if Sign-in is shown instead of Create SuperUser
-
-### Changed
-- uv is the only package manager (`pyproject.toml` + `uv.lock`). Docker uses ``uv sync --frozen --no-dev``; ``requirements.txt`` is removed. Dropped unused ``httpx2`` extra (tests use ``httpx``)
-
-### Added
 - First-login preferred name: `display_name` on User, `POST /api/v1/auth/display-name`, chat/memory/admin gated until set (after password change). Jarvis addresses the user by that name; a semantic fact is stored for recall
 - Skill phrase matching: accent-fold, inflection tails on long tokens, up to two filler words (three in Hungarian) between tokens
 - Due reminder delivery: scheduler claims at ``due_at``, ``GET /api/v1/reminders/due`` + TTS, ``POST /ack``, frontend poll while the tab is open
@@ -152,28 +44,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Chat bubbles store UTC ISO timestamps and show local time next to You / J.A.R.V.I.S.; a date separator is inserted for each local calendar day
 - Frontend i18n (EN / DE / HU) with flag buttons in the Help panel; help lists show only the selected language
 - RemindersSkill replies in the user's language; optional LLM slot fill for create content/due date
-
-### Fixed
-- Forced password change no longer keeps a dead JWT (admin-created users were dumped back to login)
-- German “Erinnere mich an …” creates a reminder instead of being stolen by Active Recall
-- Language heuristic: German `mit` / English `van` no longer select the Hungarian TTS voice
-- Hungarian text with ö/ü or áéíóú is no longer classified as German (ő/ű-only check was too strict)
-- Hungarian agenda phrases (“mi van a héten”, “mi van ma”) use the matching date window instead of always today
-- Reminders: "remind me today …" creates a reminder instead of listing the agenda; agenda no longer claims bare "today"/"this week" chat
-- Reminders: time-of-day without a date token now sets due_at (today, or tomorrow if already past); `erinner(e)? mich` matches German create
-- Semantic search is hybrid: facts without embeddings stay findable; weak cosine hits are dropped; consolidation job now embeds promoted facts
-- Chat no longer returns HTTP 400 when persisting an assistant reply that contains blocklist substrings such as `system:`
-- `must_change_password` is enforced on chat/memory/admin (not only the UI); password change invalidates existing JWTs
-- Bootstrap: unique `bootstrap_slot` so two concurrent first-registers cannot both become SuperUser
-- Docker Compose passes `SECRET_KEY` / `MONGODB_URI` (not the unused `JWT_SECRET`); Dockerfile copies `src/` before `-e .` and drops `--reload`
-- Mongo substring search escapes user regex; DuckDuckGo errors propagate instead of looking like "no results"
-- STT detected language is passed to TTS; a clearly German/Hungarian reply overrides a stale English hint
-- Safari MediaRecorder fallback (mp4); speak-button click race while the mic permission prompt is open
-- Default English Piper voice is the documented Alan GB model
-
-## [Unreleased] 2026-08-18
-
-### Added
 - Auth bootstrap hardening (Phase 5):
   - `must_change_password` on User / UserPublic
   - `GET /api/v1/auth/bootstrap-status` → `{ needs_bootstrap: bool }`
@@ -208,12 +78,91 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Per-user error isolation so one failed user does not abort the whole job
   - Resilience tests for WebSearchSkill (backend failure, semantic/add_fact errors) and DuckDuckGoClient mapping/exception paths
 
+### Changed
+- Public showcase close-out for v0.4.0: slim recruiter-facing README (MVP status + demo 18.09.2026, CI badge, Mermaid architecture, honesty sections); honest LLM stack (OpenAI active; Grok adapter implemented but unwired; Gemini stub); Security section matches orchestrator prompt labelling (full spotlighting on roadmap); API endpoint tables and chat request/response fields in `docs/api.md`; `AGENTS.md` made public-safe with gitignored `AGENTS.local.md`; NAS setup doc uses `<NAS_LAN_IP>` and a path placeholder; decision `004` accepted-but-partial status note; `docs/memory-design.md` English with `slot`/`valid_to` and code-true dedup order.
+- `AGENTS.md`: EU AI Act compliance anchored as a standing hard boundary and security duty (Slice-Briefs must consider transparency, honest limits, risk class).
+- CORS allow-list for the Voice UI (`http://127.0.0.1:5500`, `http://localhost:5500`); no more `Access-Control-Allow-Origin: *`. Extra origins via ``CORS_ORIGINS``.
+- CI runs ``mypy src`` (strict, Python 3.12). Untyped third-party libs are ignored via overrides.
+- Startup creates a ``user_id`` index on ``working_memory``, ``notes``, and ``reminders`` so tenant finds are not a collection scan.
+- Pin Black 26.5.1 and Ruff 0.15.22 (pyproject, pre-commit, CI `uv sync --frozen`). CI no longer installs floating formatters that disagree with the hook.
+- Voice latency: Whisper decode uses `beam_size=1` and does not condition on previous text (short command turns). ffmpeg conversion times out after 60s. Turn logs include `stt_ms` / `reply_ms` / `tts_ms`.
+- Chat turns record monitor signals: `status`, `error_type` (`llm` / `tts`), `duration_ms`, and `tokens` (from LLM usage). Logged and returned on `/chat/text` and `/chat/voice`. TTS failure still returns text (`status=ok`, `error_type=tts`); LLM fallback is `status=error`.
+- German W-questions and short `nein` / `hast` / `diese…` count as German even without ß/ich/und, so reply language + Piper do not default to English.
+- Prompt-injection UX blocklist: `system:` / `assistant:` match only as line-start role prefixes, so German `Mein System: läuft nicht` is not a false positive. Added DE `Ignoriere alle vorherigen Anweisungen` and HU `Hagyd figyelmen kívül az összes korábbi utasítást`. This list is UX, not a security boundary.
+- Chat wiring no longer requires `OPENAI_API_KEY` at FastAPI Depends time. Skills that do not need the LLM (Notes, list/agenda reminders, …) still run; the LLM path returns a friendly fallback instead of HTTP 500.
+- JWT signing/verification uses PyJWT + cryptography instead of `python-jose`. `python-jose` 3.5.0 still hard-depends on `ecdsa` 0.19.2, which OSV reports as GHSA-wj6h-64fc-37mp / CVE-2024-23342 / PYSEC-2026-1325 (Minerva; no planned fix). Auth behaviour (HS256, `token_version`, password-change invalidation, superuser 403) is unchanged.
+- CI / pytest coverage floor is 90% (`--cov-fail-under=90`)
+- uv is the only package manager (`pyproject.toml` + `uv.lock`). Docker uses ``uv sync --frozen --no-dev``; ``requirements.txt`` is removed. Dropped unused ``httpx2`` extra (tests use ``httpx``)
+
 ### Fixed
+- Empty-chat greeting uses the GUI language only (Hello / Hallo / Szia) when no `display_name` is set; no hard-coded personal name, `{name}` leftover, email, or dangling comma. A set display name still appears (shared helper; `.replace('{name}', () => name)` so `$` in a name is literal).
+- WebSearch short interrogatives (`what is` / `was ist` / `mi az`, `who is` / `wer ist` / `ki az`) match Gap 0 at utterance start only, so gappy conversational follow-ups no longer claim the skill.
+- Recording `#recIndicator` / `.rec-dot` stays `position: absolute` on the mic circuit so the visible dot no longer shove `.mic-icon` off center (Slice-13 z-index rule no longer forces the dot to `relative`).
+- ActiveRecall no longer treats a leading greeting as the topic: ``Hallo, was weisst Du über mich?`` recalls you, not ``Hallo``. A topic that *is* the word Hallo still searches Hallo.
+- ActiveRecall Hungarian ``mit tudsz rólam`` also matches typed/STT ``mit tuds rolam`` (dropped ``-sz``, no accent).
+- Birthday-style DE create (``erinnert daran`` / ``mich erinnert``, not Notes ``merk dir``) routes to Reminders. Named months (``29. August``) plus ``eine Woche vorher`` set ``due_at`` to the next future week-before. No Google/Apple/.ics.
+- Clear response-language detection treats bare DE/EN/HU greetings (`hallo` / `guten …` / `servus` / `moin`, `hi` / `hey`, `sziasztok`) as language signals; `Hallo` stays German and is not merged with `hello`.
+- Chat composer returns focus to `#textInput` after a text or voice Jarvis reply finishes.
+- WebSearch replies list DuckDuckGo results only; personal Semantic Memory is no longer woven into the search answer (ActiveRecall remains the personal-fact surface).
+- ActiveRecall and Orchestrator ``Relevant personal facts`` omit Reminder/Notes skill-summary SM lines (`User set a reminder:` / `User saved a note`); skills still write those summaries.
+- Reminder relative dues accept EN/DE/HU number words (~1–10, e.g. `two` / `zwei` / `két`); confirm claims a scheduled reminder only when `due_at` is set.
+- Voice UI on `:5500` cache-busts `audio.js` and `main.css` with the Speak-countdown query so `boot()` cannot import a stale `audio.js` (login form stayed hidden).
+- Speak-button countdown digits show only in the last 20 seconds of the WAV budget; the mic stays until then.
+- `GET /health` cheap-pings Mongo before claiming ok; unreachable DB returns **503** with an honest non-ok status (no secrets in the body).
+- CI Pytest job `SECRET_KEY` is a synthetic ≥64 non-placeholder (aligned with conftest) so Settings fail-fast after P0-1 does not kill CI.
+- `SECRET_KEY` fail-fast at Settings load: reject empty, whitespace-only, length under 64, and `change-me` placeholders (including the documented `.env.example` value and padded variants); app will not start until replaced.
+- Preferred name for name questions is `User.display_name`; durable SM slot `name` uses `valid_to` succession; search returns current facts only; leftover identity/name SM is filtered on about-me.
+- WebSearch `can_handle` returns false when the post-trigger remainder is empty or a lone deictic (`das` / `this` / `that` / `diese`|`dieser`|`dieses` / `ez` / `az` / …), so the registry falls through to the LLM.
+- Weak or garbage utterances fall back to `gui_language` (Help flag); forced chat language still wins; missing GUI defaults to English. `/chat/text` and `/chat/voice` accept only exact `en` / `de` / `hu` for `gui_language` (422 otherwise).
+- Help-panel Web Search examples include a real subject so they still match after the bare-deixis gate; bare `was ist` / `what is` / `mi az` stay in matching vocab only.
+- Shared `ö` / `ü` alone are not a clear German signal; HU/DE STT hints beat umlaut-only text.
+- Working Memory turns are sent as chronological `user` / `assistant` chat roles (limit 8, oldest-first); personal facts stay in the untrusted system block; reply-language instruction still last-wins.
+- Missing `OPENAI_API_KEY` no longer 500s `/api/v1/chat/text` including Notes.
+- Notes create strips only a leading create-trigger prefix; interior `note` / `NOTE` / `notiz` / `jegyzet` stay in the body.
+- Chat language follows this user utterance: Detect, skill reply, and Piper stay on the same code. A stale STT/session hint no longer makes an English story speak Hungarian, or turns `Mi van ma?` / `Notiz:` into English. Assistant text is not re-classified for TTS. Hungarian given names and `display_name` are ignored when skills pick a reply language, so `Remind me … the user` stays English including due TTS. Help-panel flags remain GUI-only; Autodetect vs force EN/DE/HU is unchanged.
+- Open-tab due poll no longer skips the whole 15s tick while a chat turn is in flight; it retries when the turn ends. GET `/reminders/due` uses the same clock as reminder parse
+- Voice UI layout test no longer races `boot()`: it waits for auth to settle and does not call the human API on :8000, so a long chat cannot hide the header
+- Reminder questions no longer create a reminder. "Do I have a reminder?" lists pending items; "Is there anything for me today?" is today's agenda (EN/DE/HU twins included). Bare extra "reminder" / "erinnerung" no longer steals those questions
+- Spoken clock times ("at 13:30") are the user's local wall clock. `User.timezone` (IANA, from the browser at login/boot) converts to UTC for `due_at`; confirmations, agenda, and list print local `HH:MM`. Open-tab due poll can fire at the time the user said
+- Autodetect: Whisper is not pinned to the GUI language; German/English function words beat a stale hint so spoken German is not answered in English
+- Preferred name lives on the user record only. First-login no longer writes (or embeds) a Semantic Memory copy; Active Recall reads ``display_name``. Duplicate address facts are dropped. Semantic memory is unique on ``(user_id, content)``
+- Auth screen stays blank (error only) if the API is down — Sign in is not the fallback. ``localhost`` UI talks to ``127.0.0.1:8000`` so Windows IPv6 does not miss uvicorn
+- Dev UI on :5500 talks only to the API on :8000 (same hostname, no same-origin probe). Pytest does not use 5500/8000; it sets ``window.JARVIS_API_BASE`` on its own ephemeral server
+- Voice UI ships a favicon so ``python -m http.server 5500`` no longer logs a 404 for ``/favicon.ico``
+- Voice UI: header, microphone, and text input stay on screen when the transcript is long; only the chat area scrolls
+- LLM reply language follows the latest user message: a Working-Memory “I'll stick to English” turn no longer outranks German or Hungarian. The current-language instruction is appended after untrusted memory; conversation-language preferences are not stored as Semantic facts
+- TTS: Hungarian given names with accents (100 male + 100 female in ``src/core/data/hungarian_given_names.json``, plus display name) are ignored when guessing language; áéíóú in real Hungarian words still select the Hungarian voice
+- “What is my name?” / “Wie heiße ich?” / “Mi a nevem?” route to Active Recall, not Web Search; search transcripts are not stored as personal facts; display-name facts are replaced, not duplicated
+- Empty-DB auth screen: never show Sign in and Create SuperUser together. Dev UI stays on :5500 and calls the API on :8000; if the backend is down the user sees an error. Voice UI JS/HTML is ``Cache-Control: no-store``
+- Empty-DB SuperUser setup: FastAPI serves the Voice UI at ``/`` (same origin as the API). A headless-browser test (Playwright engine via ``JARVIS_E2E_BROWSER``, default chromium; Chrome/Edge if the Playwright build is missing) opens the real page on an empty users collection and fails if Sign-in is shown instead of Create SuperUser
+- Forced password change no longer keeps a dead JWT (admin-created users were dumped back to login)
+- German “Erinnere mich an …” creates a reminder instead of being stolen by Active Recall
+- Language heuristic: German `mit` / English `van` no longer select the Hungarian TTS voice
+- Hungarian text with ö/ü or áéíóú is no longer classified as German (ő/ű-only check was too strict)
+- Hungarian agenda phrases (“mi van a héten”, “mi van ma”) use the matching date window instead of always today
+- Reminders: "remind me today …" creates a reminder instead of listing the agenda; agenda no longer claims bare "today"/"this week" chat
+- Reminders: time-of-day without a date token now sets due_at (today, or tomorrow if already past); `erinner(e)? mich` matches German create
+- Semantic search is hybrid: facts without embeddings stay findable; weak cosine hits are dropped; consolidation job now embeds promoted facts
+- Chat no longer returns HTTP 400 when persisting an assistant reply that contains blocklist substrings such as `system:`
+- `must_change_password` is enforced on chat/memory/admin (not only the UI); password change invalidates existing JWTs
+- Bootstrap: unique `bootstrap_slot` so two concurrent first-registers cannot both become SuperUser
+- Docker Compose passes `SECRET_KEY` / `MONGODB_URI` (not the unused `JWT_SECRET`); Dockerfile copies `src/` before `-e .` and drops `--reload`
+- Mongo substring search escapes user regex; DuckDuckGo errors propagate instead of looking like "no results"
+- STT detected language is passed to TTS; a clearly German/Hungarian reply overrides a stale English hint
+- Safari MediaRecorder fallback (mp4); speak-button click race while the mic permission prompt is open
+- Default English Piper voice is the documented Alan GB model
 - Error handling polish (Phase 5):
   - LLM failures return a friendly fallback instead of HTTP 500
   - Unexpected skill exceptions fall through to the LLM path
   - STT conversion/transcription errors map to clear ValueError (HTTP 400)
   - Chat 500 responses use a user-friendly message (no internal class names)
+
+### Security
+- Admin PATCH no longer decides last-SuperUser / 404 from a truncated ``list_users``; it uses ``get_by_id`` and a SuperUser count query.
+- Passwords longer than 72 UTF-8 bytes are rejected (422) instead of bcrypt silently truncating.
+- Blocked chat/memory writes return a generic 400; the matched blocklist phrase is logged server-side only (not in the response body).
+- `uv.lock` cryptography 49.0.0 → 50.0.1 (PYSEC-2026-3552). CI already installs with `uv sync --frozen`; README Getting Started now uses `uv sync --extra dev` instead of floating `uv pip install`.
+- Prompt-injection blocklist collapses whitespace and strips format/control (zero-width) characters before matching. Still a UX guard, not a control.
 
 ### Notes
 - Phase 5 (Polish & Demo) in progress

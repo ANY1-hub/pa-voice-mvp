@@ -47,3 +47,6 @@ docs/handoffs/
 # JVM crash dumps (never commit)
 hs_err_pid*.log
 hs_err*.log
+
+# Private agent workflow notes (never publish)
+AGENTS.local.md

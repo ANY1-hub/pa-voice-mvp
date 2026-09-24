@@ -68,7 +68,7 @@ Optional: set restart policy to **unless-stopped** (already in the compose file)
 
 - Allow **TCP 27017** only from the **LAN** (DSM Firewall).
 - Do **not** forward 27017 to the internet or via QuickConnect.
-- Note the NAS IP, e.g. `192.168.1.50`.
+- Note the NAS IP, e.g. `<NAS_LAN_IP>`.
 
 ## 5. Verify from Windows
 
@@ -115,7 +115,7 @@ OPENAI_API_KEY=...
 Start the API:
 
 ```powershell
-cd C:\Users\nyiry\DEV\pa-voice-mvp
+cd C:\path\to\pa-voice-mvp
 # activate venv, then:
 uvicorn src.main:app --reload
 ```

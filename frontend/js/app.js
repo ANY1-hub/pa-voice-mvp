@@ -180,19 +180,23 @@ async function routeAfterAuth(user) {
     }
 }
 
+
+function setEmptyGreeting(user) {
+    const greet = document.getElementById("emptyGreetingText");
+    if (!greet) return;
+    const name = (user && user.display_name ? String(user.display_name) : "").trim();
+    greet.textContent = name
+        ? t("greetingHelloNamed").replace("{name}", () => name)
+        : t("greetingHello");
+}
+
 function showApp() {
     hideAllScreens();
     appScreen.classList.remove("hidden");
     startDuePoll();
     const user = getStoredUser();
     userLabel.textContent = user.display_name || user.email || "User";
-    const greet = document.getElementById("emptyGreetingText");
-    if (greet) {
-        greet.textContent = t("greetingHello").replace(
-            "{name}",
-            user.display_name || "Ákos",
-        );
-    }
+    setEmptyGreeting(user);
     if (user.is_superuser) {
         adminBtn.classList.remove("hidden");
     } else {
@@ -453,14 +457,7 @@ function refreshI18n() {
     if (!isRecording) {
         speakHint.textContent = t("speakHint");
     }
-    const greet = document.getElementById("emptyGreetingText");
-    const user = getStoredUser();
-    if (greet) {
-        greet.textContent = t("greetingHello").replace(
-            "{name}",
-            user.display_name || "Ákos",
-        );
-    }
+    setEmptyGreeting(getStoredUser());
 }
 
 const CHAT_LANG_FLAGS = { en: "🇬🇧", de: "🇩🇪", hu: "🇭🇺" };
