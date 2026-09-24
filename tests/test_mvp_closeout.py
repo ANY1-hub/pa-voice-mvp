@@ -467,3 +467,233 @@ def test_changelog_0_3_0_section_is_byte_identical():
     section = _changelog_section("0.3.0")
     digest = hashlib.sha256(section.encode("utf-8")).hexdigest()
     assert digest == _CHANGELOG_0_3_0_SHA256, "[0.3.0] section changed"
+
+
+# --------------------------------------------------------------------------
+# Slice-Brief 18: README Screenshots (help.png + admin.png)
+# --------------------------------------------------------------------------
+
+_PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+_SCREENSHOT_IMAGES = ("docs/images/help.png", "docs/images/admin.png")
+_FORBIDDEN_README_IMAGE_BASENAMES = frozenset({"chat.png", "help_screen.png"})
+
+# Markdown ![alt](path) and HTML <img src="..." alt="..."> (either attr order).
+_MD_IMG = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
+# Collect src and alt from each <img ...> tag.
+_HTML_IMG_TAG = re.compile(r"<img\b[^>]*>", re.IGNORECASE)
+_HTML_ATTR = re.compile(r"""\b(src|alt)\s*=\s*(?:"([^"]*)"|'([^']*)')""", re.IGNORECASE)
+
+
+def _readme_lines() -> list[str]:
+    """README as newline-split lines (CRLF-safe via splitlines)."""
+    return _read("README.md").splitlines()
+
+
+def _h2_titles(lines: list[str]) -> list[tuple[int, str]]:
+    """Return (0-based line index, title text) for every exact ``## `` heading."""
+    out: list[tuple[int, str]] = []
+    for i, line in enumerate(lines):
+        if line.startswith("## ") and not line.startswith("###"):
+            out.append((i, line[3:].strip()))
+    return out
+
+
+def _ci_badge_last_line(lines: list[str]) -> int:
+    """Index of the last CI/shields badge line near the top of the README."""
+    badge_idxs = [
+        i
+        for i, line in enumerate(lines)
+        if re.search(r"badge\.svg|shields\.io|actions/workflows/", line, re.I)
+    ]
+    assert badge_idxs, "README has no CI/shields badge line"
+    return badge_idxs[-1]
+
+
+def _iter_readme_images(text: str) -> list[tuple[str, str]]:
+    """Return (alt, path) for every markdown or HTML image in ``text``."""
+    found: list[tuple[str, str]] = []
+    for match in _MD_IMG.finditer(text):
+        found.append((match.group(1), match.group(2).strip()))
+    for tag in _HTML_IMG_TAG.finditer(text):
+        attrs = {
+            m.group(1).lower(): (m.group(2) if m.group(2) is not None else m.group(3))
+            for m in _HTML_ATTR.finditer(tag.group(0))
+        }
+        src = attrs.get("src")
+        if src is None:
+            continue
+        found.append((attrs.get("alt") or "", src.strip()))
+    return found
+
+
+def _is_remote_or_data_url(path: str) -> bool:
+    lower = path.strip().lower()
+    return lower.startswith(("http://", "https://", "data:"))
+
+
+def _local_readme_image_problems(readme_text: str, repo_root: Path) -> list[str]:
+    """Problems for local README images: missing, not under docs/images/, or non-lowercase basename."""
+    problems: list[str] = []
+    for _alt, path in _iter_readme_images(readme_text):
+        if _is_remote_or_data_url(path):
+            continue
+        norm = path.replace("\\", "/").lstrip("./")
+        if not norm.startswith("docs/images/"):
+            problems.append(f"not under docs/images/: {path}")
+            continue
+        basename = Path(norm).name
+        if basename != basename.lower():
+            problems.append(f"basename not lowercase: {path}")
+        if not (repo_root / norm).is_file():
+            problems.append(f"missing: {path}")
+    return problems
+
+
+def _forbidden_readme_image_refs(readme_text: str) -> list[str]:
+    """Return image paths whose basename is a slice-18 forbidden screenshot name."""
+    hits: list[str] = []
+    for _alt, path in _iter_readme_images(readme_text):
+        if _is_remote_or_data_url(path):
+            continue
+        base = Path(path.replace("\\", "/")).name.lower()
+        if base in _FORBIDDEN_README_IMAGE_BASENAMES:
+            hits.append(path)
+    return hits
+
+
+def _screenshots_section_body(lines: list[str]) -> str:
+    """Body of the ``## Screenshots`` section up to (not including) the next H2."""
+    h2s = _h2_titles(lines)
+    starts = [i for i, title in h2s if title == "Screenshots"]
+    assert len(starts) == 1, f"expected one Screenshots H2, got {len(starts)}"
+    start = starts[0]
+    end = len(lines)
+    for i, _title in h2s:
+        if i > start:
+            end = i
+            break
+    return "\n".join(lines[start + 1 : end])
+
+
+def _image_blocks_with_captions(section_body: str) -> list[tuple[str, str, str]]:
+    """Parse section body into (alt, path, caption) for each local image + following caption line."""
+    lines = section_body.splitlines()
+    blocks: list[tuple[str, str, str]] = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        imgs = _iter_readme_images(line)
+        if not imgs:
+            i += 1
+            continue
+        alt, path = imgs[0]
+        caption = ""
+        j = i + 1
+        while j < len(lines):
+            candidate = lines[j].strip()
+            if not candidate:
+                j += 1
+                continue
+            if candidate.startswith("#") or _iter_readme_images(lines[j]):
+                break
+            caption = candidate
+            break
+        blocks.append((alt, path.replace("\\", "/"), caption))
+        i = (j + 1) if caption else (i + 1)
+    return blocks
+
+
+def test_readme_screenshots_h2_placement():
+    """Exactly one ## Screenshots sits after the CI badge and immediately before ## Architecture."""
+    lines = _readme_lines()
+    badge_last = _ci_badge_last_line(lines)
+    h2s = _h2_titles(lines)
+    screenshots = [(i, t) for i, t in h2s if t == "Screenshots"]
+    assert len(screenshots) == 1, f"expected one Screenshots H2, found {screenshots}"
+    shot_idx, _ = screenshots[0]
+    assert shot_idx > badge_last, "Screenshots must come after the CI badge block"
+    between = [(i, t) for i, t in h2s if badge_last < i < shot_idx]
+    assert between == [], f"H2 between badge and Screenshots: {between}"
+    after = [(i, t) for i, t in h2s if i > shot_idx]
+    assert after, "no H2 after Screenshots"
+    assert (
+        after[0][1] == "Architecture"
+    ), f"next H2 is {after[0][1]!r}, not Architecture"
+
+
+def test_readme_screenshots_section_images_and_captions():
+    """Screenshots shows help.png then admin.png, each with alt text, caption, and content anchors."""
+    body = _screenshots_section_body(_readme_lines())
+    blocks = _image_blocks_with_captions(body)
+    paths = [path for _alt, path, _cap in blocks]
+    assert paths == list(_SCREENSHOT_IMAGES), f"image paths: {paths}"
+    for alt, path, caption in blocks:
+        assert alt.strip(), f"empty alt for {path}"
+        assert caption.strip(), f"missing caption after {path}"
+        assert not caption.lstrip().startswith(
+            "#"
+        ), f"caption looks like a heading: {caption!r}"
+        assert not _iter_readme_images(caption), f"caption is an image: {caption!r}"
+    help_blob = (blocks[0][0] + " " + blocks[0][2]).lower()
+    admin_blob = (blocks[1][0] + " " + blocks[1][2]).lower()
+    assert (
+        "trigger" in help_blob
+    ), f"help alt/caption must mention trigger: {help_blob!r}"
+    assert (
+        "user" in admin_blob and "demo" in admin_blob
+    ), f"admin alt/caption must mention user and demo: {admin_blob!r}"
+
+
+def test_local_readme_image_problems_on_real_readme():
+    """Live README local image refs are under docs/images/, lowercase, and on disk."""
+    assert _local_readme_image_problems(_read("README.md"), _ROOT) == []
+
+
+def test_local_readme_image_problems_control_twin(tmp_path: Path):
+    """Detector reports not-under-docs/images, non-lowercase basename, and missing file."""
+    images = tmp_path / "docs" / "images"
+    images.mkdir(parents=True)
+    (images / "Help_screen.png").write_bytes(_PNG_SIGNATURE + b"x")
+    synthetic = "\n".join(
+        [
+            "![Help](docs/images/Help_screen.png)",
+            "![X](images/x.png)",
+            '<img src="docs/images/missing.png" alt="gone">',
+        ]
+    )
+    problems = _local_readme_image_problems(synthetic, tmp_path)
+    kinds = "\n".join(problems)
+    assert any("basename not lowercase" in p for p in problems), kinds
+    assert any("not under docs/images/" in p for p in problems), kinds
+    assert any("missing:" in p for p in problems), kinds
+    assert len(problems) == 3, problems
+
+
+def test_readme_has_no_forbidden_screenshot_refs():
+    """README must not reference Chat.png / chat.png or the pre-rename Help_screen.png."""
+    assert _forbidden_readme_image_refs(_read("README.md")) == []
+
+
+def test_forbidden_screenshot_refs_control_twin():
+    """Control: the forbidden-ref detector catches docs/images/Chat.png."""
+    planted = "See ![chat](docs/images/Chat.png) later."
+    hits = _forbidden_readme_image_refs(planted)
+    assert hits == ["docs/images/Chat.png"], hits
+
+
+def test_screenshot_png_files_exist_with_signature():
+    """help.png and admin.png exist as PNGs; the pre-rename Help_screen.png is gone."""
+    for rel in _SCREENSHOT_IMAGES:
+        path = _ROOT / rel
+        assert path.is_file(), f"{rel} is missing"
+        assert path.read_bytes()[:8] == _PNG_SIGNATURE, f"{rel} is not a PNG"
+    assert not (
+        _ROOT / "docs/images/Help_screen.png"
+    ).exists(), "docs/images/Help_screen.png must be renamed away"
+
+
+def test_screenshot_pngs_are_not_gitignored():
+    """help.png and admin.png must not be ignored (untracked-before-commit is fine)."""
+    for rel in _SCREENSHOT_IMAGES:
+        result = _git("check-ignore", "-q", rel)
+        assert result.returncode == 1, f"{rel} is gitignored (exit {result.returncode})"

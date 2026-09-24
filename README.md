@@ -6,6 +6,16 @@
 
 [![CI](https://github.com/ANY1-hub/pa-voice-mvp/actions/workflows/ci.yml/badge.svg)](https://github.com/ANY1-hub/pa-voice-mvp/actions/workflows/ci.yml)
 
+## Screenshots
+
+![Skills and Triggers help overlay](docs/images/help.png)
+
+Skills & Triggers overlay: phrase-router trigger phrases per skill (UI in English, German, Hungarian).
+
+![Admin user management with demo accounts](docs/images/admin.png)
+
+Admin user management with demo accounts (example.com addresses only).
+
 ## Architecture
 
 ```mermaid
