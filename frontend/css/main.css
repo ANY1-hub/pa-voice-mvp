@@ -444,7 +444,7 @@ body {
     z-index: 0;
     pointer-events: none;
     opacity: 0.14;
-    background: url("../assets/hud-ring.png") center center / min(72%, 26rem) no-repeat;
+    background: url("../assets/hud-ring.png") top right / min(72%, 26rem) no-repeat;
 }
 
 .chat-column > .empty-greeting,
