@@ -1,9 +1,10 @@
 """Canonical spoken trigger phrases for each skill (EN / DE / HU).
 
-Ten everyday phrases per skill per language, taken from how people actually
-talk to Siri / Google Assistant / Alexa and from common DE/HU equivalents.
-Skills compile these into matchers; the help panel lists the same set for
-the selected language only.
+At least ten display phrases per skill; a skill's help key may combine
+several intent tables. Taken from how people actually talk to Siri /
+Google Assistant / Alexa and from common DE/HU equivalents. Skills compile
+these into matchers; the help panel lists the combined set for the selected
+language only.
 """
 
 from __future__ import annotations
@@ -610,7 +611,7 @@ def compile_phrase_regex(
 
 
 def help_catalog(lang: str) -> dict[str, list[str]]:
-    """Ten display phrases per skill for one UI language."""
+    """Display phrases per skill for one UI language (at least ten display phrases per skill; a skill's help key may combine several intent tables)."""
     if lang not in {"en", "de", "hu"}:
         lang = "en"
     return {

@@ -6,7 +6,7 @@ Jarvis reacts to natural language. The phrases below are the **trigger patterns*
 
 You can speak or type them. Matching is case-insensitive and works in English, German and Hungarian.
 
-The Help panel (`?`) lists **ten everyday phrases per skill** for the language you pick with the flag (🇬🇧 / 🇩🇪 / 🇭🇺). The same catalog is at `GET /api/v1/skills/phrases?lang=en|de|hu`.
+The Help panel (`?`) lists everyday phrases per skill for the language you pick with the flag (🇬🇧 / 🇩🇪 / 🇭🇺). The same catalog is at `GET /api/v1/skills/phrases?lang=en|de|hu`.
 
 ## Notes
 
@@ -15,9 +15,9 @@ The Help panel (`?`) lists **ten everyday phrases per skill** for the language y
 | Create | remember this, save a note, make a note, take a note, jot this down, write this down, add a note | merk dir, schreib auf, notiere das, speichere eine notiz, halte fest, neue notiz | jegyzeteld, jegyezd meg, írd fel, mentsd el, új jegyzet |
 | List   | list my notes, show my notes, what notes do I have | meine notizen, notizen zeigen, welche notizen habe ich | listázd a jegyzeteket, mutasd a jegyzeteimet, milyen jegyzeteim vannak |
 
-**Example**  
-- “Note: buy milk tomorrow”  
-- “Merk dir: Meeting um 14 Uhr”  
+**Example**
+- “Note: buy milk tomorrow”
+- “Merk dir: Meeting um 14 Uhr”
 - “List notes”
 
 ## Reminders
@@ -38,15 +38,15 @@ Skill replies (Reminders, Notes, Active Recall, Web Search) match the user's lan
 
 When a reminder's time is reached **and the chat tab is open**, Jarvis shows a bubble and speaks it (poll about every 15s, and again when a turn finishes; no push, no WebSocket). A closed tab is silent — that is expected. Relative waits (`in 2 minutes`) and local clock times (`at 13:30`) both fire this way. A clock time already past locally is stored for **tomorrow**. A reminder with no time never fires.
 
-**Example**  
-- “Remind me tomorrow at 10 to call the dentist”  
-- “Erinner mich morgen um 14 Uhr an den Zahnarzt”  
-- “Is there anything for me today?”  
-- “Do I have a reminder?”  
-- “Was steht heute an?”  
-- “Was steht nächste Woche an?”  
-- “Wann habe ich meinen Termin bei der Arbeitsagentur?”  
-- “Show reminders”  
+**Example**
+- “Remind me tomorrow at 10 to call the dentist”
+- “Erinner mich morgen um 14 Uhr an den Zahnarzt”
+- “Is there anything for me today?”
+- “Do I have a reminder?”
+- “Was steht heute an?”
+- “Was steht nächste Woche an?”
+- “Wann habe ich meinen Termin bei der Arbeitsagentur?”
+- “Show reminders”
 - “Delete the reminder do I have a”
 
 ## Web Search
@@ -55,12 +55,12 @@ When a reminder's time is reached **and the chat tab is open**, Jarvis shows a b
 |--------|---------|--------|-----------|
 | Search | search, google, look up, find out, what is, who is | suche, finde, nachschlagen, was ist, wer ist | keress, keresés, mi az, ki az |
 
-Longer prefixes that are stripped automatically:  
+Longer prefixes that are stripped automatically:
 `search for`, `look up`, `find out`, `google for`, `suche nach`, `finde heraus`, `keress rá`.
 
-**Example**  
-- “Search for the weather in Berlin”  
-- “Was ist die Hauptstadt von Japan?”  
+**Example**
+- “Search for the weather in Berlin”
+- “Was ist die Hauptstadt von Japan?”
 - “Keress rá OpenAI”
 
 ## Personal memory (Conversation → Semantic Memory)
@@ -88,11 +88,11 @@ These are **not** a routed skill. Say them in a normal sentence; Jarvis extracts
 |--------|---------|--------|-----------|
 | Recall | what do you know about…, what is my name, what do you remember about…, my preferences | was weißt du über…, wie heiße ich, wie ist mein Name, meine vorlieben | mit tudsz rólam, mi a nevem, hogy hívnak, mire emlékszel |
 
-**Example**  
-- “What do you know about me?”  
-- “What is my name?”  
-- “Wie heiße ich?”  
-- “Was weißt du über meine Vorlieben?”  
+**Example**
+- “What do you know about me?”
+- “What is my name?”
+- “Wie heiße ich?”
+- “Was weißt du über meine Vorlieben?”
 - “Recall what I told you about allergies”
 
 ## Notes on matching

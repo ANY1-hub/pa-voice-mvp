@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Help overlay and user guide no longer claim exactly ten phrases per skill; sections combine several trigger tables.
+
 ## [0.4.0] - 2026-09-24
 
 MVP release (demo 18.09.2026). Consolidates the former dated Unreleased blocks.

@@ -24,7 +24,7 @@ def _registry() -> SkillRegistry:
 
 
 def test_help_catalog_has_ten_phrases_per_skill_per_language():
-    """Each language must expose exactly ten spoken phrases per skill."""
+    """Each language must expose at least ten spoken phrases per skill."""
     for lang in ("en", "de", "hu"):
         catalog = help_catalog(lang)
         assert set(catalog) == {

@@ -697,3 +697,201 @@ def test_screenshot_pngs_are_not_gitignored():
     for rel in _SCREENSHOT_IMAGES:
         result = _git("check-ignore", "-q", rel)
         assert result.returncode == 1, f"{rel} is gitignored (exit {result.returncode})"
+
+
+# --------------------------------------------------------------------------
+# Slice-Brief 19: helpIntro count wording + user-guide + CHANGELOG
+# --------------------------------------------------------------------------
+
+# Number words 2..20 (exclude one/ein/eine/egy — articles / ambiguous).
+_COUNT_WORDS: dict[str, tuple[str, ...]] = {
+    "en": (
+        "two",
+        "three",
+        "four",
+        "five",
+        "six",
+        "seven",
+        "eight",
+        "nine",
+        "ten",
+        "eleven",
+        "twelve",
+        "thirteen",
+        "fourteen",
+        "fifteen",
+        "sixteen",
+        "seventeen",
+        "eighteen",
+        "nineteen",
+        "twenty",
+    ),
+    "de": (
+        "zwei",
+        "drei",
+        "vier",
+        "fünf",
+        "sechs",
+        "sieben",
+        "acht",
+        "neun",
+        "zehn",
+        "elf",
+        "zwölf",
+        "dreizehn",
+        "vierzehn",
+        "fünfzehn",
+        "sechzehn",
+        "siebzehn",
+        "achtzehn",
+        "neunzehn",
+        "zwanzig",
+    ),
+    "hu": (
+        "két",
+        "kettő",
+        "három",
+        "négy",
+        "öt",
+        "hat",
+        "hét",
+        "nyolc",
+        "kilenc",
+        "tíz",
+        "tizenegy",
+        "tizenkettő",
+        "tizenkét",
+        "tizenhárom",
+        "tizennégy",
+        "tizenöt",
+        "tizenhat",
+        "tizenhét",
+        "tizennyolc",
+        "tizenkilenc",
+        "húsz",
+    ),
+}
+
+# Old helpIntro literals (base 0bd1caa); assembled so source is explicit.
+_OLD_HELP_INTRO = {
+    "en": (
+        "Ten everyday phrases per skill in the GUI language. "
+        "First match wins; otherwise the general assistant answers."
+    ),
+    "de": (
+        "Zehn Alltagssätze pro Skill in der GUI-Sprache. "
+        "Der erste Treffer gewinnt; sonst antwortet der allgemeine Assistent."
+    ),
+    "hu": (
+        "Tíz mindennapi kifejezés készségenként a felület nyelvén. "
+        "Az első találat nyer; különben az általános asszisztens válaszol."
+    ),
+}
+_SUGGESTED_EN_HELP_INTRO = (
+    "Everyday trigger phrases per skill in the GUI language. "
+    "First match wins; otherwise the general assistant answers."
+)
+_OLD_USER_GUIDE_HELP_SENTENCE = (
+    "The Help panel (`?`) lists **ten everyday phrases per skill** "
+    "for the language you pick with the flag (🇬🇧 / 🇩🇪 / 🇭🇺)."
+)
+
+
+def _count_claim_hits(text: str, lang: str) -> list[str]:
+    """Return digit / number-word hits (2..20) in ``text`` for ``lang``."""
+    assert lang in _COUNT_WORDS, lang
+    hits: list[str] = []
+    for match in re.finditer(r"(?<!\w)\d+(?!\w)", text):
+        hits.append(match.group(0))
+    # Sort longer words first so tizenegy beats egy-suffix noise; use word bounds.
+    words = sorted(_COUNT_WORDS[lang], key=len, reverse=True)
+    pattern = re.compile(
+        r"(?<!\w)(?:" + "|".join(re.escape(w) for w in words) + r")(?!\w)",
+        re.IGNORECASE,
+    )
+    for match in pattern.finditer(text):
+        hits.append(match.group(0))
+    return hits
+
+
+def _i18n_value(lang: str, key: str) -> str:
+    """Return one quoted string value from ``frontend/js/i18n.js`` for a language."""
+    source = _read("frontend/js/i18n.js")
+    block = re.search(
+        rf"(?ms)^\s*{re.escape(lang)}:\s*\{{(.*?)(?=^\s*(?:en|de|hu):\s*\{{|^\}}\s*;)",
+        source,
+    )
+    assert block, f"i18n.js has no {lang!r} block"
+    match = re.search(
+        rf'(?m)^\s*{re.escape(key)}:\s*"((?:\\.|[^"\\])*)"',
+        block.group(1),
+    )
+    assert match, f"i18n.js {lang}.{key} missing"
+    return match.group(1)
+
+
+def _guide_phrase_count_claims(guide_text: str) -> list[str]:
+    """EN count claims that share a sentence with 'phrase' or 'trigger'."""
+    chunks = re.split(r"(?<=[.!?])\s+|\n+", guide_text)
+    hits: list[str] = []
+    for chunk in chunks:
+        if not re.search(r"phrase|trigger", chunk, re.IGNORECASE):
+            continue
+        found = _count_claim_hits(chunk, "en")
+        if found:
+            hits.append(f"{found!r} in {chunk.strip()[:120]!r}")
+    return hits
+
+
+def test_help_intro_has_no_count_claim_per_language():
+    """helpIntro must not claim a fixed phrase count in EN, DE or HU."""
+    for lang in ("en", "de", "hu"):
+        intro = _i18n_value(lang, "helpIntro")
+        assert intro.strip(), f"{lang} helpIntro empty"
+        hits = _count_claim_hits(intro, lang)
+        assert (
+            hits == []
+        ), f"{lang} helpIntro still claims a count: {hits!r} in {intro!r}"
+
+
+def test_help_intro_count_detector_control_twin():
+    """Detector flags the old Ten/Zehn/Tíz intros and accepts the suggested EN line."""
+    for lang, old in _OLD_HELP_INTRO.items():
+        hits = _count_claim_hits(old, lang)
+        assert hits, f"detector missed old {lang} helpIntro: {old!r}"
+    assert _count_claim_hits(_SUGGESTED_EN_HELP_INTRO, "en") == []
+
+
+def test_help_intro_mentions_phrases_or_triggers():
+    """Each helpIntro still talks about phrases/triggers (light content anchor)."""
+    en = _i18n_value("en", "helpIntro")
+    assert re.search(r"phrase|trigger", en, re.IGNORECASE), en
+    de = _i18n_value("de", "helpIntro")
+    assert re.search(r"s[aä]tz|phras|ausl[oö]ser|trigger", de, re.IGNORECASE), de
+    hu = _i18n_value("hu", "helpIntro")
+    assert re.search(r"kifejez|mondat|kulcssz|trigger", hu, re.IGNORECASE), hu
+
+
+def test_changelog_unreleased_fixed_help_intro_count_wording():
+    """Unreleased ### Fixed notes the helpIntro / help-overlay phrase-count wording."""
+    fixed = _subsection(_changelog_section("Unreleased"), "Fixed")
+    bullets = [line for line in fixed.splitlines() if line.lstrip().startswith("-")]
+    assert bullets, "### Fixed has no bullets"
+    assert any(
+        re.search(r"help", line, re.I) and re.search(r"phrase", line, re.I)
+        for line in bullets
+    ), f"no Fixed bullet about help phrase wording: {bullets}"
+
+
+def test_user_guide_has_no_fixed_phrase_count_claim():
+    """User guide must not claim a fixed EN phrase/trigger count per skill."""
+    hits = _guide_phrase_count_claims(_read("docs/user-guide.md"))
+    assert hits == [], "user-guide still claims a fixed phrase count:\n" + "\n".join(
+        hits
+    )
+
+
+def test_user_guide_phrase_count_detector_control_twin():
+    """Control: the old user-guide Help-panel 'ten … phrases' sentence is flagged."""
+    hits = _guide_phrase_count_claims(_OLD_USER_GUIDE_HELP_SENTENCE)
+    assert hits, "detector missed the old user-guide ten-phrases sentence"

@@ -13,7 +13,7 @@ router = APIRouter()
 async def skill_phrases(
     lang: str = Query(default="en", min_length=2, max_length=2),
 ) -> dict[str, Any]:
-    """Return the ten canonical trigger phrases per skill for one language.
+    """Return display trigger phrases per skill for one language (at least ten display phrases per skill; a skill's help key may combine several intent tables).
 
     Public: the help panel needs this before/without extra auth hops.
     """
