@@ -8,6 +8,10 @@
 
 ## Screenshots
 
+![Chat with memory and a reminder](docs/images/chat.png)
+
+Chat: working memory, an honest gap, and a timed reminder (demo account).
+
 ![Skills and Triggers help overlay](docs/images/help.png)
 
 Skills & Triggers overlay: phrase-router trigger phrases per skill (UI in English, German, Hungarian).

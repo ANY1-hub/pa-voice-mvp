@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- README chat screenshot (`docs/images/chat.png`): memory, an honest gap, and a timed reminder.
+
 ### Fixed
 - Help overlay and user guide no longer claim exactly ten phrases per skill; sections combine several trigger tables.
 
