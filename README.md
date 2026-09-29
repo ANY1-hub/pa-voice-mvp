@@ -98,6 +98,8 @@ Piper voice models are not in the repo; see [docs/piper-voice-setup.md](docs/pip
 uv run pytest
 ```
 
+`pre-commit install` already covers hook `mvp-closeout-screenshots`; `SKIP=mvp-closeout-screenshots` skips it. `uv` must be on PATH.
+
 CI enforces a **90%** coverage floor (`--cov-fail-under=90`).
 
 ## API

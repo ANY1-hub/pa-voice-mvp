@@ -474,8 +474,12 @@ def test_changelog_0_3_0_section_is_byte_identical():
 # --------------------------------------------------------------------------
 
 _PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
-_SCREENSHOT_IMAGES = ("docs/images/help.png", "docs/images/admin.png")
-_FORBIDDEN_README_IMAGE_BASENAMES = frozenset({"chat.png", "help_screen.png"})
+_SCREENSHOT_IMAGES = (
+    "docs/images/chat.png",
+    "docs/images/help.png",
+    "docs/images/admin.png",
+)
+_FORBIDDEN_README_IMAGE_BASENAMES = frozenset({"help_screen.png"})
 
 # Markdown ![alt](path) and HTML <img src="..." alt="..."> (either attr order).
 _MD_IMG = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
@@ -550,7 +554,7 @@ def _local_readme_image_problems(readme_text: str, repo_root: Path) -> list[str]
 
 
 def _forbidden_readme_image_refs(readme_text: str) -> list[str]:
-    """Return image paths whose basename is a slice-18 forbidden screenshot name."""
+    """Return image paths whose basename is the pre-rename Help_screen.png."""
     hits: list[str] = []
     for _alt, path in _iter_readme_images(readme_text):
         if _is_remote_or_data_url(path):
@@ -622,11 +626,12 @@ def test_readme_screenshots_h2_placement():
 
 
 def test_readme_screenshots_section_images_and_captions():
-    """Screenshots shows help.png then admin.png, each with alt text, caption, and content anchors."""
+    """Screenshots lists chat, help, then admin, each with alt, caption, and content anchors."""
     body = _screenshots_section_body(_readme_lines())
     blocks = _image_blocks_with_captions(body)
     paths = [path for _alt, path, _cap in blocks]
     assert paths == list(_SCREENSHOT_IMAGES), f"image paths: {paths}"
+    blobs: dict[str, str] = {}
     for alt, path, caption in blocks:
         assert alt.strip(), f"empty alt for {path}"
         assert caption.strip(), f"missing caption after {path}"
@@ -634,14 +639,18 @@ def test_readme_screenshots_section_images_and_captions():
             "#"
         ), f"caption looks like a heading: {caption!r}"
         assert not _iter_readme_images(caption), f"caption is an image: {caption!r}"
-    help_blob = (blocks[0][0] + " " + blocks[0][2]).lower()
-    admin_blob = (blocks[1][0] + " " + blocks[1][2]).lower()
+        blobs[path] = f"{alt} {caption}".lower()
     assert (
-        "trigger" in help_blob
-    ), f"help alt/caption must mention trigger: {help_blob!r}"
+        "memory" in blobs["docs/images/chat.png"]
+        and "reminder" in blobs["docs/images/chat.png"]
+    ), f"chat alt/caption must mention memory and reminder: {blobs['docs/images/chat.png']!r}"
     assert (
-        "user" in admin_blob and "demo" in admin_blob
-    ), f"admin alt/caption must mention user and demo: {admin_blob!r}"
+        "trigger" in blobs["docs/images/help.png"]
+    ), f"help alt/caption must mention trigger: {blobs['docs/images/help.png']!r}"
+    assert (
+        "user" in blobs["docs/images/admin.png"]
+        and "demo" in blobs["docs/images/admin.png"]
+    ), f"admin alt/caption must mention user and demo: {blobs['docs/images/admin.png']!r}"
 
 
 def test_local_readme_image_problems_on_real_readme():
@@ -670,19 +679,20 @@ def test_local_readme_image_problems_control_twin(tmp_path: Path):
 
 
 def test_readme_has_no_forbidden_screenshot_refs():
-    """README must not reference Chat.png / chat.png or the pre-rename Help_screen.png."""
+    """README must not reference the pre-rename Help_screen.png (chat.png is allowed)."""
     assert _forbidden_readme_image_refs(_read("README.md")) == []
 
 
 def test_forbidden_screenshot_refs_control_twin():
-    """Control: the forbidden-ref detector catches docs/images/Chat.png."""
-    planted = "See ![chat](docs/images/Chat.png) later."
+    """Control: Help_screen.png is still forbidden; the shipped chat.png is not."""
+    planted = "See ![old](docs/images/Help_screen.png) later."
     hits = _forbidden_readme_image_refs(planted)
-    assert hits == ["docs/images/Chat.png"], hits
+    assert hits == ["docs/images/Help_screen.png"], hits
+    assert _forbidden_readme_image_refs("![c](docs/images/chat.png)") == []
 
 
 def test_screenshot_png_files_exist_with_signature():
-    """help.png and admin.png exist as PNGs; the pre-rename Help_screen.png is gone."""
+    """chat.png, help.png and admin.png exist as PNGs; Help_screen.png is gone."""
     for rel in _SCREENSHOT_IMAGES:
         path = _ROOT / rel
         assert path.is_file(), f"{rel} is missing"
@@ -693,10 +703,55 @@ def test_screenshot_png_files_exist_with_signature():
 
 
 def test_screenshot_pngs_are_not_gitignored():
-    """help.png and admin.png must not be ignored (untracked-before-commit is fine)."""
+    """chat.png, help.png and admin.png must not be ignored (untracked is fine)."""
     for rel in _SCREENSHOT_IMAGES:
         result = _git("check-ignore", "-q", rel)
         assert result.returncode == 1, f"{rel} is gitignored (exit {result.returncode})"
+
+
+def _closeout_precommit_hook_present(yaml_text: str) -> bool:
+    """True when a local hook uv-runs pytest on the closeout file for README and images."""
+    chunks = re.split(r"(?m)^  - repo:", yaml_text)
+    for chunk in chunks:
+        head = chunk.lstrip()
+        if not head.startswith("local"):
+            continue
+        if "tests/test_mvp_closeout.py" not in chunk:
+            continue
+        if not re.search(r"\bpytest\b", chunk):
+            continue
+        if "uv run" not in chunk:
+            continue
+        if "README.md" not in chunk or "docs/images" not in chunk:
+            continue
+        return True
+    return False
+
+
+def test_precommit_runs_closeout_when_readme_or_images_change():
+    """A local pre-commit hook must pytest the screenshot contract on README and docs/images."""
+    text = _read(".pre-commit-config.yaml")
+    assert _closeout_precommit_hook_present(text), (
+        "missing local hook: uv run pytest tests/test_mvp_closeout.py "
+        "with a files filter covering README.md and docs/images/"
+    )
+
+
+def test_precommit_closeout_hook_detector_control_twin():
+    """Control: a local uv-run pytest hook on README.md and docs/images/ is recognised."""
+    sample = """
+repos:
+  - repo: local
+    hooks:
+      - id: mvp-closeout-screenshots
+        entry: uv run pytest tests/test_mvp_closeout.py -q --no-cov
+        language: system
+        files: README.md|docs/images/
+"""
+    assert _closeout_precommit_hook_present(sample)
+    assert not _closeout_precommit_hook_present(
+        "repos:\n  - repo: https://example.com\n"
+    )
 
 
 # --------------------------------------------------------------------------

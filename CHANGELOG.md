@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - README chat screenshot (`docs/images/chat.png`): memory, an honest gap, and a timed reminder.
 
+- Local pre-commit hook `mvp-closeout-screenshots` runs the screenshot contract tests when `README.md` or `docs/images/` changes.
+
 ### Fixed
 - Help overlay and user guide no longer claim exactly ten phrases per skill; sections combine several trigger tables.
 
