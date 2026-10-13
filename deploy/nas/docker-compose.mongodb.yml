@@ -1,4 +1,4 @@
-# MongoDB Community on Synology DS925+ (Container Manager)
+# MongoDB Community on Synology NAS (Container Manager)
 #
 # Usage:
 #   1. Copy this file to the NAS (e.g. /volume2/docker/pa-mongo/docker-compose.yml)
