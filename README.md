@@ -2,9 +2,14 @@
 
 **Voice-first personal assistant MVP** (Jarvis-inspired): speak or type in English, German, or Hungarian; get a spoken reply grounded in your own notes, reminders, and two-level memory.
 
-**Status:** MVP complete, demo 18.09.2026
+**Status:** Archived capstone v0.4.0, successor in planning
 
 [![CI](https://github.com/ANY1-hub/pa-voice-mvp/actions/workflows/ci.yml/badge.svg)](https://github.com/ANY1-hub/pa-voice-mvp/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-92%25-brightgreen)](.github/workflows/ci.yml)
+
+![Demo slideshow of the README screenshots](docs/images/demo.gif)
+
+Demo GIF: a slideshow of the three screenshots below, not a live recording.
 
 ## Screenshots
 
@@ -24,23 +29,40 @@ Admin user management with demo accounts (example.com addresses only).
 
 ```mermaid
 flowchart LR
-  UI["Browser UI\n(vanilla JS)"]
-  API["FastAPI\nJWT auth"]
+  subgraph FE["Frontend (vanilla JS)"]
+    HUD["Chat HUD\nmic · transcript · sidebar"]
+  end
+  subgraph API["FastAPI (src/api)"]
+    Auth["JWT auth · login limiter\n(src/auth)"]
+    Guard["Guardrails · input validation\n(src/security)"]
+  end
   STT["STT\nfaster-whisper"]
-  TTS["TTS\nPiper"]
-  LLM["LLM adapters\nOpenAI active\nGrok implemented, unwired\nGemini stub"]
-  Skills["Phrase-matched skills\nNotes · Reminders\nWeb Search · Active Recall"]
+  Orch["Orchestrator\n(src/services/orchestrator.py)"]
+  Router["Phrase router\n(skill registry + vocabulary)"]
+  Skills["Skills\nNotes · Reminders\nWeb Search · Active Recall"]
   Mem["Two-level memory\nWorking + Semantic"]
+  Emb["Embeddings\nOpenAI"]
+  LLM["LLM adapters\nOpenAI active\nGrok implemented, unwired\nGemini stub"]
+  TTS["TTS\nPiper"]
+  Sched["Scheduler\nconsolidation"]
   DB[(MongoDB)]
 
-  UI --> API
-  API --> STT
-  API --> TTS
-  API --> Skills
-  API --> LLM
-  API --> Mem
-  Mem --> DB
+  HUD -->|text / WAV| API
+  API --> Auth
+  API --> Guard
+  API -->|audio| STT
+  STT -->|transcript| Orch
+  Guard --> Orch
+  Orch --> Router
+  Router -->|match| Skills
+  Router -->|no match| LLM
+  Orch --> Mem
+  Mem --> Emb
+  Orch -->|reply text| TTS
+  TTS -->|audio| HUD
   Skills --> DB
+  Mem --> DB
+  Sched --> Mem
 ```
 
 ## Features
@@ -136,7 +158,13 @@ Built as a capstone project at the **Masterschool Institute of Technology**, pro
 
 ## How this was built
 
-AI-assisted, test-driven development with separate roles for writing tests, implementing product code, and reviewing architecture / security / docs. Slice briefs and coverage gates (90%) keep changes honest. No private tooling names belong in the public docs.
+AI-assisted, test-driven development with separate roles for writing tests, implementing product code, and reviewing architecture / security / docs. Slice briefs and coverage gates (90%) keep changes honest.
+
+## Author
+
+**Ákos Nyíry** — GitHub: [@ANY1-hub](https://github.com/ANY1-hub)
+
+Questions or feedback: please open an [issue](https://github.com/ANY1-hub/pa-voice-mvp/issues) (while the repository is not archived) or reach out via the GitHub profile.
 
 ## License
 

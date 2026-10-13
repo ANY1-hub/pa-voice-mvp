@@ -126,10 +126,13 @@ def test_placeholder_check_control_twin():
 # --------------------------------------------------------------------------
 
 
-def test_readme_status_line_has_mvp_complete_and_demo_date():
-    """Status says 'MVP complete, demo 18.09.2026' (the demo date, not the close-out date)."""
+def test_readme_status_line_marks_archived_capstone():
+    """Status says 'Archived capstone v0.4.0, successor in planning' (portfolio polish)."""
     readme = _read("README.md")
-    assert re.search(r"MVP complete,\s*demo 18\.09\.2026", readme)
+    assert re.search(
+        r"\*\*Status:\*\* Archived capstone v0\.4\.0, successor in planning", readme
+    )
+    assert "MVP complete, demo" not in readme
     assert not re.search(r"demo\s+24\.09\.2026", readme)
 
 
@@ -927,9 +930,9 @@ def test_help_intro_mentions_phrases_or_triggers():
     assert re.search(r"kifejez|mondat|kulcssz|trigger", hu, re.IGNORECASE), hu
 
 
-def test_changelog_unreleased_fixed_help_intro_count_wording():
-    """Unreleased ### Fixed notes the helpIntro / help-overlay phrase-count wording."""
-    fixed = _subsection(_changelog_section("Unreleased"), "Fixed")
+def test_changelog_v041_fixed_help_intro_count_wording():
+    """[0.4.1] ### Fixed notes the helpIntro / help-overlay phrase-count wording."""
+    fixed = _subsection(_changelog_section("0.4.1"), "Fixed")
     bullets = [line for line in fixed.splitlines() if line.lstrip().startswith("-")]
     assert bullets, "### Fixed has no bullets"
     assert any(
