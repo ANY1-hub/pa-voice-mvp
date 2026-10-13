@@ -162,9 +162,10 @@ AI-assisted, test-driven development with separate roles for writing tests, impl
 
 ## Author
 
-**Ákos Nyíry** — GitHub: [@ANY1-hub](https://github.com/ANY1-hub)
+**Ákos Nyíry**
 
-Questions or feedback: please open an [issue](https://github.com/ANY1-hub/pa-voice-mvp/issues) (while the repository is not archived) or reach out via the GitHub profile.
+- LinkedIn: [akos-nyiry](https://www.linkedin.com/in/akos-nyiry/) (preferred contact)
+- GitHub: [@ANY1-hub](https://github.com/ANY1-hub)
 
 ## License
 
