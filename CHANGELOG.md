@@ -7,9 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- README chat screenshot (`docs/images/chat.png`): memory, an honest gap, and a timed reminder.
+## [0.4.1] - 2026-10-13
 
+Portfolio polish: the repository is archived as a capstone; a successor is in planning.
+
+### Changed
+- README status: "Archived capstone v0.4.0, successor in planning".
+- README architecture Mermaid diagram now shows the request flow (HUD, API, STT, orchestrator, phrase router, skills, memory, LLM adapters, TTS).
+- NAS docs name a generic "Synology NAS" instead of a specific model.
+- AGENTS.md marks local-only, gitignored references as not part of the repo.
+- pyproject version `0.4.1`.
+
+### Added
+- README Author section, static coverage badge (92 %, local CI-equivalent run on 2026-10-13), and a demo GIF (`docs/images/demo.gif`, slideshow of the existing screenshots).
+- README chat screenshot (`docs/images/chat.png`): memory, an honest gap, and a timed reminder.
 - Local pre-commit hook `mvp-closeout-screenshots` runs the screenshot contract tests when `README.md` or `docs/images/` changes.
 
 ### Fixed

@@ -2,7 +2,7 @@
 
 Standing handbook for coding agents. Keep this short. No secrets, no session handoffs.
 
-If AGENTS.local.md exists, also read it.
+If AGENTS.local.md exists, also read it. (Local-only, gitignored; not part of this repository.)
 
 ## What this is
 Personal voice PA MVP (Masterschool). Repo: ANY1-hub/pa-voice-mvp. Working branch: `develop`.
@@ -12,7 +12,7 @@ Personal voice PA MVP (Masterschool). Repo: ANY1-hub/pa-voice-mvp. Working branc
 - Keep product stores separate: Jarvis Mongo WM+SM stays the only in-product memory.
 - This-month MVP: 2-level WM+SM, notes, reminders, tenant isolation, voice EN/DE/HU.
 - Out of scope unless a task explicitly says otherwise: 4-level Brain, family sharing, travel-time, video, LLM skill-router, WebSockets, collaborator-memory-as-product.
-- **EU AI Act compliance is mandatory** for product behaviour and Slice-Briefs (transparency, honest limits, risk-class awareness, human-controlled side effects). Local checklist: docs/research/eu-ai-act-standing-requirement.md (gitignored). Not legal advice — standing engineering constraint.
+- **EU AI Act compliance is mandatory** for product behaviour and Slice-Briefs (transparency, honest limits, risk-class awareness, human-controlled side effects). Local checklist: docs/research/eu-ai-act-standing-requirement.md (local-only, gitignored; not in this repo). Not legal advice — standing engineering constraint.
 
 ## Do-not-repeat (MVP)
 

@@ -1,4 +1,4 @@
-# MongoDB on Synology DS925+ (pa-voice-mvp)
+# MongoDB on Synology NAS (pa-voice-mvp)
 
 Local-first setup: **MongoDB Community Edition** in Docker (Container Manager) on the NAS.
 The FastAPI app runs on your Windows dev machine and connects over the LAN.
@@ -13,7 +13,7 @@ Windows Dev  (C:\Users\...\pa-voice-mvp)
        |
        |  MONGODB_URI = mongodb://USER:PASS@NAS_IP:27017/?authSource=admin
        v
-Synology DS925+
+Synology NAS
   Container Manager  ->  pa-mongo (mongo:8.0)
        |
        v
@@ -52,7 +52,7 @@ If the container fails with permission errors on `/data/db`, ensure the folder i
 
 - Template uses `mongo:8.0` (not `latest`).
 - After a known-good pull, you may pin a full patch tag (e.g. `mongo:8.0.12`) for reproducibility.
-- DS925+ (AMD) supports AVX required by MongoDB 5+.
+- Check that your Synology NAS CPU supports AVX (required by MongoDB 5+).
 
 ## 3. Start with Container Manager
 
